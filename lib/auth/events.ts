@@ -250,6 +250,24 @@ export async function canOperateDraw(admin: AdminProfile, eventId: string) {
   return canOperateDrawByRole(role);
 }
 
+export function canModerateQnaByRole(role: EventAccessRole | null) {
+  // Q&A moderation can expose participant-written text to the room, so approval
+  // and deletion are limited to event operators and Q&A moderators.
+  // screen_operator remains read-only for Q&A in this MVP.
+  return (
+    role === "super_admin" ||
+    role === "event_admin" ||
+    role === "operator" ||
+    role === "qna_moderator"
+  );
+}
+
+export async function canModerateQna(admin: AdminProfile, eventId: string) {
+  const role = await getEventScopedRole(admin, eventId);
+
+  return canModerateQnaByRole(role);
+}
+
 export async function requireEventAccess(eventId: string): Promise<{
   admin: AdminProfile;
   event: EventRecord;

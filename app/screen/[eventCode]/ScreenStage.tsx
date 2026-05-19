@@ -41,6 +41,14 @@ type ScreenState = {
     source_type: string;
     created_at: string | null;
   } | null;
+  qna: {
+    qna_question_id: string;
+    question_text: string;
+    participant_display_name: string;
+    organization: string | null;
+    group_name: string | null;
+    created_at: string | null;
+  } | null;
   stats: {
     total_answers: number;
     option_counts: Record<"1" | "2" | "3" | "4", number>;
@@ -337,6 +345,67 @@ function DrawPreparingView({ state }: { state: ScreenState }) {
   );
 }
 
+function QnaQuestionView({ state }: { state: ScreenState }) {
+  const qna = state.qna;
+
+  if (!qna) {
+    return <QnaWaitingView state={state} />;
+  }
+
+  const meta = [qna.organization, qna.group_name].filter(Boolean).join(" · ");
+
+  return (
+    <section className="flex flex-1 items-center justify-center rounded-3xl bg-white p-8 text-slate-950 shadow-2xl sm:p-12">
+      <div className="w-full">
+        <p className="text-3xl font-black uppercase tracking-normal text-cyan-700">
+          Audience Q&A
+        </p>
+        <div className="mt-8 rounded-3xl border border-cyan-200 bg-cyan-50 p-8 sm:p-10">
+          <p className="text-3xl font-black text-cyan-800">현장 질문</p>
+          <h2 className="mt-6 break-words text-5xl font-black leading-tight text-slate-950 sm:text-8xl">
+            {qna.question_text}
+          </h2>
+        </div>
+        <div className="mt-8 flex flex-wrap items-end justify-between gap-5 rounded-3xl border border-slate-200 bg-slate-50 p-7">
+          <div>
+            <p className="text-2xl font-black text-slate-500">질문자</p>
+            <p className="mt-2 text-5xl font-black text-slate-950">
+              {qna.participant_display_name}
+            </p>
+            {meta && (
+              <p className="mt-3 text-2xl font-bold text-slate-600">{meta}</p>
+            )}
+          </div>
+          <p className="text-2xl font-black text-cyan-700">
+            관리자 승인 완료
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function QnaWaitingView({ state }: { state: ScreenState }) {
+  return (
+    <section className="flex flex-1 items-center justify-center rounded-3xl bg-white p-10 text-center text-slate-950 shadow-2xl">
+      <div>
+        <p className="text-3xl font-black uppercase text-cyan-700">
+          Audience Q&A
+        </p>
+        <h2 className="mt-6 text-6xl font-black leading-tight sm:text-9xl">
+          질문을 기다리는 중입니다
+        </h2>
+        <p className="mt-6 text-3xl font-bold leading-tight text-slate-600">
+          QR을 통해 질문을 남겨주세요
+        </p>
+        <p className="mx-auto mt-8 max-w-4xl break-all rounded-3xl border border-slate-200 bg-slate-50 p-6 text-5xl font-black text-slate-950">
+          /e/{state.event.event_code}
+        </p>
+      </div>
+    </section>
+  );
+}
+
 function PlaceholderView({
   state,
   title,
@@ -483,12 +552,9 @@ export default function ScreenStage({ eventCode }: ScreenStageProps) {
       {scene === "result" && <ResultView state={state} />}
       {scene === "draw_winner" && <DrawWinnerView state={state} />}
       {scene === "draw" && <DrawPreparingView state={state} />}
-      {scene === "qna" && (
-        <PlaceholderView
-          state={state}
-          title="Q&A"
-          description="승인된 질문 송출은 다음 단계에서 연결됩니다."
-        />
+      {scene === "qna_question" && <QnaQuestionView state={state} />}
+      {(scene === "qna" || scene === "qna_waiting") && (
+        <QnaWaitingView state={state} />
       )}
       {![
         "inactive",
@@ -498,7 +564,9 @@ export default function ScreenStage({ eventCode }: ScreenStageProps) {
         "result",
         "draw",
         "draw_winner",
+        "qna_question",
         "qna",
+        "qna_waiting",
       ].includes(scene ?? "") && <WaitingView state={state} />}
     </Shell>
   );

@@ -1,8 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from "react";
 import { MobileCard, StatusBadge } from "@/components/quiz/ui";
-import { submitAnswer } from "./actions";
+import { submitAnswer, submitQnaQuestion } from "./actions";
 
 type ParticipantMode = "waiting" | "question" | "closed" | "result" | "draw" | "qna";
 
@@ -43,6 +50,12 @@ type ParticipantState = {
     answered_at: string;
     is_correct?: boolean;
   } | null;
+  qnaQuestions: Array<{
+    id: string;
+    question_text: string;
+    status: "pending" | "approved" | "hidden";
+    created_at: string | null;
+  }>;
   canAnswer: boolean;
   stats: {
     total_answers: number;
@@ -313,12 +326,117 @@ function SimpleModeCard({
   );
 }
 
+function qnaStatusLabel(status: "pending" | "approved" | "hidden") {
+  if (status === "approved") {
+    return "채택됨";
+  }
+
+  if (status === "hidden") {
+    return "미표시";
+  }
+
+  return "검토 중";
+}
+
+function QnaPanel({
+  state,
+  questionText,
+  pending,
+  message,
+  error,
+  onTextChange,
+  onSubmit,
+}: {
+  state: ParticipantState;
+  questionText: string;
+  pending: boolean;
+  message: string | null;
+  error: string | null;
+  onTextChange: (value: string) => void;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+}) {
+  const highlighted = state.liveState.mode === "qna";
+
+  return (
+    <MobileCard>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <StatusBadge tone={highlighted ? "cyan" : "slate"}>Q&A</StatusBadge>
+        <span className="text-xs font-black uppercase text-slate-400">
+          관리자 승인 후 표시
+        </span>
+      </div>
+      <h2 className="mt-4 text-2xl font-black text-slate-950">질문 남기기</h2>
+      <p className="mt-2 text-sm font-bold leading-6 text-slate-600">
+        질문은 바로 스크린에 보이지 않고, 관리자가 확인한 뒤 채택된 질문만
+        표시됩니다.
+      </p>
+
+      <form onSubmit={onSubmit} className="mt-5 grid gap-3">
+        <textarea
+          value={questionText}
+          onChange={(event) => onTextChange(event.target.value)}
+          maxLength={300}
+          rows={4}
+          placeholder="질문을 입력해 주세요."
+          className="w-full resize-none rounded-2xl border border-slate-300 bg-white px-4 py-3 text-base font-bold leading-7 text-slate-950 shadow-sm outline-none focus:border-slate-950"
+        />
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <span className="text-xs font-bold text-slate-500">
+            {questionText.length}/300
+          </span>
+          <button
+            type="submit"
+            disabled={pending}
+            className="min-h-12 rounded-2xl border border-slate-950 bg-slate-950 px-5 py-3 text-sm font-black text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {pending ? "접수 중" : "질문 제출"}
+          </button>
+        </div>
+      </form>
+
+      {message && (
+        <p className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-700">
+          {message}
+        </p>
+      )}
+      {error && (
+        <p className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-bold text-rose-700">
+          {error}
+        </p>
+      )}
+
+      {state.qnaQuestions.length > 0 && (
+        <div className="mt-6 grid gap-3">
+          <p className="text-sm font-black text-slate-700">내 최근 질문</p>
+          {state.qnaQuestions.map((question) => (
+            <div
+              key={question.id}
+              className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+            >
+              <p className="text-sm font-bold leading-6 text-slate-800">
+                {question.question_text}
+              </p>
+              <p className="mt-2 text-xs font-black text-slate-500">
+                {qnaStatusLabel(question.status)}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+    </MobileCard>
+  );
+}
+
 export default function PlayClient({ eventCode, eventTitle }: PlayClientProps) {
   const [state, setState] = useState<ParticipantState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitMessage, setSubmitMessage] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [pendingOption, setPendingOption] = useState<number | null>(null);
+  const [qnaQuestionText, setQnaQuestionText] = useState("");
+  const [qnaPending, setQnaPending] = useState(false);
+  const [qnaMessage, setQnaMessage] = useState<string | null>(null);
+  const [qnaError, setQnaError] = useState<string | null>(null);
   const [now, setNow] = useState<number | null>(null);
 
   const loadState = useCallback(async () => {
@@ -405,6 +523,61 @@ export default function PlayClient({ eventCode, eventTitle }: PlayClientProps) {
     }
   }
 
+  async function handleQnaSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (qnaPending) {
+      return;
+    }
+
+    setQnaPending(true);
+    setQnaMessage(null);
+    setQnaError(null);
+
+    try {
+      const result = await submitQnaQuestion(eventCode, qnaQuestionText);
+
+      if (result.ok) {
+        setQnaQuestionText("");
+        setQnaMessage(result.message);
+      } else {
+        setQnaError(result.message);
+      }
+
+      await refreshState();
+    } catch {
+      setQnaError("질문 접수 중 오류가 발생했습니다.");
+    } finally {
+      setQnaPending(false);
+    }
+  }
+
+  function withQna(content: ReactNode, qnaFirst = false) {
+    if (!state) {
+      return content;
+    }
+
+    const qnaPanel = (
+      <QnaPanel
+        state={state}
+        questionText={qnaQuestionText}
+        pending={qnaPending}
+        message={qnaMessage}
+        error={qnaError}
+        onTextChange={setQnaQuestionText}
+        onSubmit={handleQnaSubmit}
+      />
+    );
+
+    return (
+      <div className="grid gap-5">
+        {qnaFirst && qnaPanel}
+        {content}
+        {!qnaFirst && qnaPanel}
+      </div>
+    );
+  }
+
   if (!state) {
     return (
       <MobileCard>
@@ -422,7 +595,7 @@ export default function PlayClient({ eventCode, eventTitle }: PlayClientProps) {
   }
 
   if (state.liveState.mode === "question") {
-    return (
+    return withQna(
       <QuestionCard
         state={state}
         secondsLeft={secondsLeft}
@@ -435,15 +608,15 @@ export default function PlayClient({ eventCode, eventTitle }: PlayClientProps) {
   }
 
   if (state.liveState.mode === "closed") {
-    return <ClosedCard state={state} />;
+    return withQna(<ClosedCard state={state} />);
   }
 
   if (state.liveState.mode === "result") {
-    return <ResultCard state={state} />;
+    return withQna(<ResultCard state={state} />);
   }
 
   if (state.liveState.mode === "draw") {
-    return (
+    return withQna(
       <SimpleModeCard
         label="Draw"
         title="추첨이 진행 중입니다"
@@ -453,7 +626,7 @@ export default function PlayClient({ eventCode, eventTitle }: PlayClientProps) {
   }
 
   if (state.liveState.mode === "qna") {
-    return (
+    return withQna(
       <SimpleModeCard
         label="Q&A"
         title="Q&A가 진행 중입니다"
@@ -462,5 +635,5 @@ export default function PlayClient({ eventCode, eventTitle }: PlayClientProps) {
     );
   }
 
-  return <WaitingCard state={state} fallbackTitle={eventTitle} />;
+  return withQna(<WaitingCard state={state} fallbackTitle={eventTitle} />);
 }

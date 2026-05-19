@@ -44,6 +44,22 @@ type ScreenQuestionRow = {
   correct_option: number;
 };
 
+type ScreenQnaQuestionRow = {
+  id: string;
+  question_text: string;
+  participant_id: string | null;
+  status: "pending" | "approved" | "hidden" | "deleted";
+  created_at: string | null;
+};
+
+type ScreenQnaParticipantRow = {
+  id: string;
+  name: string;
+  display_name: string | null;
+  organization: string | null;
+  group_name: string | null;
+};
+
 function jsonResponse(body: unknown, status = 200) {
   return NextResponse.json(body, {
     status,
@@ -78,6 +94,14 @@ function defaultLiveState(): Omit<ScreenLiveState, "current_question_id"> {
   };
 }
 
+function toParticipantDisplayName(participant: ScreenQnaParticipantRow | null) {
+  return (
+    participant?.display_name?.trim() ||
+    participant?.name?.trim() ||
+    "익명 참가자"
+  );
+}
+
 function pickString(value: unknown) {
   return typeof value === "string" ? value : null;
 }
@@ -104,6 +128,81 @@ function toSafeDrawPayload(payload: unknown) {
     prize_name: prizeName,
     source_type: sourceType,
     created_at: createdAt,
+  };
+}
+
+async function getSafeQnaPayload({
+  eventId,
+  payload,
+}: {
+  eventId: string;
+  payload: unknown;
+}) {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    return null;
+  }
+
+  const source = payload as Record<string, unknown>;
+  const qnaQuestionId = pickString(source.qna_question_id);
+
+  if (!qnaQuestionId) {
+    return null;
+  }
+
+  const supabase = createAdminSupabaseClient();
+  const { data: qnaData, error: qnaError } = await supabase
+    .from("qna_questions")
+    .select("id, question_text, participant_id, status, created_at")
+    .eq("id", qnaQuestionId)
+    .eq("event_id", eventId)
+    .eq("status", "approved")
+    .maybeSingle();
+
+  if (qnaError) {
+    console.error("[screen-state] Failed to load approved Q&A question.", {
+      eventId,
+      qnaQuestionId,
+      message: qnaError.message,
+      code: qnaError.code,
+    });
+
+    return null;
+  }
+
+  if (!qnaData) {
+    return null;
+  }
+
+  const qnaQuestion = qnaData as ScreenQnaQuestionRow;
+  let participant: ScreenQnaParticipantRow | null = null;
+
+  if (qnaQuestion.participant_id) {
+    const { data: participantData, error: participantError } = await supabase
+      .from("participants")
+      .select("id, name, display_name, organization, group_name")
+      .eq("id", qnaQuestion.participant_id)
+      .eq("event_id", eventId)
+      .maybeSingle();
+
+    if (participantError) {
+      console.error("[screen-state] Failed to load Q&A participant display.", {
+        eventId,
+        qnaQuestionId,
+        message: participantError.message,
+        code: participantError.code,
+      });
+    }
+
+    participant = (participantData as ScreenQnaParticipantRow | null) ?? null;
+  }
+
+  return {
+    qna_question_id: qnaQuestion.id,
+    question_text: qnaQuestion.question_text,
+    participant_display_name: toParticipantDisplayName(participant),
+    organization: participant?.organization ?? null,
+    group_name: participant?.group_name ?? null,
+    created_at: qnaQuestion.created_at,
   };
 }
 
@@ -145,6 +244,7 @@ export async function GET(_request: Request, { params }: ScreenStateRouteProps) 
       },
       question: null,
       draw: null,
+      qna: null,
       stats: emptyAnswerStats(),
     });
   }
@@ -174,6 +274,13 @@ export async function GET(_request: Request, { params }: ScreenStateRouteProps) 
   };
   let question = null;
   let stats = emptyAnswerStats();
+  const qna =
+    liveState.mode === "qna" || liveState.screen_scene === "qna_question"
+      ? await getSafeQnaPayload({
+          eventId: screenEvent.id,
+          payload: liveState.screen_payload,
+        })
+      : null;
 
   if (liveState.current_question_id) {
     const { data: questionData, error: questionError } = await supabase
@@ -231,6 +338,7 @@ export async function GET(_request: Request, { params }: ScreenStateRouteProps) 
       liveState.mode === "draw" || liveState.screen_scene === "draw_winner"
         ? toSafeDrawPayload(liveState.screen_payload)
         : null,
+    qna,
     // correct_answers is omitted before reveal_answer to avoid leaking the key.
     stats,
   });

@@ -56,6 +56,13 @@ type ParticipantAnswerRow = {
   is_correct: boolean;
 };
 
+type ParticipantQnaQuestionRow = {
+  id: string;
+  question_text: string;
+  status: "pending" | "approved" | "hidden" | "deleted";
+  created_at: string | null;
+};
+
 function jsonResponse(body: unknown, status = 200) {
   return NextResponse.json(body, {
     status,
@@ -96,6 +103,37 @@ function hasQuestionEnded(questionEndsAt: string | null) {
   }
 
   return new Date(questionEndsAt).getTime() <= Date.now();
+}
+
+async function getRecentOwnQnaQuestions({
+  eventId,
+  participantId,
+}: {
+  eventId: string;
+  participantId: string;
+}) {
+  const supabase = createAdminSupabaseClient();
+  const { data, error } = await supabase
+    .from("qna_questions")
+    .select("id, question_text, status, created_at")
+    .eq("event_id", eventId)
+    .eq("participant_id", participantId)
+    .neq("status", "deleted")
+    .order("created_at", { ascending: false })
+    .limit(5);
+
+  if (error) {
+    console.error("[participant-state] Failed to load own Q&A questions.", {
+      eventId,
+      participantId,
+      message: error.message,
+      code: error.code,
+    });
+
+    return [];
+  }
+
+  return (data ?? []) as ParticipantQnaQuestionRow[];
 }
 
 export async function GET(
@@ -159,6 +197,10 @@ export async function GET(
   }
 
   const participant = participantData as ParticipantRow;
+  const qnaQuestions = await getRecentOwnQnaQuestions({
+    eventId: participantEvent.id,
+    participantId: participant.id,
+  });
 
   if (participantEvent.is_active === false) {
     return jsonResponse({
@@ -169,6 +211,7 @@ export async function GET(
       liveState: defaultLiveState(),
       question: null,
       answer: null,
+      qnaQuestions,
       canAnswer: false,
       stats: emptyAnswerStats(),
     });
@@ -292,6 +335,7 @@ export async function GET(
     },
     question,
     answer,
+    qnaQuestions,
     canAnswer,
     stats,
   });

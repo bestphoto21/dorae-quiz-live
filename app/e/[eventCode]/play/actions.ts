@@ -9,6 +9,11 @@ export type SubmitAnswerResult = {
   message: string;
 };
 
+export type SubmitQnaQuestionResult = {
+  ok: boolean;
+  message: string;
+};
+
 type EventRow = {
   id: string;
   event_code: string;
@@ -31,6 +36,203 @@ type QuestionRow = {
 
 function normalizeEventCode(eventCode: string) {
   return eventCode.trim().toLowerCase();
+}
+
+function normalizeQnaQuestionText(value: string) {
+  return value.replace(/\s+/g, " ").trim();
+}
+
+async function writeQnaSubmitLog({
+  eventId,
+  participantId,
+  qnaQuestionId,
+}: {
+  eventId: string;
+  participantId: string;
+  qnaQuestionId: string;
+}) {
+  const supabase = createAdminSupabaseClient();
+  const { error } = await supabase.from("operation_logs").insert({
+    event_id: eventId,
+    admin_user_id: null,
+    action: "qna_question_submitted",
+    detail: {
+      event_id: eventId,
+      participant_id: participantId,
+      qna_question_id: qnaQuestionId,
+    },
+  });
+
+  if (error) {
+    console.error("[participant-qna] Failed to write operation log.", {
+      eventId,
+      participantId,
+      qnaQuestionId,
+      message: error.message,
+      code: error.code,
+    });
+  }
+}
+
+export async function submitQnaQuestion(
+  eventCode: string,
+  questionTextValue: string
+): Promise<SubmitQnaQuestionResult> {
+  const normalizedEventCode = normalizeEventCode(eventCode);
+  const questionText = normalizeQnaQuestionText(questionTextValue);
+
+  if (questionText.length < 2) {
+    return {
+      ok: false,
+      message: "질문은 2자 이상 입력해 주세요.",
+    };
+  }
+
+  if (questionText.length > 300) {
+    return {
+      ok: false,
+      message: "질문은 300자 이내로 입력해 주세요.",
+    };
+  }
+
+  const participantSession =
+    await readParticipantSessionCookie(normalizedEventCode);
+
+  if (!participantSession) {
+    return {
+      ok: false,
+      message: "참가자 등록 정보를 확인할 수 없습니다. 다시 등록해 주세요.",
+    };
+  }
+
+  const supabase = createAdminSupabaseClient();
+  const { data: eventData, error: eventError } = await supabase
+    .from("events")
+    .select("id, event_code, is_active")
+    .eq("event_code", normalizedEventCode)
+    .maybeSingle();
+
+  if (eventError) {
+    console.error("[participant-qna] Failed to load event.", {
+      eventCode: normalizedEventCode,
+      message: eventError.message,
+      code: eventError.code,
+    });
+
+    return {
+      ok: false,
+      message: "행사 정보를 확인하는 중 오류가 발생했습니다.",
+    };
+  }
+
+  const event = eventData as EventRow | null;
+
+  if (
+    !event ||
+    event.is_active === false ||
+    event.id !== participantSession.event_id
+  ) {
+    return {
+      ok: false,
+      message: "현재 질문을 접수할 수 없는 행사입니다.",
+    };
+  }
+
+  const { data: participantData, error: participantError } = await supabase
+    .from("participants")
+    .select("id")
+    .eq("id", participantSession.participant_id)
+    .eq("event_id", event.id)
+    .maybeSingle();
+
+  if (participantError) {
+    console.error("[participant-qna] Failed to load participant.", {
+      eventId: event.id,
+      participantId: participantSession.participant_id,
+      message: participantError.message,
+      code: participantError.code,
+    });
+
+    return {
+      ok: false,
+      message: "참가자 정보를 확인하는 중 오류가 발생했습니다.",
+    };
+  }
+
+  if (!participantData) {
+    return {
+      ok: false,
+      message: "참가자 등록 정보를 찾을 수 없습니다. 다시 등록해 주세요.",
+    };
+  }
+
+  const { data: recentQuestion, error: recentQuestionError } = await supabase
+    .from("qna_questions")
+    .select("created_at")
+    .eq("event_id", event.id)
+    .eq("participant_id", participantSession.participant_id)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (recentQuestionError) {
+    console.error("[participant-qna] Failed to load recent question.", {
+      eventId: event.id,
+      participantId: participantSession.participant_id,
+      message: recentQuestionError.message,
+      code: recentQuestionError.code,
+    });
+  }
+
+  if (
+    recentQuestion?.created_at &&
+    Date.now() - new Date(recentQuestion.created_at).getTime() < 5000
+  ) {
+    return {
+      ok: false,
+      message: "질문은 잠시 후 다시 제출해 주세요.",
+    };
+  }
+
+  const { data: insertedQuestion, error: insertError } = await supabase
+    .from("qna_questions")
+    .insert({
+      event_id: event.id,
+      participant_id: participantSession.participant_id,
+      question_text: questionText,
+      status: "pending",
+      is_pinned: false,
+    })
+    .select("id")
+    .single();
+
+  if (insertError || !insertedQuestion) {
+    console.error("[participant-qna] Failed to insert question.", {
+      eventId: event.id,
+      participantId: participantSession.participant_id,
+      message: insertError?.message,
+      code: insertError?.code,
+    });
+
+    return {
+      ok: false,
+      message: "질문 접수 중 오류가 발생했습니다.",
+    };
+  }
+
+  await writeQnaSubmitLog({
+    eventId: event.id,
+    participantId: participantSession.participant_id,
+    qnaQuestionId: insertedQuestion.id,
+  });
+
+  revalidatePath(`/e/${event.event_code}/play`);
+  revalidatePath(`/admin/events/${event.id}/qna`);
+
+  return {
+    ok: true,
+    message: "질문이 접수되었습니다. 관리자가 확인 후 화면에 표시됩니다.",
+  };
 }
 
 function toSelectedOption(value: number) {
