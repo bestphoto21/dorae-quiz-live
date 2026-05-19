@@ -8,6 +8,7 @@ This stage only defines the database shape, constraints, indexes, triggers, and 
 
 - `supabase/migrations/001_initial_schema.sql`
 - `supabase/migrations/002_extend_event_platform_schema.sql`
+- `supabase/migrations/003_admin_access_schema.sql`
 
 `001_initial_schema.sql` includes:
 
@@ -29,9 +30,17 @@ This stage only defines the database shape, constraints, indexes, triggers, and 
 - Flexible screen scene and screen payload fields
 - Supporting constraints, comments, and indexes
 
-If `001_initial_schema.sql` has already been applied in the Supabase SQL Editor, run `002_extend_event_platform_schema.sql` as the next script. That is the recommended path.
+`003_admin_access_schema.sql` adds the admin authorization foundation:
 
-Because the project is still in an early development stage with little or no production data, it is also possible to drop the created tables and rerun `001` followed by `002`. Use that reset path only when you intentionally want a clean database. The default recommendation is to apply `002` on top of the existing `001` schema.
+- `admin_profiles` linked to Supabase Auth users
+- `event_admins` for event-scoped administrator access
+- an optional foreign key from `operation_logs.admin_user_id` to `admin_profiles.id`
+- RLS enabled for the new admin tables, still deny-by-default
+- supporting constraints, comments, indexes, and the existing `updated_at` trigger
+
+If `001_initial_schema.sql` has already been applied in the Supabase SQL Editor, run `002_extend_event_platform_schema.sql` as the next script. After `002` is applied, run `003_admin_access_schema.sql`. That is the recommended path.
+
+Because the project is still in an early development stage with little or no production data, it is also possible to drop the created tables and rerun `001`, `002`, and `003` in order. Use that reset path only when you intentionally want a clean database. The default recommendation is to apply `003` on top of the existing `001` and `002` schema.
 
 ## Relationship Overview
 
@@ -50,6 +59,9 @@ erDiagram
   prizes ||--o{ draw_winners : awards
   participants ||--o{ draw_winners : wins
   events ||--o{ operation_logs : records
+  admin_profiles ||--o{ event_admins : assigned
+  events ||--o{ event_admins : grants
+  admin_profiles ||--o{ operation_logs : performs
 ```
 
 ## Table Roles
@@ -256,6 +268,49 @@ Examples:
 
 `detail` is `jsonb` so each action can store contextual metadata without changing the table schema.
 
+`003_admin_access_schema.sql` links `operation_logs.admin_user_id` to `admin_profiles.id` when an operator identity is available.
+
+### `admin_profiles`
+
+Stores administrator profile records linked one-to-one to Supabase Auth users.
+
+Important fields:
+
+- `id`: primary key and foreign key to `auth.users(id)`
+- `email`: administrator email, unique
+- `name`: optional display name
+- `role`: global admin role
+- `is_active`: when false, the user must not be allowed to access admin features
+
+Allowed `role` values:
+
+- `super_admin`
+- `event_admin`
+- `operator`
+- `screen_operator`
+- `qna_moderator`
+
+This table is the foundation for future Supabase Auth based admin login. It does not implement login UI, session middleware, or RLS policies by itself.
+
+### `event_admins`
+
+Maps administrators to the events they can operate.
+
+Important fields:
+
+- `event_id`: event the administrator can access
+- `admin_user_id`: administrator profile
+- `role`: event-scoped role
+
+Allowed event-scoped `role` values:
+
+- `event_admin`
+- `operator`
+- `screen_operator`
+- `qna_moderator`
+
+The pair `(event_id, admin_user_id)` is unique so the same administrator has one event-scoped role row per event.
+
 ## Core Constraints
 
 - `events.event_code` is unique and required.
@@ -278,6 +333,11 @@ Examples:
 - `draw_winners.source_type` is limited to known draw source modes.
 - `draw_winners.status` is limited to prize fulfillment states.
 - `draw_winners` prevents duplicate winners within the same event.
+- `admin_profiles.email` is unique and required.
+- `admin_profiles.role` is limited to administrator roles.
+- `event_admins.role` is limited to event-scoped administrator roles.
+- `event_admins` prevents duplicate `(event_id, admin_user_id)` assignments.
+- `operation_logs.admin_user_id` can reference `admin_profiles.id`.
 
 ## Index Strategy
 
@@ -293,6 +353,8 @@ The migration adds indexes for the main expected access patterns:
 - Q&A moderation by event, status, pinned state, and created time
 - Prize and winner lookup by event, prize, and fulfillment status
 - Operation log lookup by event, admin user, action, and created time
+- Admin profile lookup by email, role, and active state
+- Event admin lookup by event, admin user, event-admin pair, and event role
 
 ## `updated_at` Trigger
 
@@ -307,12 +369,13 @@ The function is attached to:
 - `quiz_sessions`
 - `questions`
 - `live_state`
+- `admin_profiles`
 
 These tables are expected to be updated during event setup or live operation.
 
 ## RLS Direction
 
-RLS is enabled on every table in the initial migration.
+RLS is enabled on every application table created by these migrations.
 
 No permissive public policies are created yet. This is intentional. With RLS enabled and no policies, Supabase API access is deny-by-default until authentication, participant session identity, and screen access design are finalized.
 
@@ -386,11 +449,68 @@ Expected future access:
 Security direction:
 
 - Add a real admin identity model before creating permissive admin policies.
-- Possible options:
-  - Supabase Auth with an `admin_users` table.
-  - Supabase Auth with custom JWT claims.
-  - Event-scoped admin membership if multiple operators manage different events.
+- `admin_profiles` is linked to Supabase Auth users.
+- `event_admins` grants event-scoped access for non-super-admin operators.
 - Log sensitive operator actions into `operation_logs`.
+
+## Admin Permission Model
+
+`003_admin_access_schema.sql` creates a two-layer admin model.
+
+### Global Admin Profile
+
+`admin_profiles` stores the identity and global role for each administrator. The `id` column references `auth.users(id)`, so each admin profile belongs to a Supabase Auth user.
+
+`is_active = false` must block admin access even if the user can still authenticate. Future middleware, server actions, route handlers, and RLS policies must check this flag.
+
+### Event Assignment
+
+`event_admins` controls which administrator can access which event.
+
+This supports event-specific operation, where one operator may manage only one event while another can manage several events.
+
+### Role Meanings
+
+`super_admin`
+
+- Platform-wide administrator.
+- Intended to manage every event and administrator.
+- Should not require an `event_admins` row for each event.
+- Should be rare and tightly controlled.
+
+`event_admin`
+
+- Event-scoped administrator.
+- Can manage assigned event settings, questions, live operation, Q&A, draw setup, and event operators.
+- Requires an `event_admins` row unless the user is also a `super_admin`.
+
+`operator`
+
+- General event operator.
+- Intended for live running tasks such as starting questions, closing questions, revealing answers, and managing event flow.
+
+`screen_operator`
+
+- Projection and screen control role.
+- Intended to manage `live_state`, `screen_scene`, and screen-safe payloads.
+- Should not require access to participant phone numbers.
+
+`qna_moderator`
+
+- Q&A moderation role.
+- Intended to approve, hide, pin, or manage audience questions.
+- Should only send approved Q&A to projection surfaces.
+
+### Participant Privacy Under Admin Access
+
+Participant phone numbers and normalized phone numbers must be visible only to administrators with a legitimate operational need.
+
+Future RLS and server code should ensure:
+
+- screen operators do not need phone access
+- Q&A moderators do not need phone access by default
+- event admins may access phone data only for registration support or exports
+- all exports and sensitive reads should be logged in `operation_logs`
 
 ## Privacy Notes
 
@@ -432,11 +552,11 @@ These surfaces should:
 
 This stage does not implement:
 
-- Supabase project connection
-- Environment variables
-- Supabase client/server helpers
 - Authentication
-- Admin user model
+- Supabase Auth login UI
+- Admin middleware or route protection
+- Admin profile creation/invitation flow
+- Concrete admin RLS policies
 - Participant registration saving
 - Answer submission logic
 - Realtime subscriptions
@@ -450,9 +570,12 @@ This stage does not implement:
 
 The next stage should define the application access model before adding Supabase code:
 
-1. Choose admin authentication strategy.
-2. Decide whether screen access uses a signed token, server-rendered route, or RPC.
-3. Decide how participant identity is stored after join.
-4. Add server actions or route handlers for participant join, answer submit, and Q&A submit.
-5. Add read-safe views or RPC functions for screen projection.
-6. Add concrete RLS policies only after those access paths are decided.
+1. Implement Supabase Auth based admin login UI.
+2. Add middleware or server-side route protection for `/admin`.
+3. Add server helpers that load the current active `admin_profiles` row.
+4. Add event access checks through `event_admins`.
+5. Decide whether screen access uses a signed token, server-rendered route, or RPC.
+6. Decide how participant identity is stored after join.
+7. Add server actions or route handlers for participant join, answer submit, and Q&A submit.
+8. Add read-safe views or RPC functions for screen projection.
+9. Add concrete RLS policies only after those access paths are decided.
