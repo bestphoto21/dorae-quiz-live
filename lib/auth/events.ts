@@ -219,6 +219,24 @@ export async function canEditEventQuestions(
   return canEditEventQuestionsByRole(role);
 }
 
+export function canOperateLiveByRole(role: EventAccessRole | null) {
+  // Live control is broader than question editing because screen operators need
+  // to run the stage display. Q&A moderators can inspect event pages, but they
+  // must not control quiz progression.
+  return (
+    role === "super_admin" ||
+    role === "event_admin" ||
+    role === "operator" ||
+    role === "screen_operator"
+  );
+}
+
+export async function canOperateLive(admin: AdminProfile, eventId: string) {
+  const role = await getEventScopedRole(admin, eventId);
+
+  return canOperateLiveByRole(role);
+}
+
 export async function requireEventAccess(eventId: string): Promise<{
   admin: AdminProfile;
   event: EventRecord;
