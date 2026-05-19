@@ -1,65 +1,84 @@
-import Image from "next/image";
+import Link from "next/link";
+import {
+  DemoCard,
+  PrimaryLink,
+  SectionShell,
+  StatusBadge,
+} from "@/components/quiz/ui";
+
+const routes = [
+  { href: "/e/dorae2026", label: "참가자 홈" },
+  { href: "/e/dorae2026/join", label: "참가 등록" },
+  { href: "/e/dorae2026/play", label: "문제 풀이" },
+  { href: "/screen/dorae2026", label: "송출 화면" },
+  { href: "/admin", label: "운영자 홈" },
+  { href: "/admin/events", label: "이벤트 관리" },
+];
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <main className="min-h-screen bg-slate-950 text-white">
+      <section className="mx-auto flex min-h-screen w-full max-w-7xl flex-col justify-between px-5 py-6 sm:px-8 lg:px-10">
+        <header className="flex flex-wrap items-center justify-between gap-4">
+          <Link href="/" className="text-xl font-black">
+            Dorae Quiz Live
+          </Link>
+          <StatusBadge tone="cyan">Stage 1 Dummy UI</StatusBadge>
+        </header>
+
+        <div className="grid gap-8 py-12 lg:grid-cols-[1fr_28rem] lg:items-center">
+          <div>
+            <p className="text-base font-bold uppercase text-cyan-200">
+              Live Event Quiz Platform
+            </p>
+            <h1 className="mt-5 max-w-4xl text-5xl font-black leading-none sm:text-7xl lg:text-8xl">
+              현장 퀴즈를 크게, 빠르게, 실수 없이.
+            </h1>
+            <p className="mt-6 max-w-2xl text-xl leading-9 text-slate-300">
+              참가자 모바일 화면, 대형 송출 화면, 운영자 콘솔의 기본 라우팅과
+              더미 UI를 갖춘 1단계 프로젝트입니다.
+            </p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <PrimaryLink href="/e/dorae2026">참가자 화면 보기</PrimaryLink>
+              <PrimaryLink href="/admin" variant="light">
+                운영자 화면 보기
+              </PrimaryLink>
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-white/15 bg-white p-5 text-slate-950 shadow-2xl">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+              <p className="text-sm font-bold uppercase text-slate-500">
+                Now On Screen
+              </p>
+              <p className="mt-4 text-5xl font-black">Q1</p>
+              <p className="mt-4 text-2xl font-black leading-tight">
+                오늘 행사의 첫 번째 퀴즈가 곧 시작됩니다.
+              </p>
+              <div className="mt-6 grid grid-cols-2 gap-3">
+                {["A", "B", "C", "D"].map((label) => (
+                  <div
+                    key={label}
+                    className="rounded-2xl border border-slate-200 bg-white p-4 text-2xl font-black"
+                  >
+                    {label}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+
+        <SectionShell className="bg-white text-slate-950">
+          <div className="grid gap-3 md:grid-cols-3">
+            {routes.map((route) => (
+              <DemoCard key={route.href} href={route.href} title={route.label}>
+                {route.href}
+              </DemoCard>
+            ))}
+          </div>
+        </SectionShell>
+      </section>
+    </main>
   );
 }
