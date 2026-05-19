@@ -30,7 +30,7 @@ export default async function AdminEventLayout({
             행사 목록
           </Link>
           <div className="min-w-0">
-            <p className="truncate text-sm font-black text-slate-950">
+            <p className="truncate text-sm font-black text-[color:#0a1a38]">
               {event.title}
             </p>
             <p className="text-xs font-bold text-slate-700">
@@ -42,7 +42,7 @@ export default async function AdminEventLayout({
               <Link
                 key={link.href}
                 href={link.href}
-                className="shrink-0 rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-black text-slate-950 transition hover:border-slate-950 hover:bg-slate-50"
+                className="shrink-0 rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-black text-[color:#0a1a38] transition hover:border-[#0a1a38] hover:bg-slate-50"
               >
                 {link.label}
               </Link>

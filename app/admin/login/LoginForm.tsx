@@ -28,7 +28,7 @@ export default function LoginForm() {
           type="email"
           autoComplete="email"
           required
-          className="mt-2 w-full rounded-2xl border border-slate-400 bg-white px-5 py-4 text-lg font-bold text-slate-950 shadow-sm outline-none placeholder:text-slate-500 focus:border-slate-950"
+          className="mt-2 w-full rounded-2xl border border-slate-400 bg-white px-5 py-4 text-lg font-bold text-[color:#0a1a38] shadow-sm outline-none placeholder:text-slate-500 focus:border-[#0a1a38]"
           placeholder="admin@example.com"
         />
       </div>
@@ -46,7 +46,7 @@ export default function LoginForm() {
           type="password"
           autoComplete="current-password"
           required
-          className="mt-2 w-full rounded-2xl border border-slate-400 bg-white px-5 py-4 text-lg font-bold text-slate-950 shadow-sm outline-none placeholder:text-slate-500 focus:border-slate-950"
+          className="mt-2 w-full rounded-2xl border border-slate-400 bg-white px-5 py-4 text-lg font-bold text-[color:#0a1a38] shadow-sm outline-none placeholder:text-slate-500 focus:border-[#0a1a38]"
           placeholder="비밀번호"
         />
       </div>
@@ -60,7 +60,7 @@ export default function LoginForm() {
       <button
         type="submit"
         disabled={isPending}
-        className="min-h-14 rounded-2xl border border-slate-950 bg-slate-950 px-5 py-4 text-lg font-black text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-200 disabled:text-slate-700"
+        className="min-h-14 rounded-2xl border border-[#0a1a38] bg-[#0a1a38] px-5 py-4 text-lg font-black text-white shadow-sm transition hover:bg-[#10284f] disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-200 disabled:text-slate-700"
       >
         {isPending ? "로그인 중..." : "로그인"}
       </button>

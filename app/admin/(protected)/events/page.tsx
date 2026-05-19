@@ -36,7 +36,7 @@ function EventCard({ event }: { event: EventRecord }) {
           <StatusBadge tone={active ? "green" : "amber"}>
             {active ? "활성" : "비활성"}
           </StatusBadge>
-          <h2 className="mt-4 text-2xl font-black leading-tight text-slate-950">
+          <h2 className="mt-4 text-2xl font-black leading-tight text-[color:#0a1a38]">
             {event.title}
           </h2>
           {event.subtitle && (
@@ -47,7 +47,7 @@ function EventCard({ event }: { event: EventRecord }) {
         </div>
         <Link
           href={`/admin/events/${event.id}`}
-          className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-slate-950 bg-slate-950 px-4 py-2 text-sm font-black text-white shadow-sm transition hover:bg-slate-800"
+          className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-[#0a1a38] bg-[#0a1a38] px-4 py-2 text-sm font-black text-white shadow-sm transition hover:bg-[#10284f]"
         >
           관리하기
         </Link>
@@ -56,25 +56,25 @@ function EventCard({ event }: { event: EventRecord }) {
       <div className="mt-5 grid gap-3 text-sm md:grid-cols-2">
         <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
           <p className="font-black text-slate-700">행사 코드</p>
-          <p className="mt-1 break-all font-black text-slate-950">
+          <p className="mt-1 break-all font-black text-[color:#0a1a38]">
             {event.event_code}
           </p>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
           <p className="font-black text-slate-700">장소</p>
-          <p className="mt-1 font-bold text-slate-950">
+          <p className="mt-1 font-bold text-[color:#0a1a38]">
             {event.venue ?? "미정"}
           </p>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
           <p className="font-black text-slate-700">시작</p>
-          <p className="mt-1 font-bold text-slate-950">
+          <p className="mt-1 font-bold text-[color:#0a1a38]">
             {formatDateTime(event.starts_at)}
           </p>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
           <p className="font-black text-slate-700">종료</p>
-          <p className="mt-1 font-bold text-slate-950">
+          <p className="mt-1 font-bold text-[color:#0a1a38]">
             {formatDateTime(event.ends_at)}
           </p>
         </div>
@@ -100,7 +100,7 @@ export default async function AdminEventsPage() {
         <section className="grid gap-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="text-2xl font-black text-slate-950">
+              <h2 className="text-2xl font-black text-[color:#0a1a38]">
                 행사 목록
               </h2>
               <p className="mt-1 text-sm leading-6 text-slate-600">
@@ -110,7 +110,7 @@ export default async function AdminEventsPage() {
             </div>
             <Link
               href="/admin/events/new"
-              className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-slate-950 bg-slate-950 px-5 py-3 text-base font-black text-white shadow-sm transition hover:bg-slate-800"
+              className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-[#0a1a38] bg-[#0a1a38] px-5 py-3 text-base font-black text-white shadow-sm transition hover:bg-[#10284f]"
             >
               새 행사 만들기
             </Link>
@@ -136,7 +136,7 @@ export default async function AdminEventsPage() {
           title="운영 안내"
           description="행사 생성 후 개요 화면에서 참가자 URL, 스크린 URL, 하위 운영 메뉴로 이동할 수 있습니다."
         >
-          <div className="grid gap-3 text-sm font-bold leading-6 text-slate-800">
+          <div className="grid gap-3 text-sm font-bold leading-6 text-[color:#0a1a38]">
             <p className="rounded-2xl border border-slate-300 bg-slate-50 p-4">
               행사 삭제는 아직 제공하지 않습니다. 운영 중 실수를 줄이기 위해
               비활성 상태로 전환하는 방식부터 사용합니다.

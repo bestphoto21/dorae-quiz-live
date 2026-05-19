@@ -114,9 +114,9 @@ function SubmitButton({
   disabled?: boolean;
 }) {
   const classes = {
-    dark: "border-slate-950 bg-slate-950 text-white hover:bg-slate-800",
-    cyan: "border-cyan-700 bg-cyan-700 text-white hover:bg-cyan-800",
-    amber: "border-amber-500 bg-amber-400 text-slate-950 hover:bg-amber-300",
+    dark: "border-[#0a1a38] bg-[#0a1a38] text-white hover:bg-[#10284f]",
+    cyan: "border-[#0a1a38] bg-[#0a1a38] text-white hover:bg-[#10284f]",
+    amber: "border-amber-500 bg-amber-400 text-[color:#0a1a38] hover:bg-amber-300",
     rose: "border-rose-600 bg-rose-600 text-white hover:bg-rose-700",
   };
 
@@ -149,7 +149,7 @@ function FilterPanel({
         <select
           name="status"
           defaultValue={currentStatus}
-          className="min-h-11 rounded-2xl border border-slate-400 bg-white px-4 py-2 text-sm font-bold text-slate-950 shadow-sm"
+          className="min-h-11 rounded-2xl border border-slate-400 bg-white px-4 py-2 text-sm font-bold text-[color:#0a1a38] shadow-sm"
         >
           {STATUS_OPTIONS.map((option) => (
             <option key={option.value} value={option.value}>
@@ -161,7 +161,7 @@ function FilterPanel({
           name="q"
           defaultValue={search}
           placeholder="질문 내용 검색"
-          className="min-h-11 rounded-2xl border border-slate-400 bg-white px-4 py-2 text-sm font-bold text-slate-950 shadow-sm outline-none placeholder:text-slate-500 focus:border-slate-950"
+          className="min-h-11 rounded-2xl border border-slate-400 bg-white px-4 py-2 text-sm font-bold text-[color:#0a1a38] shadow-sm outline-none placeholder:text-slate-500 focus:border-[#0a1a38]"
         />
         <SubmitButton>검색</SubmitButton>
       </form>
@@ -172,8 +172,8 @@ function FilterPanel({
             href={`/admin/events/${eventId}/qna?status=${option.value}`}
             className={`rounded-2xl border px-4 py-2 text-sm font-black shadow-sm ${
               currentStatus === option.value
-                ? "border-slate-950 bg-slate-950 text-white"
-                : "border-slate-400 bg-white text-slate-950 hover:border-slate-950"
+                ? "border-[#0a1a38] bg-[#0a1a38] text-white"
+                : "border-slate-400 bg-white text-[color:#0a1a38] hover:border-[#0a1a38]"
             }`}
           >
             {option.label}
@@ -266,11 +266,11 @@ function QuestionCard({
         </p>
       </div>
 
-      <p className="mt-5 whitespace-pre-wrap text-xl font-black leading-8 text-slate-950">
+      <p className="mt-5 whitespace-pre-wrap text-xl font-black leading-8 text-[color:#0a1a38]">
         {question.question_text}
       </p>
 
-      <div className="mt-5 grid gap-2 rounded-2xl border border-slate-300 bg-slate-50 p-4 text-sm font-bold text-slate-800">
+      <div className="mt-5 grid gap-2 rounded-2xl border border-slate-300 bg-slate-50 p-4 text-sm font-bold text-[color:#0a1a38]">
         <p>참가자: {question.participant_display_name}</p>
         {(question.organization || question.group_name) && (
           <p>

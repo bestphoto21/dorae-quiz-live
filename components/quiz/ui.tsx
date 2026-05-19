@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 type Tone = "slate" | "cyan" | "green" | "amber" | "rose";
 
 const badgeTone: Record<Tone, string> = {
-  slate: "border-slate-300 bg-slate-100 text-slate-900",
+  slate: "border-[#0a1a38]/30 bg-[#0a1a38]/10 text-[color:#0a1a38]",
   cyan: "border-cyan-300 bg-cyan-100 text-cyan-950",
   green: "border-emerald-300 bg-emerald-100 text-emerald-950",
   amber: "border-amber-300 bg-amber-100 text-amber-950",
@@ -38,13 +38,13 @@ export function PrimaryLink({
 }) {
   const classes = {
     dark:
-      "border-slate-950 bg-slate-950 text-white shadow-sm hover:bg-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-500",
+      "border-[#0a1a38] bg-[#0a1a38] text-white shadow-sm hover:bg-[#10284f] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0a1a38]",
     light:
-      "border-white bg-white text-slate-950 shadow-sm hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300",
+      "border-white bg-white text-[color:#0a1a38] shadow-sm hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white",
     outline:
-      "border-slate-400 bg-white text-slate-950 shadow-sm hover:border-slate-950 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-500",
+      "border-[#0a1a38] bg-white text-[color:#0a1a38] shadow-sm hover:bg-[#0a1a38]/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0a1a38]",
     accent:
-      "border-cyan-300 bg-cyan-300 text-slate-950 shadow-sm hover:bg-cyan-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white",
+      "border-[#0a1a38] bg-[#0a1a38] text-white shadow-sm hover:bg-[#10284f] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white",
   };
 
   return (
@@ -85,9 +85,9 @@ export function DemoCard({
   return (
     <Link
       href={href}
-      className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-slate-950 hover:shadow-md"
+      className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-[#0a1a38] hover:shadow-md"
     >
-      <p className="text-lg font-black text-slate-950">{title}</p>
+      <p className="text-lg font-black text-[color:#0a1a38]">{title}</p>
       <p className="mt-2 break-all text-sm font-bold text-slate-700">
         {children}
       </p>
@@ -103,10 +103,10 @@ export function AudienceLayout({
   children: ReactNode;
 }) {
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-950">
+    <main className="min-h-screen bg-slate-50 text-[color:#0a1a38]">
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-5 py-4">
-          <Link href={`/e/${eventCode}`} className="font-black">
+          <Link href={`/e/${eventCode}`} className="font-black text-[color:#0a1a38]">
             Dorae Quiz
           </Link>
           <StatusBadge tone="cyan">{eventCode.toUpperCase()}</StatusBadge>
@@ -131,7 +131,7 @@ export function AudienceHero({
   return (
     <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
       <StatusBadge tone="cyan">{label}</StatusBadge>
-      <h1 className="mt-5 text-4xl font-black leading-tight text-slate-950 sm:text-6xl">
+      <h1 className="mt-5 text-4xl font-black leading-tight text-[color:#0a1a38] sm:text-6xl">
         {title}
       </h1>
       <p className="mt-4 text-lg leading-8 text-slate-700">{description}</p>
@@ -158,7 +158,7 @@ export function AdminShell({
   children: ReactNode;
 }) {
   return (
-    <main className="min-h-screen bg-slate-100 text-slate-950">
+    <main className="min-h-screen bg-slate-100 text-[color:#0a1a38]">
       <div className="mx-auto max-w-7xl px-5 py-6 sm:px-8 lg:py-10">
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <StatusBadge tone="green">Operator Console</StatusBadge>
@@ -186,7 +186,7 @@ export function AdminPanel({
 }) {
   return (
     <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-      <h2 className="text-2xl font-black text-slate-950">{title}</h2>
+      <h2 className="text-2xl font-black text-[color:#0a1a38]">{title}</h2>
       {description && (
         <p className="mt-2 text-sm leading-6 text-slate-700">{description}</p>
       )}
@@ -203,9 +203,9 @@ export function AdminActionButton({
   tone?: "dark" | "cyan" | "amber" | "rose";
 }) {
   const classes = {
-    dark: "border-slate-950 bg-slate-950 text-white",
-    cyan: "border-cyan-700 bg-cyan-700 text-white",
-    amber: "border-amber-500 bg-amber-400 text-slate-950",
+    dark: "border-[#0a1a38] bg-[#0a1a38] text-white",
+    cyan: "border-[#0a1a38] bg-[#0a1a38] text-white",
+    amber: "border-amber-500 bg-amber-400 text-[color:#0a1a38]",
     rose: "border-rose-700 bg-rose-700 text-white",
   };
 
@@ -229,7 +229,7 @@ export function EmptyState({
 }) {
   return (
     <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center">
-      <p className="text-xl font-black text-slate-950">{title}</p>
+      <p className="text-xl font-black text-[color:#0a1a38]">{title}</p>
       <p className="mt-2 text-sm leading-6 text-slate-700">{description}</p>
     </div>
   );
@@ -247,13 +247,13 @@ export function OperatorLink({
   return (
     <Link
       href={href}
-      className="flex h-full flex-col rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-slate-950 hover:shadow-md"
+      className="flex h-full flex-col rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-[#0a1a38] hover:shadow-md"
     >
-      <p className="text-2xl font-black text-slate-950">{title}</p>
+      <p className="text-2xl font-black text-[color:#0a1a38]">{title}</p>
       <p className="mt-3 flex-1 text-sm leading-6 text-slate-700">
         {description}
       </p>
-      <span className="mt-5 inline-flex w-fit rounded-2xl border border-slate-950 bg-slate-950 px-4 py-2.5 text-sm font-black text-white">
+      <span className="mt-5 inline-flex w-fit rounded-2xl border border-[#0a1a38] bg-[#0a1a38] px-4 py-2.5 text-sm font-black text-white">
         열기
       </span>
     </Link>

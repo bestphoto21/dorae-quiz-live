@@ -8,7 +8,7 @@ export default function ParticipantEventError({
   reset: () => void;
 }) {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-50 px-5 py-10 text-slate-950">
+    <main className="flex min-h-screen items-center justify-center bg-slate-50 px-5 py-10 text-[color:#0a1a38]">
       <section className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6 text-center shadow-sm">
         <p className="text-sm font-black uppercase text-rose-600">Error</p>
         <h1 className="mt-4 text-3xl font-black leading-tight">
@@ -22,13 +22,13 @@ export default function ParticipantEventError({
           <button
             type="button"
             onClick={reset}
-            className="min-h-12 rounded-2xl border border-slate-950 bg-slate-950 px-5 py-3 text-base font-black text-white shadow-sm"
+            className="min-h-12 rounded-2xl border border-[#0a1a38] bg-[#0a1a38] px-5 py-3 text-base font-black text-white shadow-sm"
           >
             다시 시도
           </button>
           <Link
             href="/"
-            className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-slate-400 bg-white px-5 py-3 text-base font-black text-slate-950 shadow-sm"
+            className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-slate-400 bg-white px-5 py-3 text-base font-black text-[color:#0a1a38] shadow-sm"
           >
             첫 화면으로 이동
           </Link>

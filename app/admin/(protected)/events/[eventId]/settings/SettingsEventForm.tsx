@@ -70,7 +70,7 @@ function labelClasses() {
 }
 
 function inputClasses() {
-  return "mt-2 w-full rounded-2xl border border-slate-400 bg-white px-4 py-3 text-base font-bold text-slate-950 shadow-sm outline-none transition placeholder:text-slate-500 focus:border-slate-950";
+  return "mt-2 w-full rounded-2xl border border-slate-400 bg-white px-4 py-3 text-base font-bold text-[color:#0a1a38] shadow-sm outline-none transition placeholder:text-slate-500 focus:border-[#0a1a38]";
 }
 
 export default function SettingsEventForm({
@@ -176,7 +176,7 @@ export default function SettingsEventForm({
               id="primary_color"
               name="primary_color"
               type="color"
-              defaultValue={event.primary_color ?? "#0f172a"}
+              defaultValue={event.primary_color ?? "#0a1a38"}
               className="h-12 w-16 rounded-2xl border border-slate-400 bg-white p-1 shadow-sm"
             />
             <p className="text-sm font-bold text-slate-600">
@@ -221,7 +221,7 @@ export default function SettingsEventForm({
           className="mt-1 h-5 w-5 rounded border-slate-300"
         />
         <span>
-          <span className="block text-base font-black text-slate-950">
+          <span className="block text-base font-black text-[color:#0a1a38]">
             활성 행사
           </span>
           <span className="mt-1 block text-sm leading-6 text-slate-600">
@@ -240,14 +240,14 @@ export default function SettingsEventForm({
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
         <Link
           href={`/admin/events/${event.id}`}
-          className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-slate-400 bg-white px-5 py-3 text-base font-black text-slate-950 shadow-sm transition hover:border-slate-950 hover:bg-slate-50"
+          className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-slate-400 bg-white px-5 py-3 text-base font-black text-[color:#0a1a38] shadow-sm transition hover:border-[#0a1a38] hover:bg-slate-50"
         >
           개요로 돌아가기
         </Link>
         <button
           type="submit"
           disabled={isPending}
-          className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-slate-950 bg-slate-950 px-5 py-3 text-base font-black text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-200 disabled:text-slate-700"
+          className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-[#0a1a38] bg-[#0a1a38] px-5 py-3 text-base font-black text-white shadow-sm transition hover:bg-[#10284f] disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-200 disabled:text-slate-700"
         >
           {isPending ? "저장 중..." : "변경사항 저장"}
         </button>

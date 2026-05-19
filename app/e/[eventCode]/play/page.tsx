@@ -107,14 +107,14 @@ export default async function PlayPage({ params }: PlayPageProps) {
             <p className="text-sm font-black text-slate-700">
               참가자
             </p>
-            <h1 className="mt-2 text-3xl font-black text-slate-950">
+            <h1 className="mt-2 text-3xl font-black text-[color:#0a1a38]">
               {displayName}님
             </h1>
           </div>
           <form action={clearAction}>
             <button
               type="submit"
-              className="rounded-2xl border border-slate-400 bg-white px-4 py-3 text-sm font-black text-slate-950 shadow-sm transition hover:border-slate-950 hover:bg-slate-50"
+              className="rounded-2xl border border-slate-400 bg-white px-4 py-3 text-sm font-black text-[color:#0a1a38] shadow-sm transition hover:border-[#0a1a38] hover:bg-slate-50"
             >
               다른 정보로 다시 등록
             </button>

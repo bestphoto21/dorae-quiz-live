@@ -44,7 +44,7 @@ function labelClasses() {
 }
 
 function inputClasses() {
-  return "mt-2 w-full rounded-2xl border border-slate-400 bg-white px-5 py-4 text-lg font-bold text-slate-950 shadow-sm outline-none transition placeholder:text-slate-500 focus:border-slate-950";
+  return "mt-2 w-full rounded-2xl border border-slate-400 bg-white px-5 py-4 text-lg font-bold text-[color:#0a1a38] shadow-sm outline-none transition placeholder:text-slate-500 focus:border-[#0a1a38]";
 }
 
 export default async function JoinPage({ params, searchParams }: JoinPageProps) {
@@ -65,7 +65,7 @@ export default async function JoinPage({ params, searchParams }: JoinPageProps) 
         />
         <Link
           href={`/e/${normalizedEventCode}`}
-          className="rounded-2xl border border-slate-400 bg-white px-5 py-4 text-center text-lg font-black text-slate-950 shadow-sm transition hover:border-slate-950 hover:bg-slate-50"
+          className="rounded-2xl border border-slate-400 bg-white px-5 py-4 text-center text-lg font-black text-[color:#0a1a38] shadow-sm transition hover:border-[#0a1a38] hover:bg-slate-50"
         >
           행사 화면으로 돌아가기
         </Link>
@@ -164,7 +164,7 @@ export default async function JoinPage({ params, searchParams }: JoinPageProps) 
 
           <button
             type="submit"
-            className="min-h-14 rounded-2xl border border-slate-950 bg-slate-950 px-5 py-4 text-lg font-black text-white shadow-sm transition hover:bg-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-500"
+            className="min-h-14 rounded-2xl border border-[#0a1a38] bg-[#0a1a38] px-5 py-4 text-lg font-black text-white shadow-sm transition hover:bg-[#10284f] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0a1a38]"
           >
             등록하고 참여하기
           </button>

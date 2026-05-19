@@ -22,7 +22,7 @@ const HEX_COLOR_PATTERN = /^#[0-9a-f]{6}$/i;
 const EVENT_CODE_PATTERN = /^[a-z0-9-]+$/;
 const DATE_TIME_LOCAL_PATTERN =
   /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/;
-const DEFAULT_PRIMARY_COLOR = "#0f172a";
+const DEFAULT_PRIMARY_COLOR = "#0a1a38";
 
 function getFormString(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -92,7 +92,7 @@ function validateEventFields(formData: FormData, includeEventCode: boolean) {
   }
 
   if (!HEX_COLOR_PATTERN.test(primaryColor)) {
-    fieldErrors.primary_color = "대표 색상은 #0f172a 형식으로 입력해 주세요.";
+    fieldErrors.primary_color = "대표 색상은 #0a1a38 형식으로 입력해 주세요.";
   }
 
   if (startsAt && endsAt && new Date(endsAt) <= new Date(startsAt)) {

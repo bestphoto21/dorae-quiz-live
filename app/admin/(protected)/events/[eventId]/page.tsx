@@ -147,7 +147,7 @@ function StatCard({ label, value }: { label: string; value: number }) {
   return (
     <div className="rounded-2xl border border-slate-300 bg-slate-50 p-4">
       <p className="text-sm font-black text-slate-700">{label}</p>
-      <p className="mt-2 text-3xl font-black text-slate-950">
+      <p className="mt-2 text-3xl font-black text-[color:#0a1a38]">
         {value.toLocaleString("ko-KR")}
       </p>
     </div>
@@ -158,7 +158,7 @@ function DetailRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl border border-slate-300 bg-slate-50 p-4">
       <p className="text-sm font-black text-slate-700">{label}</p>
-      <p className="mt-2 break-all text-base font-bold text-slate-950">
+      <p className="mt-2 break-all text-base font-bold text-[color:#0a1a38]">
         {value}
       </p>
     </div>
@@ -205,7 +205,7 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
 
             <div className="mt-5 grid gap-3 md:grid-cols-2">
               <DetailRow label="장소" value={event.venue ?? "미정"} />
-              <DetailRow label="대표 색상" value={event.primary_color ?? "#0f172a"} />
+              <DetailRow label="대표 색상" value={event.primary_color ?? "#0a1a38"} />
               <DetailRow label="시작" value={formatDateTime(event.starts_at)} />
               <DetailRow label="종료" value={formatDateTime(event.ends_at)} />
               <DetailRow label="참가자 URL" value={`/e/${event.event_code}`} />
@@ -280,7 +280,7 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
           <AdminPanel title="설정">
             <Link
               href={`/admin/events/${eventId}/settings`}
-              className="inline-flex min-h-12 w-full items-center justify-center rounded-2xl border border-slate-950 bg-slate-950 px-5 py-3 text-base font-black text-white shadow-sm transition hover:bg-slate-800"
+              className="inline-flex min-h-12 w-full items-center justify-center rounded-2xl border border-[#0a1a38] bg-[#0a1a38] px-5 py-3 text-base font-black text-white shadow-sm transition hover:bg-[#10284f]"
             >
               행사 설정 수정
             </Link>
@@ -324,7 +324,7 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
                 label="스크린 URL"
                 value={`/screen/${event.event_code}`}
               />
-              <p className="rounded-2xl border border-slate-300 bg-slate-50 p-4 text-sm font-black text-slate-950">
+              <p className="rounded-2xl border border-slate-300 bg-slate-50 p-4 text-sm font-black text-[color:#0a1a38]">
                 실제 전체 주소는 배포 후 Vercel 도메인을 기준으로 결정됩니다.
               </p>
             </div>

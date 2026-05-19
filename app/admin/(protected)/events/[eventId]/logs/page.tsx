@@ -327,13 +327,13 @@ export default async function LogsPage({ params, searchParams }: LogsPageProps) 
           <div className="flex flex-wrap gap-3">
             <Link
               href={`/admin/events/${eventId}/rehearsal`}
-              className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-slate-400 bg-white px-4 py-2 text-sm font-black text-slate-950 shadow-sm"
+              className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-slate-400 bg-white px-4 py-2 text-sm font-black text-[color:#0a1a38] shadow-sm"
             >
               리허설 체크로 이동
             </Link>
             <Link
               href={`/admin/events/${eventId}/live`}
-              className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-slate-950 bg-slate-950 px-4 py-2 text-sm font-black text-white shadow-sm"
+              className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-[#0a1a38] bg-[#0a1a38] px-4 py-2 text-sm font-black text-white shadow-sm"
             >
               라이브 콘솔로 이동
             </Link>
@@ -345,7 +345,7 @@ export default async function LogsPage({ params, searchParams }: LogsPageProps) 
             <select
               name="action"
               defaultValue={action}
-              className="min-h-11 rounded-2xl border border-slate-400 bg-white px-4 py-2 text-sm font-bold text-slate-950 shadow-sm"
+              className="min-h-11 rounded-2xl border border-slate-400 bg-white px-4 py-2 text-sm font-bold text-[color:#0a1a38] shadow-sm"
             >
               <option value="">전체 action</option>
               {actionOptions.map((option) => (
@@ -358,11 +358,11 @@ export default async function LogsPage({ params, searchParams }: LogsPageProps) 
               type="date"
               name="date"
               defaultValue={date}
-              className="min-h-11 rounded-2xl border border-slate-400 bg-white px-4 py-2 text-sm font-bold text-slate-950 shadow-sm"
+              className="min-h-11 rounded-2xl border border-slate-400 bg-white px-4 py-2 text-sm font-bold text-[color:#0a1a38] shadow-sm"
             />
             <button
               type="submit"
-              className="min-h-11 rounded-2xl border border-slate-950 bg-slate-950 px-5 py-2 text-sm font-black text-white shadow-sm"
+              className="min-h-11 rounded-2xl border border-[#0a1a38] bg-[#0a1a38] px-5 py-2 text-sm font-black text-white shadow-sm"
             >
               로그 보기
             </button>
@@ -402,7 +402,7 @@ export default async function LogsPage({ params, searchParams }: LogsPageProps) 
                         <p className="text-xs font-black text-slate-700">
                           행사 ID
                         </p>
-                        <p className="mt-1 break-all text-sm font-bold text-slate-950">
+                        <p className="mt-1 break-all text-sm font-bold text-[color:#0a1a38]">
                           {log.event_id}
                         </p>
                       </div>
@@ -414,7 +414,7 @@ export default async function LogsPage({ params, searchParams }: LogsPageProps) 
                           <p className="text-xs font-black text-slate-700">
                             {detailLabel(detail.key)}
                           </p>
-                          <p className="mt-1 break-all text-sm font-bold text-slate-950">
+                          <p className="mt-1 break-all text-sm font-bold text-[color:#0a1a38]">
                             {detail.value}
                           </p>
                         </div>

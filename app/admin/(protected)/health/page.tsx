@@ -51,7 +51,7 @@ function HealthCard({ check }: { check: HealthCheck }) {
     <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="text-xl font-black text-slate-950">{check.label}</h3>
+          <h3 className="text-xl font-black text-[color:#0a1a38]">{check.label}</h3>
           <p className="mt-2 text-sm font-bold leading-6 text-slate-700">
             {check.hint}
           </p>
@@ -60,7 +60,7 @@ function HealthCard({ check }: { check: HealthCheck }) {
           {statusLabel(check.status)}
         </StatusBadge>
       </div>
-      <p className="mt-4 rounded-2xl border border-slate-300 bg-slate-50 p-4 text-sm font-black text-slate-950">
+      <p className="mt-4 rounded-2xl border border-slate-300 bg-slate-50 p-4 text-sm font-black text-[color:#0a1a38]">
         {check.value}
       </p>
     </article>
@@ -232,25 +232,25 @@ export default async function AdminHealthPage() {
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <Link
               href="/admin/events"
-              className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-slate-950 bg-slate-950 px-5 py-3 text-base font-black text-white shadow-sm"
+              className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-[#0a1a38] bg-[#0a1a38] px-5 py-3 text-base font-black text-white shadow-sm"
             >
               행사 관리
             </Link>
             <Link
               href="/admin/login"
-              className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-slate-400 bg-white px-5 py-3 text-base font-black text-slate-950 shadow-sm"
+              className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-slate-400 bg-white px-5 py-3 text-base font-black text-[color:#0a1a38] shadow-sm"
             >
               로그인 화면
             </Link>
             <Link
               href="/admin/events"
-              className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-slate-400 bg-white px-5 py-3 text-base font-black text-slate-950 shadow-sm"
+              className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-slate-400 bg-white px-5 py-3 text-base font-black text-[color:#0a1a38] shadow-sm"
             >
               리허설은 행사별 페이지에서
             </Link>
             <Link
               href="/admin/events"
-              className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-slate-400 bg-white px-5 py-3 text-base font-black text-slate-950 shadow-sm"
+              className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-slate-400 bg-white px-5 py-3 text-base font-black text-[color:#0a1a38] shadow-sm"
             >
               운영 로그는 행사별 페이지에서
             </Link>

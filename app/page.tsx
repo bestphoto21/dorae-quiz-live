@@ -17,10 +17,10 @@ const routes = [
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-slate-950 text-white">
+    <main className="min-h-screen bg-[#0a1a38] text-white">
       <section className="mx-auto flex min-h-screen w-full max-w-7xl flex-col justify-between px-5 py-6 sm:px-8 lg:px-10">
         <header className="flex flex-wrap items-center justify-between gap-4">
-          <Link href="/" className="text-xl font-black">
+          <Link href="/" className="text-xl font-black text-white">
             Dorae Quiz Live
           </Link>
           <StatusBadge tone="cyan">운영 점검용</StatusBadge>
@@ -48,7 +48,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="rounded-3xl border border-white/15 bg-white p-5 text-slate-950 shadow-2xl">
+          <div className="rounded-3xl border border-white/15 bg-white p-5 text-[color:#0a1a38] shadow-2xl">
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
               <p className="text-sm font-bold uppercase text-slate-700">
                 Now On Screen
@@ -71,7 +71,7 @@ export default function Home() {
           </div>
         </div>
 
-        <SectionShell className="bg-white text-slate-950">
+        <SectionShell className="bg-white text-[color:#0a1a38]">
           <div className="grid gap-3 md:grid-cols-3">
             {routes.map((route) => (
               <DemoCard key={route.href} href={route.href} title={route.label}>

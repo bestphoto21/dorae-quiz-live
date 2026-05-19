@@ -149,7 +149,7 @@ function StateRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl border border-slate-300 bg-slate-50 p-4">
       <p className="text-xs font-black text-slate-700">{label}</p>
-      <p className="mt-2 break-all text-sm font-bold text-slate-950">{value}</p>
+      <p className="mt-2 break-all text-sm font-bold text-[color:#0a1a38]">{value}</p>
     </div>
   );
 }
@@ -245,13 +245,13 @@ function SessionSelector({
         <Link
           key={session.id}
           href={`/admin/events/${eventId}/live?sessionId=${session.id}`}
-          className={`rounded-2xl border bg-white p-4 shadow-sm transition hover:border-slate-950 ${
+          className={`rounded-2xl border bg-white p-4 shadow-sm transition hover:border-[#0a1a38] ${
             selectedSession?.id === session.id
-              ? "border-slate-950"
+              ? "border-[#0a1a38]"
               : "border-slate-200"
           }`}
         >
-          <p className="text-base font-black text-slate-950">{session.title}</p>
+          <p className="text-base font-black text-[color:#0a1a38]">{session.title}</p>
           <p className="mt-1 text-sm font-bold text-slate-700">
             상태: {session.status}
           </p>
@@ -273,9 +273,9 @@ function ControlButton({
   sessionId?: string | null;
 }) {
   const classes = {
-    dark: "border-slate-950 bg-slate-950 text-white hover:bg-slate-800",
-    cyan: "border-cyan-700 bg-cyan-700 text-white hover:bg-cyan-800",
-    amber: "border-amber-500 bg-amber-400 text-slate-950 hover:bg-amber-300",
+    dark: "border-[#0a1a38] bg-[#0a1a38] text-white hover:bg-[#10284f]",
+    cyan: "border-[#0a1a38] bg-[#0a1a38] text-white hover:bg-[#10284f]",
+    amber: "border-amber-500 bg-amber-400 text-[color:#0a1a38] hover:bg-amber-300",
     rose: "border-rose-600 bg-rose-600 text-white hover:bg-rose-700",
   };
 
@@ -284,7 +284,7 @@ function ControlButton({
       {sessionId && <input type="hidden" name="session_id" value={sessionId} />}
       <button
         type="submit"
-        className={`min-h-12 w-full rounded-2xl border px-5 py-3 text-base font-black shadow-sm transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-500 ${classes[tone]}`}
+        className={`min-h-12 w-full rounded-2xl border px-5 py-3 text-base font-black shadow-sm transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0a1a38] ${classes[tone]}`}
       >
         {children}
       </button>
@@ -324,7 +324,7 @@ function QuestionStartCard({
             </StatusBadge>
             <StatusBadge tone="slate">{question.time_limit_seconds}초</StatusBadge>
           </div>
-          <h3 className="mt-4 text-xl font-black leading-tight text-slate-950">
+          <h3 className="mt-4 text-xl font-black leading-tight text-[color:#0a1a38]">
             {question.question_text}
           </h3>
           {isCurrent && (
@@ -340,7 +340,7 @@ function QuestionStartCard({
             <input type="hidden" name="question_id" value={question.id} />
             <button
               type="submit"
-              className="min-h-11 w-full rounded-2xl border border-cyan-700 bg-cyan-700 px-4 py-2 text-sm font-black text-white shadow-sm transition hover:bg-cyan-800"
+              className="min-h-11 w-full rounded-2xl border border-[#0a1a38] bg-[#0a1a38] px-4 py-2 text-sm font-black text-white shadow-sm transition hover:bg-[#10284f]"
             >
               이 문제 시작
             </button>
@@ -454,7 +454,7 @@ export default async function LivePage({ params, searchParams }: LivePageProps) 
               <p className="text-sm font-black uppercase text-cyan-700">
                 Live Output
               </p>
-              <h2 className="mt-3 text-3xl font-black leading-tight text-slate-950">
+              <h2 className="mt-3 text-3xl font-black leading-tight text-[color:#0a1a38]">
                 {sceneDescription(liveState)}
               </h2>
             </div>
@@ -482,26 +482,26 @@ export default async function LivePage({ params, searchParams }: LivePageProps) 
               <Link
                 href={screenUrl}
                 target="_blank"
-                className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-slate-950 bg-slate-950 px-5 py-3 text-base font-black text-white shadow-sm transition hover:bg-slate-800"
+                className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-[#0a1a38] bg-[#0a1a38] px-5 py-3 text-base font-black text-white shadow-sm transition hover:bg-[#10284f]"
               >
                 스크린 새 창 열기
               </Link>
               <Link
                 href={participantUrl}
                 target="_blank"
-                className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-slate-400 bg-white px-5 py-3 text-base font-black text-slate-950 shadow-sm transition hover:border-slate-950 hover:bg-slate-50"
+                className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-slate-400 bg-white px-5 py-3 text-base font-black text-[color:#0a1a38] shadow-sm transition hover:border-[#0a1a38] hover:bg-slate-50"
               >
                 참가자 입장 페이지 열기
               </Link>
               <Link
                 href={`/admin/events/${eventId}/rehearsal`}
-                className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-slate-400 bg-white px-5 py-3 text-base font-black text-slate-950 shadow-sm transition hover:border-slate-950 hover:bg-slate-50"
+                className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-slate-400 bg-white px-5 py-3 text-base font-black text-[color:#0a1a38] shadow-sm transition hover:border-[#0a1a38] hover:bg-slate-50"
               >
                 리허설 체크 열기
               </Link>
               <Link
                 href={`/admin/events/${eventId}/logs`}
-                className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-slate-400 bg-white px-5 py-3 text-base font-black text-slate-950 shadow-sm transition hover:border-slate-950 hover:bg-slate-50"
+                className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-slate-400 bg-white px-5 py-3 text-base font-black text-[color:#0a1a38] shadow-sm transition hover:border-[#0a1a38] hover:bg-slate-50"
               >
                 운영 로그 열기
               </Link>
@@ -509,7 +509,7 @@ export default async function LivePage({ params, searchParams }: LivePageProps) 
                 <p className="text-xs font-black text-slate-700">
                   QR에 넣을 URL
                 </p>
-                <p className="mt-2 break-all text-lg font-black text-slate-950">
+                <p className="mt-2 break-all text-lg font-black text-[color:#0a1a38]">
                   {participantUrl}
                 </p>
                 <p className="mt-2 text-sm font-bold leading-6 text-slate-700">
@@ -543,7 +543,7 @@ export default async function LivePage({ params, searchParams }: LivePageProps) 
                   </StatusBadge>
                   <Link
                     href={`/admin/events/${eventId}/questions?sessionId=${selectedSession.id}`}
-                    className="inline-flex rounded-2xl border border-slate-400 bg-white px-4 py-2 text-sm font-black text-slate-950 shadow-sm transition hover:border-slate-950 hover:bg-slate-50"
+                    className="inline-flex rounded-2xl border border-slate-400 bg-white px-4 py-2 text-sm font-black text-[color:#0a1a38] shadow-sm transition hover:border-[#0a1a38] hover:bg-slate-50"
                   >
                     문제 관리로 이동
                   </Link>
@@ -636,7 +636,7 @@ export default async function LivePage({ params, searchParams }: LivePageProps) 
                   )}
                 </div>
               ) : (
-                    <p className="rounded-2xl border border-slate-300 bg-slate-50 p-4 text-sm font-bold leading-6 text-slate-800">
+                    <p className="rounded-2xl border border-slate-300 bg-slate-50 p-4 text-sm font-bold leading-6 text-[color:#0a1a38]">
                   현재 역할은 스크린 상태를 조회할 수 있지만 변경할 수 없습니다.
                 </p>
               )}
@@ -671,7 +671,7 @@ export default async function LivePage({ params, searchParams }: LivePageProps) 
                   </ControlButton>
                 </div>
               ) : (
-                  <p className="rounded-2xl border border-slate-300 bg-slate-50 p-4 text-sm font-bold leading-6 text-slate-800">
+                  <p className="rounded-2xl border border-slate-300 bg-slate-50 p-4 text-sm font-bold leading-6 text-[color:#0a1a38]">
                   현재 역할은 퀴즈 문제 진행을 조회할 수 있지만 변경할 수 없습니다.
                 </p>
               )}

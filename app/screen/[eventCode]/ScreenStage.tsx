@@ -129,7 +129,7 @@ function Shell({
   const accentColor = state?.event.primary_color || "#06b6d4";
 
   return (
-    <main className="min-h-screen bg-slate-950 p-5 text-white sm:p-8">
+    <main className="min-h-screen bg-[#0a1a38] p-5 text-white sm:p-8">
       <div className="flex min-h-[calc(100vh-2.5rem)] flex-col gap-5 sm:min-h-[calc(100vh-4rem)]">
         <header className="flex flex-wrap items-center justify-between gap-4 border-b border-white/15 pb-5">
           <div className="min-w-0">
@@ -168,7 +168,7 @@ function WaitingView({ state }: { state: ScreenState }) {
 
   return (
     <section className="grid flex-1 gap-5 lg:grid-cols-[1fr_26rem]">
-      <div className="flex flex-col justify-center rounded-3xl bg-white p-8 text-slate-950 shadow-2xl sm:p-14">
+      <div className="flex flex-col justify-center rounded-3xl bg-white p-8 text-[color:#0a1a38] shadow-2xl sm:p-14">
         <p className="text-2xl font-black text-cyan-800">
           대기 화면
         </p>
@@ -178,7 +178,7 @@ function WaitingView({ state }: { state: ScreenState }) {
         <p className="mt-6 text-3xl font-bold leading-tight text-slate-600">
           {message}
         </p>
-        <p className="mt-8 break-all rounded-3xl border border-slate-200 bg-slate-50 p-6 text-5xl font-black text-slate-950">
+        <p className="mt-8 break-all rounded-3xl border border-slate-200 bg-slate-50 p-6 text-5xl font-black text-[color:#0a1a38]">
           /e/{state.event.event_code}
         </p>
       </div>
@@ -203,7 +203,7 @@ function WaitingView({ state }: { state: ScreenState }) {
 
 function BreakView({ state }: { state: ScreenState }) {
   return (
-    <section className="flex flex-1 items-center justify-center rounded-3xl bg-white p-10 text-center text-slate-950 shadow-2xl">
+    <section className="flex flex-1 items-center justify-center rounded-3xl bg-white p-10 text-center text-[color:#0a1a38] shadow-2xl">
       <div>
         <p className="text-3xl font-black text-amber-800">휴식 시간</p>
         <h2 className="mt-6 text-6xl font-black leading-tight sm:text-9xl">
@@ -235,7 +235,7 @@ function QuestionView({
 
   return (
     <section className="grid flex-1 gap-5 lg:grid-cols-[1fr_24rem]">
-      <div className="flex flex-col justify-between rounded-3xl bg-white p-6 text-slate-950 shadow-2xl sm:p-10">
+      <div className="flex flex-col justify-between rounded-3xl bg-white p-6 text-[color:#0a1a38] shadow-2xl sm:p-10">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <span className="rounded-full bg-cyan-100 px-6 py-3 text-2xl font-black text-cyan-800">
             퀴즈 진행
@@ -275,7 +275,7 @@ function QuestionView({
 function ClosedView({ state }: { state: ScreenState }) {
   return (
     <section className="grid flex-1 gap-5 lg:grid-cols-[1fr_24rem]">
-      <div className="flex flex-col justify-center rounded-3xl bg-white p-8 text-center text-slate-950 shadow-2xl sm:p-12">
+      <div className="flex flex-col justify-center rounded-3xl bg-white p-8 text-center text-[color:#0a1a38] shadow-2xl sm:p-12">
         <p className="text-3xl font-black text-amber-800">응답 마감</p>
         <h2 className="mt-6 text-7xl font-black leading-tight sm:text-9xl">
           응답 마감
@@ -295,7 +295,7 @@ function ResultView({ state }: { state: ScreenState }) {
 
   return (
     <section className="grid flex-1 gap-5 lg:grid-cols-[1fr_24rem]">
-      <div className="flex flex-col justify-between rounded-3xl bg-white p-6 text-slate-950 shadow-2xl sm:p-10">
+      <div className="flex flex-col justify-between rounded-3xl bg-white p-6 text-[color:#0a1a38] shadow-2xl sm:p-10">
         <div>
           <p className="text-2xl font-black text-emerald-800">
             결과 공개
@@ -351,17 +351,17 @@ function DrawWinnerView({ state }: { state: ScreenState }) {
   }
 
   return (
-    <section className="flex flex-1 items-center justify-center rounded-3xl bg-white p-8 text-center text-slate-950 shadow-2xl sm:p-12">
+    <section className="flex flex-1 items-center justify-center rounded-3xl bg-white p-8 text-center text-[color:#0a1a38] shadow-2xl sm:p-12">
       <div className="w-full">
         <p className="text-3xl font-black uppercase tracking-normal text-amber-600">
           {sourceLabel(draw.source_type)}
         </p>
-        <h2 className="mt-6 text-6xl font-black leading-tight text-slate-950 sm:text-8xl">
+        <h2 className="mt-6 text-6xl font-black leading-tight text-[color:#0a1a38] sm:text-8xl">
           축하합니다
         </h2>
         <div className="mx-auto mt-10 max-w-5xl rounded-3xl border border-amber-200 bg-amber-50 p-8">
           <p className="text-3xl font-black text-amber-700">당첨 경품</p>
-          <p className="mt-4 text-5xl font-black leading-tight text-slate-950 sm:text-7xl">
+          <p className="mt-4 text-5xl font-black leading-tight text-[color:#0a1a38] sm:text-7xl">
             {draw.prize_name}
           </p>
         </div>
@@ -378,7 +378,7 @@ function DrawWinnerView({ state }: { state: ScreenState }) {
 
 function DrawPreparingView({ state }: { state: ScreenState }) {
   return (
-    <section className="flex flex-1 items-center justify-center rounded-3xl bg-white p-10 text-center text-slate-950 shadow-2xl">
+    <section className="flex flex-1 items-center justify-center rounded-3xl bg-white p-10 text-center text-[color:#0a1a38] shadow-2xl">
       <div>
         <p className="text-3xl font-black uppercase text-amber-700">
           럭키드로우 준비
@@ -404,21 +404,21 @@ function QnaQuestionView({ state }: { state: ScreenState }) {
   const meta = [qna.organization, qna.group_name].filter(Boolean).join(" · ");
 
   return (
-    <section className="flex flex-1 items-center justify-center rounded-3xl bg-white p-8 text-slate-950 shadow-2xl sm:p-12">
+    <section className="flex flex-1 items-center justify-center rounded-3xl bg-white p-8 text-[color:#0a1a38] shadow-2xl sm:p-12">
       <div className="w-full">
         <p className="text-3xl font-black uppercase tracking-normal text-cyan-700">
           현장 질문
         </p>
         <div className="mt-8 rounded-3xl border border-cyan-200 bg-cyan-50 p-8 sm:p-10">
           <p className="text-3xl font-black text-cyan-800">현장 질문</p>
-          <h2 className="mt-6 break-words text-5xl font-black leading-tight text-slate-950 sm:text-8xl">
+          <h2 className="mt-6 break-words text-5xl font-black leading-tight text-[color:#0a1a38] sm:text-8xl">
             {qna.question_text}
           </h2>
         </div>
         <div className="mt-8 flex flex-wrap items-end justify-between gap-5 rounded-3xl border border-slate-200 bg-slate-50 p-7">
           <div>
             <p className="text-2xl font-black text-slate-700">질문자</p>
-            <p className="mt-2 text-5xl font-black text-slate-950">
+            <p className="mt-2 text-5xl font-black text-[color:#0a1a38]">
               {qna.participant_display_name}
             </p>
             {meta && (
@@ -436,7 +436,7 @@ function QnaQuestionView({ state }: { state: ScreenState }) {
 
 function QnaWaitingView({ state }: { state: ScreenState }) {
   return (
-    <section className="flex flex-1 items-center justify-center rounded-3xl bg-white p-10 text-center text-slate-950 shadow-2xl">
+    <section className="flex flex-1 items-center justify-center rounded-3xl bg-white p-10 text-center text-[color:#0a1a38] shadow-2xl">
       <div>
         <p className="text-3xl font-black uppercase text-cyan-700">
           질문 접수 중
@@ -447,7 +447,7 @@ function QnaWaitingView({ state }: { state: ScreenState }) {
         <p className="mt-6 text-3xl font-bold leading-tight text-slate-600">
           QR을 통해 질문을 남겨주세요
         </p>
-        <p className="mx-auto mt-8 max-w-4xl break-all rounded-3xl border border-slate-200 bg-slate-50 p-6 text-5xl font-black text-slate-950">
+        <p className="mx-auto mt-8 max-w-4xl break-all rounded-3xl border border-slate-200 bg-slate-50 p-6 text-5xl font-black text-[color:#0a1a38]">
           /e/{state.event.event_code}
         </p>
       </div>
@@ -465,7 +465,7 @@ function PlaceholderView({
   description: string;
 }) {
   return (
-    <section className="flex flex-1 items-center justify-center rounded-3xl bg-white p-10 text-center text-slate-950 shadow-2xl">
+    <section className="flex flex-1 items-center justify-center rounded-3xl bg-white p-10 text-center text-[color:#0a1a38] shadow-2xl">
       <div>
         <p className="text-3xl font-black text-cyan-800">
           {state.event.event_code}
@@ -565,7 +565,7 @@ export default function ScreenStage({ eventCode }: ScreenStageProps) {
   if (!state) {
     return (
       <Shell state={null}>
-        <section className="flex flex-1 items-center justify-center rounded-3xl bg-white p-10 text-center text-slate-950 shadow-2xl">
+        <section className="flex flex-1 items-center justify-center rounded-3xl bg-white p-10 text-center text-[color:#0a1a38] shadow-2xl">
           <div>
             <p className="text-3xl font-black uppercase text-cyan-700">
               {eventCode}

@@ -161,9 +161,9 @@ function SubmitButton({
   disabled?: boolean;
 }) {
   const classes = {
-    dark: "border-slate-950 bg-slate-950 text-white hover:bg-slate-800",
-    cyan: "border-cyan-700 bg-cyan-700 text-white hover:bg-cyan-800",
-    amber: "border-amber-500 bg-amber-400 text-slate-950 hover:bg-amber-300",
+    dark: "border-[#0a1a38] bg-[#0a1a38] text-white hover:bg-[#10284f]",
+    cyan: "border-[#0a1a38] bg-[#0a1a38] text-white hover:bg-[#10284f]",
+    amber: "border-amber-500 bg-amber-400 text-[color:#0a1a38] hover:bg-amber-300",
     rose: "border-rose-600 bg-rose-600 text-white hover:bg-rose-700",
   };
 
@@ -179,7 +179,7 @@ function SubmitButton({
 }
 
 function FieldLabel({ children }: { children: string }) {
-  return <label className="text-sm font-black text-slate-800">{children}</label>;
+  return <label className="text-sm font-black text-[color:#0a1a38]">{children}</label>;
 }
 
 function TextInput({
@@ -199,7 +199,7 @@ function TextInput({
       type={type}
       defaultValue={defaultValue}
       placeholder={placeholder}
-      className="min-h-11 w-full rounded-2xl border border-slate-400 bg-white px-4 py-2 text-sm font-bold text-slate-950 shadow-sm outline-none placeholder:text-slate-500 focus:border-slate-950"
+      className="min-h-11 w-full rounded-2xl border border-slate-400 bg-white px-4 py-2 text-sm font-bold text-[color:#0a1a38] shadow-sm outline-none placeholder:text-slate-500 focus:border-[#0a1a38]"
     />
   );
 }
@@ -220,7 +220,7 @@ function PrizeCard({
     <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="text-xl font-black text-slate-950">{prize.name}</h3>
+          <h3 className="text-xl font-black text-[color:#0a1a38]">{prize.name}</h3>
           <p className="mt-1 text-sm font-bold text-slate-700">
             생성: {formatDateTime(prize.created_at)}
           </p>
@@ -308,7 +308,7 @@ function DrawForm({
           <FieldLabel>경품</FieldLabel>
           <select
             name="prize_id"
-            className="mt-2 min-h-11 w-full rounded-2xl border border-slate-400 bg-white px-4 py-2 text-sm font-bold text-slate-950 shadow-sm"
+            className="mt-2 min-h-11 w-full rounded-2xl border border-slate-400 bg-white px-4 py-2 text-sm font-bold text-[color:#0a1a38] shadow-sm"
             defaultValue=""
           >
             <option value="">경품 선택</option>
@@ -324,7 +324,7 @@ function DrawForm({
           <FieldLabel>추첨 대상</FieldLabel>
           <select
             name="source_type"
-            className="mt-2 min-h-11 w-full rounded-2xl border border-slate-400 bg-white px-4 py-2 text-sm font-bold text-slate-950 shadow-sm"
+            className="mt-2 min-h-11 w-full rounded-2xl border border-slate-400 bg-white px-4 py-2 text-sm font-bold text-[color:#0a1a38] shadow-sm"
             defaultValue="all_participants"
           >
             <option value="all_participants">전체 참가자</option>
@@ -337,7 +337,7 @@ function DrawForm({
           <FieldLabel>세션 필터</FieldLabel>
           <select
             name="source_session_id"
-            className="mt-2 min-h-11 w-full rounded-2xl border border-slate-400 bg-white px-4 py-2 text-sm font-bold text-slate-950 shadow-sm"
+            className="mt-2 min-h-11 w-full rounded-2xl border border-slate-400 bg-white px-4 py-2 text-sm font-bold text-[color:#0a1a38] shadow-sm"
             defaultValue=""
           >
             <option value="">세션 전체</option>
@@ -356,7 +356,7 @@ function DrawForm({
           <FieldLabel>문제 선택</FieldLabel>
           <select
             name="source_question_id"
-            className="mt-2 min-h-11 w-full rounded-2xl border border-slate-400 bg-white px-4 py-2 text-sm font-bold text-slate-950 shadow-sm"
+            className="mt-2 min-h-11 w-full rounded-2xl border border-slate-400 bg-white px-4 py-2 text-sm font-bold text-[color:#0a1a38] shadow-sm"
             defaultValue=""
           >
             <option value="">문제 선택 없음</option>
@@ -374,7 +374,7 @@ function DrawForm({
         </div>
       </div>
 
-      <label className="flex items-start gap-3 rounded-2xl border border-slate-300 bg-slate-50 p-4 text-sm font-bold leading-6 text-slate-800">
+      <label className="flex items-start gap-3 rounded-2xl border border-slate-300 bg-slate-50 p-4 text-sm font-bold leading-6 text-[color:#0a1a38]">
         <input
           type="checkbox"
           name="exclude_already_won"
@@ -441,7 +441,7 @@ function WinnerCard({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-sm font-black text-slate-700">당첨자</p>
-          <h3 className="mt-1 text-2xl font-black text-slate-950">
+          <h3 className="mt-1 text-2xl font-black text-[color:#0a1a38]">
             {winner.participant_display_name}
           </h3>
           <p className="mt-2 text-sm font-bold text-slate-600">
@@ -453,7 +453,7 @@ function WinnerCard({
         </StatusBadge>
       </div>
 
-      <div className="mt-4 grid gap-2 text-sm font-bold text-slate-800">
+      <div className="mt-4 grid gap-2 text-sm font-bold text-[color:#0a1a38]">
         <p>추첨 방식: {sourceLabel(winner.source_type)}</p>
         {winner.source_question_text && (
           <p className="line-clamp-2">문제: {winner.source_question_text}</p>
@@ -484,7 +484,7 @@ function ScreenStatePanel({ liveState }: { liveState: DrawLiveState | null }) {
       <div className="grid gap-3">
         <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
           <p className="text-xs font-black text-slate-700">현재 송출 화면</p>
-          <p className="mt-2 text-sm font-bold text-slate-950">
+          <p className="mt-2 text-sm font-bold text-[color:#0a1a38]">
             {sceneLabel(liveState?.screen_scene ?? liveState?.mode)}
           </p>
         </div>

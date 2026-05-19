@@ -132,7 +132,7 @@ export default async function EventPage({ params }: EventPageProps) {
       </div>
 
       <MobileCard>
-        <h2 className="text-2xl font-black text-slate-950">
+        <h2 className="text-2xl font-black text-[color:#0a1a38]">
           개인정보 수집 안내
         </h2>
         <p className="mt-3 text-base font-bold leading-7 text-slate-700">

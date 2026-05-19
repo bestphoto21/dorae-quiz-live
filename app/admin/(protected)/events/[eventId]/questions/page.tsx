@@ -85,11 +85,11 @@ function questionTypeTone(questionType: QuestionType) {
 }
 
 function selectClasses() {
-  return "mt-2 w-full rounded-2xl border border-slate-400 bg-white px-4 py-3 text-sm font-bold text-slate-950 shadow-sm outline-none transition focus:border-slate-950";
+  return "mt-2 w-full rounded-2xl border border-slate-400 bg-white px-4 py-3 text-sm font-bold text-[color:#0a1a38] shadow-sm outline-none transition focus:border-[#0a1a38]";
 }
 
 function inputClasses() {
-  return "mt-2 w-full rounded-2xl border border-slate-400 bg-white px-4 py-3 text-sm font-bold text-slate-950 shadow-sm outline-none transition placeholder:text-slate-500 focus:border-slate-950";
+  return "mt-2 w-full rounded-2xl border border-slate-400 bg-white px-4 py-3 text-sm font-bold text-[color:#0a1a38] shadow-sm outline-none transition placeholder:text-slate-500 focus:border-[#0a1a38]";
 }
 
 function labelClasses() {
@@ -101,7 +101,7 @@ function SessionCreateForm({ eventId }: { eventId: string }) {
 
   return (
     <form action={action} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-      <h3 className="text-xl font-black text-slate-950">새 세션</h3>
+      <h3 className="text-xl font-black text-[color:#0a1a38]">새 세션</h3>
       <div className="mt-4 grid gap-3">
         <div>
           <label htmlFor="session-title-new" className={labelClasses()}>
@@ -119,7 +119,7 @@ function SessionCreateForm({ eventId }: { eventId: string }) {
         <input type="hidden" name="status" value="draft" />
         <button
           type="submit"
-          className="min-h-11 rounded-2xl border border-slate-950 bg-slate-950 px-4 py-2 text-sm font-black text-white shadow-sm transition hover:bg-slate-800"
+          className="min-h-11 rounded-2xl border border-[#0a1a38] bg-[#0a1a38] px-4 py-2 text-sm font-black text-white shadow-sm transition hover:bg-[#10284f]"
         >
           세션 생성
         </button>
@@ -147,7 +147,7 @@ function SessionCard({
   return (
     <article
       className={`rounded-3xl border bg-white p-5 shadow-sm ${
-        selected ? "border-slate-950" : "border-slate-200"
+        selected ? "border-[#0a1a38]" : "border-slate-200"
       }`}
     >
       <div className="flex items-start justify-between gap-3">
@@ -157,7 +157,7 @@ function SessionCard({
           </StatusBadge>
           <Link
             href={`/admin/events/${eventId}/questions?sessionId=${session.id}`}
-            className="mt-3 block text-xl font-black leading-tight text-slate-950 hover:underline"
+            className="mt-3 block text-xl font-black leading-tight text-[color:#0a1a38] hover:underline"
           >
             {session.title}
           </Link>
@@ -203,7 +203,7 @@ function SessionCard({
             </div>
             <button
               type="submit"
-              className="min-h-11 rounded-2xl border border-slate-400 bg-white px-4 py-2 text-sm font-black text-slate-950 shadow-sm transition hover:border-slate-950 hover:bg-slate-50"
+              className="min-h-11 rounded-2xl border border-slate-400 bg-white px-4 py-2 text-sm font-black text-[color:#0a1a38] shadow-sm transition hover:border-[#0a1a38] hover:bg-slate-50"
             >
               세션 저장
             </button>
@@ -369,7 +369,7 @@ function CreateQuestionForm({
         <QuestionFormFields />
         <button
           type="submit"
-          className="min-h-12 rounded-2xl border border-slate-950 bg-slate-950 px-5 py-3 text-base font-black text-white shadow-sm transition hover:bg-slate-800"
+          className="min-h-12 rounded-2xl border border-[#0a1a38] bg-[#0a1a38] px-5 py-3 text-base font-black text-white shadow-sm transition hover:bg-[#10284f]"
         >
           문제 추가
         </button>
@@ -424,7 +424,7 @@ function QuestionCard({
             </StatusBadge>
             <StatusBadge tone="rose">정답 {question.correct_option}번</StatusBadge>
           </div>
-          <h3 className="mt-4 text-xl font-black leading-tight text-slate-950">
+          <h3 className="mt-4 text-xl font-black leading-tight text-[color:#0a1a38]">
             {question.question_text}
           </h3>
           <p className="mt-2 text-sm font-bold text-slate-700">
@@ -439,7 +439,7 @@ function QuestionCard({
               <button
                 type="submit"
                 disabled={index === 0}
-                className="min-h-10 rounded-2xl border border-slate-400 bg-white px-3 py-2 text-sm font-black text-slate-950 shadow-sm transition hover:border-slate-950 hover:bg-slate-50 disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-200 disabled:text-slate-700"
+                className="min-h-10 rounded-2xl border border-slate-400 bg-white px-3 py-2 text-sm font-black text-[color:#0a1a38] shadow-sm transition hover:border-[#0a1a38] hover:bg-slate-50 disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-200 disabled:text-slate-700"
               >
                 위로
               </button>
@@ -448,7 +448,7 @@ function QuestionCard({
               <button
                 type="submit"
                 disabled={index === total - 1}
-                className="min-h-10 rounded-2xl border border-slate-400 bg-white px-3 py-2 text-sm font-black text-slate-950 shadow-sm transition hover:border-slate-950 hover:bg-slate-50 disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-200 disabled:text-slate-700"
+                className="min-h-10 rounded-2xl border border-slate-400 bg-white px-3 py-2 text-sm font-black text-[color:#0a1a38] shadow-sm transition hover:border-[#0a1a38] hover:bg-slate-50 disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-200 disabled:text-slate-700"
               >
                 아래로
               </button>
@@ -477,11 +477,11 @@ function QuestionCard({
       {canEdit ? (
         <div className="mt-5 grid gap-4">
           <form action={updateAction} className="grid gap-4 rounded-2xl border border-slate-300 bg-slate-50 p-4">
-            <h4 className="text-base font-black text-slate-950">문제 수정</h4>
+            <h4 className="text-base font-black text-[color:#0a1a38]">문제 수정</h4>
             <QuestionFormFields question={question} />
             <button
               type="submit"
-              className="min-h-11 rounded-2xl border border-slate-950 bg-slate-950 px-4 py-2 text-sm font-black text-white shadow-sm transition hover:bg-slate-800"
+              className="min-h-11 rounded-2xl border border-[#0a1a38] bg-[#0a1a38] px-4 py-2 text-sm font-black text-white shadow-sm transition hover:bg-[#10284f]"
             >
               문제 수정
             </button>
@@ -551,7 +551,7 @@ export default async function QuestionsPage({
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
               <StatusBadge tone="cyan">{event.event_code}</StatusBadge>
-              <h2 className="mt-3 text-2xl font-black text-slate-950">
+              <h2 className="mt-3 text-2xl font-black text-[color:#0a1a38]">
                 {event.title}
               </h2>
               <p className="mt-2 text-sm leading-6 text-slate-600">
@@ -561,7 +561,7 @@ export default async function QuestionsPage({
             </div>
             <Link
               href={`/admin/events/${eventId}`}
-              className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-slate-400 bg-white px-4 py-2 text-sm font-black text-slate-950 shadow-sm transition hover:border-slate-950 hover:bg-slate-50"
+              className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-slate-400 bg-white px-4 py-2 text-sm font-black text-[color:#0a1a38] shadow-sm transition hover:border-[#0a1a38] hover:bg-slate-50"
             >
               행사 개요
             </Link>
@@ -607,13 +607,13 @@ export default async function QuestionsPage({
                   <input type="hidden" name="status" value="draft" />
                   <button
                     type="submit"
-                    className="min-h-11 rounded-2xl border border-slate-950 bg-slate-950 px-4 py-2 text-sm font-black text-white shadow-sm transition hover:bg-slate-800"
+                    className="min-h-11 rounded-2xl border border-[#0a1a38] bg-[#0a1a38] px-4 py-2 text-sm font-black text-white shadow-sm transition hover:bg-[#10284f]"
                   >
                     세션 생성
                   </button>
                 </form>
               ) : (
-                <p className="rounded-2xl border border-slate-300 bg-slate-50 p-4 text-sm font-bold leading-6 text-slate-800">
+                <p className="rounded-2xl border border-slate-300 bg-slate-50 p-4 text-sm font-bold leading-6 text-[color:#0a1a38]">
                   조회 전용 역할입니다.
                 </p>
               )}

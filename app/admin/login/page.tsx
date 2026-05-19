@@ -10,10 +10,10 @@ export default async function AdminLoginPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-100 px-5 py-8 text-slate-950 sm:px-8">
+    <main className="min-h-screen bg-slate-100 px-5 py-8 text-[color:#0a1a38] sm:px-8">
       <div className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-6xl items-center justify-center">
         <section className="grid w-full overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm lg:grid-cols-[1fr_28rem]">
-          <div className="bg-slate-950 p-8 text-white sm:p-10">
+          <div className="bg-[#0a1a38] p-8 text-white sm:p-10">
             <p className="text-sm font-black uppercase text-cyan-200">
               Dorae Quiz Live
             </p>
