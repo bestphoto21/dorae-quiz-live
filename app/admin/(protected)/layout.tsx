@@ -11,7 +11,7 @@ export default async function ProtectedAdminLayout({
   children,
 }: ProtectedAdminLayoutProps) {
   const admin = await requireAdmin();
-  const displayName = admin.name?.trim() || admin.email;
+  const displayName = admin.name?.trim() || `관리자 (${admin.role})`;
 
   return (
     <div className="min-h-screen bg-slate-100">
