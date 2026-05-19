@@ -463,6 +463,18 @@ export default async function LivePage({ params, searchParams }: LivePageProps) 
               >
                 참가자 입장 페이지 열기
               </Link>
+              <Link
+                href={`/admin/events/${eventId}/rehearsal`}
+                className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-slate-300 bg-white px-5 py-3 text-base font-black text-slate-800 shadow-sm transition hover:border-slate-950"
+              >
+                리허설 체크 열기
+              </Link>
+              <Link
+                href={`/admin/events/${eventId}/logs`}
+                className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-slate-300 bg-white px-5 py-3 text-base font-black text-slate-800 shadow-sm transition hover:border-slate-950"
+              >
+                운영 로그 열기
+              </Link>
               <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                 <p className="text-xs font-black uppercase text-slate-500">
                   QR에 넣을 URL

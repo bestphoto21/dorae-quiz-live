@@ -228,6 +228,21 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
               title="Q&A"
               description="참가자 질문을 승인하고 송출 후보로 관리할 화면입니다."
             />
+            <OperatorLink
+              href={`/admin/events/${eventId}/rehearsal`}
+              title="리허설 체크"
+              description="행사 전 점검 상태와 필수 리허설 항목을 한 화면에서 확인합니다."
+            />
+            <OperatorLink
+              href={`/admin/events/${eventId}/logs`}
+              title="운영 로그"
+              description="누가 언제 어떤 운영 조작을 했는지 최신 로그를 확인합니다."
+            />
+            <OperatorLink
+              href={`/screen/${event.event_code}`}
+              title="스크린 열기"
+              description="현장 송출 화면을 새 탭에서 확인합니다."
+            />
           </div>
         </div>
 

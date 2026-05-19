@@ -279,6 +279,14 @@ export async function canModerateQna(admin: AdminProfile, eventId: string) {
   return canModerateQnaByRole(role);
 }
 
+export function canViewRehearsalByRole(role: EventAccessRole | null) {
+  return Boolean(role);
+}
+
+export function canViewOperationLogsByRole(role: EventAccessRole | null) {
+  return Boolean(role);
+}
+
 export async function requireEventAccess(eventId: string): Promise<{
   admin: AdminProfile;
   event: EventRecord;
