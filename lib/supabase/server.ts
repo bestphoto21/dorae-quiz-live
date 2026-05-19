@@ -36,7 +36,17 @@ export async function createServerSupabaseClient() {
           cookiesToSet.forEach(({ name, value, options }) => {
             cookieStore.set(name, value, options);
           });
-        } catch {
+        } catch (error) {
+          const errorInfo =
+            error instanceof Error
+              ? { name: error.name, message: error.message }
+              : { name: "UnknownError", message: "Unknown cookie write error" };
+
+          console.error("[supabase-server] Failed to set auth cookies.", {
+            cookieCount: cookiesToSet.length,
+            ...errorInfo,
+          });
+
           // Server Components cannot write cookies. Server Actions and Route
           // Handlers can, so auth flows should perform mutations there.
         }

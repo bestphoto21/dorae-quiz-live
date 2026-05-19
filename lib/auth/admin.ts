@@ -41,6 +41,13 @@ export async function getCurrentUser(): Promise<User | null> {
   } = await supabase.auth.getUser();
 
   if (error || !user) {
+    console.error("[admin-auth] Current auth user lookup failed.", {
+      message: error?.message,
+      status: error?.status,
+      name: error?.name,
+      hasUser: Boolean(user),
+    });
+
     return null;
   }
 
@@ -53,6 +60,8 @@ export async function getCurrentAdmin(): Promise<AdminProfile | null> {
   const user = await getCurrentUser();
 
   if (!user) {
+    console.error("[admin-auth] Cannot load admin profile without auth user.");
+
     return null;
   }
 
@@ -61,10 +70,33 @@ export async function getCurrentAdmin(): Promise<AdminProfile | null> {
     .from("admin_profiles")
     .select("id, email, name, role, is_active, created_at, updated_at")
     .eq("id", user.id)
-    .eq("is_active", true)
     .maybeSingle();
 
-  if (error || !data) {
+  if (error) {
+    console.error("[admin-auth] admin_profiles lookup failed.", {
+      userId: user.id,
+      message: error.message,
+      code: error.code,
+    });
+
+    return null;
+  }
+
+  if (!data) {
+    console.error("[admin-auth] No admin_profiles row found.", {
+      userId: user.id,
+      email: user.email,
+    });
+
+    return null;
+  }
+
+  if (!data.is_active) {
+    console.error("[admin-auth] Admin profile is inactive.", {
+      userId: user.id,
+      email: data.email,
+    });
+
     return null;
   }
 
