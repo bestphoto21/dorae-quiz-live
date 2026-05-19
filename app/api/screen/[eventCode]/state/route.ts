@@ -24,6 +24,7 @@ type ScreenEvent = {
 type ScreenLiveState = {
   mode: "waiting" | "question" | "closed" | "result" | "draw" | "qna";
   screen_scene: string | null;
+  screen_payload: unknown;
   current_question_id: string | null;
   question_started_at: string | null;
   question_ends_at: string | null;
@@ -69,10 +70,40 @@ function defaultLiveState(): Omit<ScreenLiveState, "current_question_id"> {
   return {
     mode: "waiting",
     screen_scene: "waiting",
+    screen_payload: {},
     question_started_at: null,
     question_ends_at: null,
     reveal_answer: false,
     show_results: false,
+  };
+}
+
+function pickString(value: unknown) {
+  return typeof value === "string" ? value : null;
+}
+
+function toSafeDrawPayload(payload: unknown) {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    return null;
+  }
+
+  const source = payload as Record<string, unknown>;
+  const winnerId = pickString(source.winner_id);
+  const participantDisplayName = pickString(source.participant_display_name);
+  const prizeName = pickString(source.prize_name);
+  const sourceType = pickString(source.source_type);
+  const createdAt = pickString(source.created_at);
+
+  if (!winnerId || !participantDisplayName || !prizeName || !sourceType) {
+    return null;
+  }
+
+  return {
+    winner_id: winnerId,
+    participant_display_name: participantDisplayName,
+    prize_name: prizeName,
+    source_type: sourceType,
+    created_at: createdAt,
   };
 }
 
@@ -113,6 +144,7 @@ export async function GET(_request: Request, { params }: ScreenStateRouteProps) 
         screen_scene: "inactive",
       },
       question: null,
+      draw: null,
       stats: emptyAnswerStats(),
     });
   }
@@ -120,7 +152,7 @@ export async function GET(_request: Request, { params }: ScreenStateRouteProps) 
   const { data: liveStateData, error: liveStateError } = await supabase
     .from("live_state")
     .select(
-      "mode, screen_scene, current_question_id, question_started_at, question_ends_at, reveal_answer, show_results"
+      "mode, screen_scene, screen_payload, current_question_id, question_started_at, question_ends_at, reveal_answer, show_results"
     )
     .eq("event_id", screenEvent.id)
     .maybeSingle();
@@ -195,6 +227,10 @@ export async function GET(_request: Request, { params }: ScreenStateRouteProps) 
       show_results: liveState.show_results,
     },
     question,
+    draw:
+      liveState.mode === "draw" || liveState.screen_scene === "draw_winner"
+        ? toSafeDrawPayload(liveState.screen_payload)
+        : null,
     // correct_answers is omitted before reveal_answer to avoid leaking the key.
     stats,
   });

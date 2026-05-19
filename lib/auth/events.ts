@@ -237,6 +237,19 @@ export async function canOperateLive(admin: AdminProfile, eventId: string) {
   return canOperateLiveByRole(role);
 }
 
+export function canOperateDrawByRole(role: EventAccessRole | null) {
+  // Draw operation can create real winners and affect prize fulfillment, so it
+  // is narrower than live screen control. screen_operator and qna_moderator can
+  // inspect assigned events but must not run or mutate draws in this MVP.
+  return role === "super_admin" || role === "event_admin" || role === "operator";
+}
+
+export async function canOperateDraw(admin: AdminProfile, eventId: string) {
+  const role = await getEventScopedRole(admin, eventId);
+
+  return canOperateDrawByRole(role);
+}
+
 export async function requireEventAccess(eventId: string): Promise<{
   admin: AdminProfile;
   event: EventRecord;

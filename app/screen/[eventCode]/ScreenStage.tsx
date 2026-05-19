@@ -34,6 +34,13 @@ type ScreenState = {
     time_limit_seconds: number;
     correct_option?: number;
   } | null;
+  draw: {
+    winner_id: string;
+    participant_display_name: string;
+    prize_name: string;
+    source_type: string;
+    created_at: string | null;
+  } | null;
   stats: {
     total_answers: number;
     option_counts: Record<"1" | "2" | "3" | "4", number>;
@@ -60,6 +67,22 @@ function optionEntries(question: NonNullable<ScreenState["question"]>) {
     { number: 3, label: question.option_3 },
     { number: 4, label: question.option_4 },
   ];
+}
+
+function sourceLabel(sourceType: string) {
+  if (sourceType === "all_participants") {
+    return "전체 참가자 추첨";
+  }
+
+  if (sourceType === "correct_answers") {
+    return "정답자 추첨";
+  }
+
+  if (sourceType === "question_correct_answers") {
+    return "특정 문제 정답자 추첨";
+  }
+
+  return "추첨";
 }
 
 function Shell({
@@ -115,7 +138,7 @@ function WaitingView({ state }: { state: ScreenState }) {
           곧 시작합니다
         </h2>
         <p className="mt-6 text-3xl font-bold leading-tight text-slate-600">
-          참가자는 아래 주소로 접속해 주세요.
+          참가자는 아래 주소로 접속해 주세요
         </p>
         <p className="mt-8 break-all rounded-3xl border border-slate-200 bg-slate-50 p-6 text-5xl font-black text-slate-950">
           /e/{state.event.event_code}
@@ -126,7 +149,7 @@ function WaitingView({ state }: { state: ScreenState }) {
         <div className="rounded-3xl border border-white/15 bg-white/10 p-6">
           <p className="text-sm font-black uppercase text-slate-300">Notice</p>
           <p className="mt-4 text-3xl font-black leading-tight">
-            {state.event.screen_notice || "현장 안내를 기다려 주세요."}
+            {state.event.screen_notice || "현장 안내를 기다려 주세요"}
           </p>
         </div>
         <div className="rounded-3xl border border-white/15 bg-white/10 p-6">
@@ -196,14 +219,12 @@ function ClosedView({ state }: { state: ScreenState }) {
   return (
     <section className="grid flex-1 gap-5 lg:grid-cols-[1fr_24rem]">
       <div className="flex flex-col justify-center rounded-3xl bg-white p-8 text-center text-slate-950 shadow-2xl sm:p-12">
-        <p className="text-3xl font-black uppercase text-amber-700">
-          Closed
-        </p>
+        <p className="text-3xl font-black uppercase text-amber-700">Closed</p>
         <h2 className="mt-6 text-7xl font-black leading-tight sm:text-9xl">
           응답 마감
         </h2>
         <p className="mt-6 text-3xl font-bold text-slate-600">
-          잠시 후 결과를 공개합니다.
+          잠시 후 결과를 공개합니다
         </p>
       </div>
       <StatsPanel state={state} />
@@ -249,18 +270,69 @@ function ResultView({ state }: { state: ScreenState }) {
           </div>
         ) : (
           <p className="mt-10 rounded-3xl border border-slate-200 bg-slate-50 p-8 text-4xl font-black">
-            표시할 문제가 없습니다.
+            표시할 문제가 없습니다
           </p>
         )}
 
         {!correctOption && (
           <p className="mt-6 rounded-3xl border border-amber-200 bg-amber-50 p-5 text-2xl font-black text-amber-800">
-            정답은 아직 공개되지 않았습니다.
+            정답은 아직 공개되지 않았습니다
           </p>
         )}
       </div>
 
       <StatsPanel state={state} />
+    </section>
+  );
+}
+
+function DrawWinnerView({ state }: { state: ScreenState }) {
+  const draw = state.draw;
+
+  if (!draw) {
+    return <DrawPreparingView state={state} />;
+  }
+
+  return (
+    <section className="flex flex-1 items-center justify-center rounded-3xl bg-white p-8 text-center text-slate-950 shadow-2xl sm:p-12">
+      <div className="w-full">
+        <p className="text-3xl font-black uppercase tracking-normal text-amber-600">
+          {sourceLabel(draw.source_type)}
+        </p>
+        <h2 className="mt-6 text-6xl font-black leading-tight text-slate-950 sm:text-8xl">
+          축하합니다
+        </h2>
+        <div className="mx-auto mt-10 max-w-5xl rounded-3xl border border-amber-200 bg-amber-50 p-8">
+          <p className="text-3xl font-black text-amber-700">당첨 경품</p>
+          <p className="mt-4 text-5xl font-black leading-tight text-slate-950 sm:text-7xl">
+            {draw.prize_name}
+          </p>
+        </div>
+        <div className="mx-auto mt-8 max-w-5xl rounded-3xl border border-cyan-200 bg-cyan-50 p-8">
+          <p className="text-3xl font-black text-cyan-700">당첨자</p>
+          <p className="mt-4 break-words text-7xl font-black leading-tight text-cyan-950 sm:text-9xl">
+            {draw.participant_display_name}
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function DrawPreparingView({ state }: { state: ScreenState }) {
+  return (
+    <section className="flex flex-1 items-center justify-center rounded-3xl bg-white p-10 text-center text-slate-950 shadow-2xl">
+      <div>
+        <p className="text-3xl font-black uppercase text-amber-700">
+          Lucky Draw
+        </p>
+        <h2 className="mt-6 text-7xl font-black sm:text-9xl">
+          추첨 준비 중
+        </h2>
+        <p className="mt-6 text-3xl font-bold text-slate-600">
+          {state.event.title}
+        </p>
+      </div>
     </section>
   );
 }
@@ -409,23 +481,25 @@ export default function ScreenStage({ eventCode }: ScreenStageProps) {
       )}
       {scene === "closed" && <ClosedView state={state} />}
       {scene === "result" && <ResultView state={state} />}
-      {scene === "draw" && (
-        <PlaceholderView
-          state={state}
-          title="추첨 준비"
-          description="럭키드로우 화면은 다음 단계에서 연결합니다."
-        />
-      )}
+      {scene === "draw_winner" && <DrawWinnerView state={state} />}
+      {scene === "draw" && <DrawPreparingView state={state} />}
       {scene === "qna" && (
         <PlaceholderView
           state={state}
           title="Q&A"
-          description="승인된 질문 송출은 다음 단계에서 연결합니다."
+          description="승인된 질문 송출은 다음 단계에서 연결됩니다."
         />
       )}
-      {!["inactive", "waiting", "question", "closed", "result", "draw", "qna"].includes(
-        scene ?? ""
-      ) && <WaitingView state={state} />}
+      {![
+        "inactive",
+        "waiting",
+        "question",
+        "closed",
+        "result",
+        "draw",
+        "draw_winner",
+        "qna",
+      ].includes(scene ?? "") && <WaitingView state={state} />}
     </Shell>
   );
 }
