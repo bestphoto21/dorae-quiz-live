@@ -4,11 +4,12 @@ This document describes the initial Supabase/PostgreSQL schema for the standalon
 
 This stage only defines the database shape, constraints, indexes, triggers, and Row Level Security direction. It does not connect to a Supabase project, create client/server SDK code, implement authentication, save participant registrations, or add realtime behavior.
 
-## Migration File
+## Migration Files
 
 - `supabase/migrations/001_initial_schema.sql`
+- `supabase/migrations/002_extend_event_platform_schema.sql`
 
-The migration includes:
+`001_initial_schema.sql` includes:
 
 - `pgcrypto` extension for `gen_random_uuid()`
 - Core event quiz tables
@@ -18,6 +19,19 @@ The migration includes:
 - `answers.is_correct` trigger calculation from the stored answer key
 - RLS enabled on every table
 - Deny-by-default initial RLS stance with no permissive public policies yet
+
+`002_extend_event_platform_schema.sql` extends the first schema with:
+
+- Participant organization and group fields
+- Question type support for future polls and OX questions
+- Answer response-time tracking
+- Draw winner fulfillment status
+- Flexible screen scene and screen payload fields
+- Supporting constraints, comments, and indexes
+
+If `001_initial_schema.sql` has already been applied in the Supabase SQL Editor, run `002_extend_event_platform_schema.sql` as the next script. That is the recommended path.
+
+Because the project is still in an early development stage with little or no production data, it is also possible to drop the created tables and rerun `001` followed by `002`. Use that reset path only when you intentionally want a clean database. The default recommendation is to apply `002` on top of the existing `001` schema.
 
 ## Relationship Overview
 
@@ -60,6 +74,8 @@ Important rules:
 - `phone` stores the original input value.
 - `phone_normalized` stores the duplicate-check value and is unique within the same event.
 - `display_name` is optional. If it is empty, the application should display `name`.
+- `organization` is optional and can store company, school, institution, or affiliation information.
+- `group_name` is optional and can store team, table, cohort, or event-side group labels.
 - `phone` and `phone_normalized` are personally identifiable information and must never be exposed on projection screens, public participant views, or public realtime payloads.
 
 Phone normalization rule:
@@ -86,9 +102,19 @@ Stores quiz questions and four fixed options.
 
 Important rules:
 
+- `question_type` defaults to `quiz_single`.
 - `correct_option` must be between `1` and `4`.
 - `time_limit_seconds` must be between `5` and `300`.
 - `order_index` controls display order within a session.
+
+Allowed `question_type` values:
+
+- `quiz_single`: single-answer quiz question
+- `poll_single`: single-choice poll without quiz scoring
+- `poll_multiple`: multiple-choice poll or survey item
+- `ox`: O/X style question
+
+The first MVP should use only `quiz_single`. The additional values are reserved for future event voting, surveys, and O/X quiz expansion.
 
 Security note:
 
@@ -106,7 +132,15 @@ Important rules:
 - `selected_option` must be between `1` and `4`.
 - A participant can answer the same question only once.
 - `is_correct` is calculated by a database trigger from `questions.correct_option` and `selected_option`.
+- `response_time_ms` is optional and must be `0` or greater when present.
 - Indexes support per-question statistics, correctness summaries, participant lookups, and answer-time sorting.
+
+`response_time_ms` can support:
+
+- fastest-correct ranking
+- same-score tie-breaking
+- answer speed analytics
+- event recap statistics
 
 Security note:
 
@@ -137,6 +171,21 @@ Important fields:
 - `question_ends_at`
 - `reveal_answer`
 - `show_results`
+- `screen_scene`
+- `screen_payload`
+
+`screen_scene` and `screen_payload` are added by `002_extend_event_platform_schema.sql` for flexible projection control.
+
+Possible future uses:
+
+- custom screen staging modes
+- winner reveal scenes
+- selected Q&A projection
+- notice or intermission screens
+- sponsor or instruction screens
+- temporary scene-specific options without new columns
+
+`screen_payload` must remain screen-safe. It should not contain phone numbers, raw private participant rows, or unrevealed answer keys.
 
 ### `qna_questions`
 
@@ -179,6 +228,20 @@ Important rule:
 - The initial schema prevents the same participant from winning more than once in the same event.
 - If a future option allows duplicate winners, replace the unique constraint on `(event_id, participant_id)` with a partial unique index or enforce that rule in draw logic.
 
+Fulfillment fields added by `002_extend_event_platform_schema.sql`:
+
+- `status`
+- `claimed_at`
+
+Allowed `status` values:
+
+- `pending`: winner selected but prize not yet confirmed
+- `claimed`: prize confirmed as delivered or received
+- `cancelled`: winner entry cancelled
+- `redrawn`: winner was replaced by another draw
+
+These fields support prize handoff confirmation, redraw handling, and cancellation history.
+
 ### `operation_logs`
 
 Stores important operator actions for audit and debugging.
@@ -198,17 +261,22 @@ Examples:
 - `events.event_code` is unique and required.
 - `participants` stores both original `phone` and server-normalized `phone_normalized`.
 - `participants` prevents duplicate `phone_normalized` values within the same event.
+- Optional `participants.organization` and `participants.group_name` cannot be blank strings when present.
 - `quiz_sessions.status` is limited to `draft`, `ready`, `live`, `ended`.
+- `questions.question_type` is limited to `quiz_single`, `poll_single`, `poll_multiple`, `ox`.
 - `questions.correct_option` is limited to `1` through `4`.
 - `questions.time_limit_seconds` is limited to `5` through `300`.
 - `answers.selected_option` is limited to `1` through `4`.
+- `answers.response_time_ms` must be `0` or greater when present.
 - `answers` prevents duplicate answers for the same participant and question.
 - `answers.is_correct` is assigned by trigger rather than trusted from the client.
 - `live_state.event_id` is unique, creating one state row per event.
 - `live_state.mode` is limited to known screen/operator modes.
+- Optional `live_state.screen_scene` cannot be a blank string when present.
 - `qna_questions.status` is limited to moderation states.
 - `prizes.quantity` must be at least `1`.
 - `draw_winners.source_type` is limited to known draw source modes.
+- `draw_winners.status` is limited to prize fulfillment states.
 - `draw_winners` prevents duplicate winners within the same event.
 
 ## Index Strategy
@@ -217,12 +285,13 @@ The migration adds indexes for the main expected access patterns:
 
 - Event lookup by `event_code`, active state, and schedule
 - Participant lookup by event, normalized phone uniqueness, and join time
+- Participant filtering by event organization and group name
 - Quiz session lookup by event and status
-- Question lookup by session, order, and active state
-- Answer statistics by event, question, selected option, and correctness
-- Live state lookup by current session and current question
+- Question lookup by session, order, active state, and question type
+- Answer statistics by event, question, selected option, correctness, and response time
+- Live state lookup by current session, current question, screen scene, and screen payload when needed
 - Q&A moderation by event, status, pinned state, and created time
-- Prize and winner lookup by event
+- Prize and winner lookup by event, prize, and fulfillment status
 - Operation log lookup by event, admin user, action, and created time
 
 ## `updated_at` Trigger
@@ -347,6 +416,7 @@ Recommended future surfaces:
 - `public_answer_summary(event_code, question_id)` for aggregated option counts and percentages.
 - `public_screen_qna(event_code)` for approved and pinned Q&A only.
 - `public_draw_winners(event_code)` for winner names with no phone data.
+- `public_screen_state(event_code)` for `live_state.mode`, `screen_scene`, and sanitized `screen_payload`.
 
 These surfaces should:
 
@@ -356,6 +426,7 @@ These surfaces should:
 - Return participant names as `display_name`, fallback `name`, or a server-masked value.
 - Return only `qna_questions.status = 'approved'` rows for projection.
 - Return aggregated answer statistics instead of raw `answers` rows whenever possible.
+- Treat `live_state.screen_payload` as public-screen data only; never place private fields inside it.
 
 ## Not Implemented Yet
 
