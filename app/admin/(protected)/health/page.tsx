@@ -127,6 +127,8 @@ export default async function AdminHealthPage() {
   );
   const databaseChecks = await getDatabaseHealth(canCheckDatabase);
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim() || null;
+  const vercelEnv = process.env.VERCEL_ENV?.trim() || null;
+  const hasVercelUrl = Boolean(process.env.VERCEL_URL?.trim());
   const envChecks: HealthCheck[] = serverEnv.checks.map((check) => ({
     label: check.key,
     status: check.present ? "ok" : check.required ? "danger" : "warn",
@@ -160,6 +162,18 @@ export default async function AdminHealthPage() {
       status: siteUrl ? "ok" : "warn",
       value: siteUrl || "미설정",
       hint: "배포 후 QR 안내와 운영 문서에서 사용할 공개 사이트 주소입니다.",
+    },
+    {
+      label: "Vercel Environment",
+      status: vercelEnv === "production" ? "ok" : vercelEnv ? "warn" : "warn",
+      value: vercelEnv || "로컬 또는 미감지",
+      hint: "Vercel 배포 환경에서 production, preview, development 중 하나로 감지됩니다.",
+    },
+    {
+      label: "Vercel URL",
+      status: hasVercelUrl ? "ok" : "warn",
+      value: hasVercelUrl ? "감지됨" : "미감지",
+      hint: "Vercel 시스템 URL은 값 전체를 표시하지 않고 감지 여부만 보여줍니다.",
     },
     {
       label: "screen state API",

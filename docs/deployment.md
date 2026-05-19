@@ -16,15 +16,40 @@ Do not commit `.env.local`, Supabase secret values, or service role values.
 ## GitHub And Vercel
 
 1. Push the repository to GitHub.
-2. Create a Vercel project from the GitHub repository.
-3. Use the default Next.js framework preset.
-4. Build command:
+2. Confirm the GitHub repository contains the latest production commit.
+3. Create a Vercel project from the GitHub repository, or connect the existing Vercel project to the repository.
+4. Use these Vercel settings:
 
 ```text
-npm run build
+Framework Preset: Next.js
+Root Directory: dorae-quiz-live project root
+Build Command: npm run build
+Install Command: npm install
+Output Directory: Next.js default
+Production Branch: master, or the branch your team uses for production
 ```
 
-5. Output should be the default Vercel Next.js output.
+If Vercel auto-detects the Next.js defaults, keep the detected defaults unless the project structure changes.
+
+Before deployment, confirm which Git branch Vercel treats as Production. If the production branch is not `master`, set the Vercel Production Branch to the branch actually used for release.
+
+## Manual Deployment Steps
+
+Codex does not operate the Vercel UI directly. The operator should:
+
+1. Confirm the latest code is pushed to GitHub.
+2. Open Vercel and create or open the project.
+3. Connect the GitHub repository.
+4. Confirm the project root is the `dorae-quiz-live` repository root.
+5. Register environment variables for Production.
+6. Trigger a production deployment.
+7. Copy the production deployment URL.
+8. Set `NEXT_PUBLIC_SITE_URL` to the production URL.
+9. Redeploy after changing `NEXT_PUBLIC_SITE_URL`.
+10. Open `/admin/health`.
+11. Run the production smoke test.
+
+Use `docs/production-smoke-test.md` as the deployment verification checklist.
 
 ## Required Environment Variables
 
@@ -41,13 +66,44 @@ Server-only values:
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `PARTICIPANT_SESSION_SECRET`
 
+This project does not use a separate `ADMIN_SESSION_SECRET`. Admin sessions are handled by Supabase Auth cookies. The current custom server-side session signing secret is `PARTICIPANT_SESSION_SECRET`.
+
+`NEXT_PUBLIC_` values are browser-visible. Only values designed to be public may use this prefix.
+
+Never add `NEXT_PUBLIC_` to:
+
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `PARTICIPANT_SESSION_SECRET`
+- any future secret, password, token, or private key
+
 `NEXT_PUBLIC_SITE_URL` should be the production site origin, for example:
 
 ```text
 https://your-project.vercel.app
 ```
 
-Do not prefix server-only values with `NEXT_PUBLIC_`.
+After changing any Vercel environment variable, redeploy the project. Already-built deployments do not automatically pick up new environment values.
+
+Do not write real environment values in this document.
+
+## Health Check After Deployment
+
+Open:
+
+```text
+/admin/health
+```
+
+Confirm:
+
+- required environment variables show as registered
+- Vercel environment is detected
+- Supabase connection is healthy
+- `events` table check passes
+- current admin is active
+- no secret values are displayed
+
+If `NEXT_PUBLIC_SITE_URL` is missing or wrong, set it to the production URL and redeploy.
 
 ## Supabase Key Handling
 
