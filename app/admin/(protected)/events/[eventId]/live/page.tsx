@@ -82,6 +82,36 @@ function modeTone(mode: LiveStateRecord["mode"]) {
   return "slate";
 }
 
+function modeLabel(mode: LiveStateRecord["mode"] | null | undefined) {
+  const labels: Record<LiveStateRecord["mode"], string> = {
+    waiting: "대기",
+    question: "퀴즈 진행",
+    closed: "응답 마감",
+    result: "결과 공개",
+    draw: "럭키드로우",
+    qna: "Q&A",
+  };
+
+  return labels[mode ?? "waiting"];
+}
+
+function sceneLabel(scene: string | null | undefined) {
+  const labels: Record<string, string> = {
+    waiting: "대기 화면",
+    break: "휴식 화면",
+    question: "퀴즈 문제 화면",
+    closed: "응답 마감 화면",
+    result: "결과 화면",
+    qna: "Q&A 대기 화면",
+    qna_waiting: "Q&A 대기 화면",
+    qna_question: "승인 질문 송출 화면",
+    draw: "럭키드로우 준비 화면",
+    draw_winner: "당첨자 발표 화면",
+  };
+
+  return labels[scene ?? "waiting"] ?? "대기 화면";
+}
+
 async function getLiveState(eventId: string): Promise<LiveStateRecord | null> {
   const supabase = createAdminSupabaseClient();
   const { data, error } = await supabase
@@ -117,8 +147,8 @@ async function getLiveState(eventId: string): Promise<LiveStateRecord | null> {
 
 function StateRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-      <p className="text-xs font-black uppercase text-slate-500">{label}</p>
+    <div className="rounded-2xl border border-slate-300 bg-slate-50 p-4">
+      <p className="text-xs font-black text-slate-700">{label}</p>
       <p className="mt-2 break-all text-sm font-bold text-slate-950">{value}</p>
     </div>
   );
@@ -222,7 +252,7 @@ function SessionSelector({
           }`}
         >
           <p className="text-base font-black text-slate-950">{session.title}</p>
-          <p className="mt-1 text-sm font-bold text-slate-500">
+          <p className="mt-1 text-sm font-bold text-slate-700">
             상태: {session.status}
           </p>
         </Link>
@@ -244,8 +274,8 @@ function ControlButton({
 }) {
   const classes = {
     dark: "border-slate-950 bg-slate-950 text-white hover:bg-slate-800",
-    cyan: "border-cyan-600 bg-cyan-600 text-white hover:bg-cyan-700",
-    amber: "border-amber-500 bg-amber-500 text-slate-950 hover:bg-amber-400",
+    cyan: "border-cyan-700 bg-cyan-700 text-white hover:bg-cyan-800",
+    amber: "border-amber-500 bg-amber-400 text-slate-950 hover:bg-amber-300",
     rose: "border-rose-600 bg-rose-600 text-white hover:bg-rose-700",
   };
 
@@ -254,7 +284,7 @@ function ControlButton({
       {sessionId && <input type="hidden" name="session_id" value={sessionId} />}
       <button
         type="submit"
-        className={`min-h-12 w-full rounded-2xl border px-5 py-3 text-base font-black shadow-sm transition ${classes[tone]}`}
+        className={`min-h-12 w-full rounded-2xl border px-5 py-3 text-base font-black shadow-sm transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-500 ${classes[tone]}`}
       >
         {children}
       </button>
@@ -310,7 +340,7 @@ function QuestionStartCard({
             <input type="hidden" name="question_id" value={question.id} />
             <button
               type="submit"
-              className="min-h-11 w-full rounded-2xl border border-cyan-600 bg-cyan-600 px-4 py-2 text-sm font-black text-white shadow-sm transition hover:bg-cyan-700"
+              className="min-h-11 w-full rounded-2xl border border-cyan-700 bg-cyan-700 px-4 py-2 text-sm font-black text-white shadow-sm transition hover:bg-cyan-800"
             >
               이 문제 시작
             </button>
@@ -380,10 +410,10 @@ export default async function LivePage({ params, searchParams }: LivePageProps) 
         <AdminPanel title={event.title} description={`행사 코드: ${event.event_code}`}>
           <div className="flex flex-wrap items-center gap-2">
             <StatusBadge tone={modeTone(liveState?.mode ?? "waiting")}>
-              mode: {liveState?.mode ?? "waiting"}
+              현재 운영 모드: {modeLabel(liveState?.mode)}
             </StatusBadge>
             <StatusBadge tone="slate">
-              scene: {liveState?.screen_scene ?? "waiting"}
+              현재 송출 화면: {sceneLabel(liveState?.screen_scene)}
             </StatusBadge>
             <StatusBadge
               tone={canOperate ? "green" : canUseAnyScreenAction ? "cyan" : "amber"}
@@ -404,12 +434,12 @@ export default async function LivePage({ params, searchParams }: LivePageProps) 
           )}
 
           {message && (
-            <p className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-700">
+            <p className="mt-4 rounded-2xl border border-emerald-300 bg-emerald-50 p-4 text-sm font-bold text-emerald-900">
               {message}
             </p>
           )}
           {error && (
-            <p className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-bold text-rose-700">
+            <p className="mt-4 rounded-2xl border border-rose-300 bg-rose-50 p-4 text-sm font-bold text-rose-900">
               {error}
             </p>
           )}
@@ -439,7 +469,7 @@ export default async function LivePage({ params, searchParams }: LivePageProps) 
               <StateRow label="참가자 등록 URL" value={joinUrl} />
               <StateRow
                 label="정답 공개"
-                value={liveState?.reveal_answer ? "공개 중" : "비공개"}
+                value={liveState?.reveal_answer ? "정답 공개 중" : "정답 비공개"}
               />
             </div>
           </AdminPanel>
@@ -459,30 +489,30 @@ export default async function LivePage({ params, searchParams }: LivePageProps) 
               <Link
                 href={participantUrl}
                 target="_blank"
-                className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-slate-300 bg-white px-5 py-3 text-base font-black text-slate-800 shadow-sm transition hover:border-slate-950"
+                className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-slate-400 bg-white px-5 py-3 text-base font-black text-slate-950 shadow-sm transition hover:border-slate-950 hover:bg-slate-50"
               >
                 참가자 입장 페이지 열기
               </Link>
               <Link
                 href={`/admin/events/${eventId}/rehearsal`}
-                className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-slate-300 bg-white px-5 py-3 text-base font-black text-slate-800 shadow-sm transition hover:border-slate-950"
+                className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-slate-400 bg-white px-5 py-3 text-base font-black text-slate-950 shadow-sm transition hover:border-slate-950 hover:bg-slate-50"
               >
                 리허설 체크 열기
               </Link>
               <Link
                 href={`/admin/events/${eventId}/logs`}
-                className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-slate-300 bg-white px-5 py-3 text-base font-black text-slate-800 shadow-sm transition hover:border-slate-950"
+                className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-slate-400 bg-white px-5 py-3 text-base font-black text-slate-950 shadow-sm transition hover:border-slate-950 hover:bg-slate-50"
               >
                 운영 로그 열기
               </Link>
               <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                <p className="text-xs font-black uppercase text-slate-500">
+                <p className="text-xs font-black text-slate-700">
                   QR에 넣을 URL
                 </p>
                 <p className="mt-2 break-all text-lg font-black text-slate-950">
                   {participantUrl}
                 </p>
-                <p className="mt-2 text-sm font-bold leading-6 text-slate-600">
+                <p className="mt-2 text-sm font-bold leading-6 text-slate-700">
                   배포 후에는 Vercel 도메인을 포함한 전체 URL로 교체해 주세요.
                 </p>
               </div>
@@ -513,7 +543,7 @@ export default async function LivePage({ params, searchParams }: LivePageProps) 
                   </StatusBadge>
                   <Link
                     href={`/admin/events/${eventId}/questions?sessionId=${selectedSession.id}`}
-                    className="inline-flex rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-black text-slate-700 shadow-sm transition hover:border-slate-950"
+                    className="inline-flex rounded-2xl border border-slate-400 bg-white px-4 py-2 text-sm font-black text-slate-950 shadow-sm transition hover:border-slate-950 hover:bg-slate-50"
                   >
                     문제 관리로 이동
                   </Link>
@@ -550,7 +580,7 @@ export default async function LivePage({ params, searchParams }: LivePageProps) 
           </section>
 
           <aside className="grid content-start gap-5">
-            <AdminPanel title="현재 live_state">
+            <AdminPanel title="현재 운영 상태">
               <div className="grid gap-3">
                 <StateRow label="현재 세션" value={currentSession?.title ?? "없음"} />
                 <StateRow
@@ -570,12 +600,12 @@ export default async function LivePage({ params, searchParams }: LivePageProps) 
                   value={formatDateTime(liveState?.question_ends_at ?? null)}
                 />
                 <StateRow
-                  label="reveal_answer"
-                  value={String(liveState?.reveal_answer ?? false)}
+                  label="정답 공개 상태"
+                  value={liveState?.reveal_answer ? "정답 공개 중" : "정답 비공개"}
                 />
                 <StateRow
-                  label="show_results"
-                  value={String(liveState?.show_results ?? false)}
+                  label="결과 표시 상태"
+                  value={liveState?.show_results ? "결과 표시 중" : "결과 숨김"}
                 />
               </div>
             </AdminPanel>
@@ -606,7 +636,7 @@ export default async function LivePage({ params, searchParams }: LivePageProps) 
                   )}
                 </div>
               ) : (
-                <p className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-bold leading-6 text-slate-600">
+                    <p className="rounded-2xl border border-slate-300 bg-slate-50 p-4 text-sm font-bold leading-6 text-slate-800">
                   현재 역할은 스크린 상태를 조회할 수 있지만 변경할 수 없습니다.
                 </p>
               )}
@@ -641,7 +671,7 @@ export default async function LivePage({ params, searchParams }: LivePageProps) 
                   </ControlButton>
                 </div>
               ) : (
-                <p className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-bold leading-6 text-slate-600">
+                  <p className="rounded-2xl border border-slate-300 bg-slate-50 p-4 text-sm font-bold leading-6 text-slate-800">
                   현재 역할은 퀴즈 문제 진행을 조회할 수 있지만 변경할 수 없습니다.
                 </p>
               )}

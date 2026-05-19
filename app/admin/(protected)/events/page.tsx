@@ -40,7 +40,7 @@ function EventCard({ event }: { event: EventRecord }) {
             {event.title}
           </h2>
           {event.subtitle && (
-            <p className="mt-2 text-sm font-bold text-slate-500">
+            <p className="mt-2 text-sm font-bold text-slate-700">
               {event.subtitle}
             </p>
           )}
@@ -55,32 +55,32 @@ function EventCard({ event }: { event: EventRecord }) {
 
       <div className="mt-5 grid gap-3 text-sm md:grid-cols-2">
         <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-          <p className="font-black uppercase text-slate-500">Event Code</p>
+          <p className="font-black text-slate-700">행사 코드</p>
           <p className="mt-1 break-all font-black text-slate-950">
             {event.event_code}
           </p>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-          <p className="font-black uppercase text-slate-500">Venue</p>
+          <p className="font-black text-slate-700">장소</p>
           <p className="mt-1 font-bold text-slate-950">
             {event.venue ?? "미정"}
           </p>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-          <p className="font-black uppercase text-slate-500">Start</p>
+          <p className="font-black text-slate-700">시작</p>
           <p className="mt-1 font-bold text-slate-950">
             {formatDateTime(event.starts_at)}
           </p>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-          <p className="font-black uppercase text-slate-500">End</p>
+          <p className="font-black text-slate-700">종료</p>
           <p className="mt-1 font-bold text-slate-950">
             {formatDateTime(event.ends_at)}
           </p>
         </div>
       </div>
 
-      <p className="mt-4 text-xs font-bold text-slate-500">
+      <p className="mt-4 text-xs font-bold text-slate-700">
         생성일: {formatDate(event.created_at)}
       </p>
     </article>
@@ -136,14 +136,14 @@ export default async function AdminEventsPage() {
           title="운영 안내"
           description="행사 생성 후 개요 화면에서 참가자 URL, 스크린 URL, 하위 운영 메뉴로 이동할 수 있습니다."
         >
-          <div className="grid gap-3 text-sm leading-6 text-slate-600">
-            <p className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+          <div className="grid gap-3 text-sm font-bold leading-6 text-slate-800">
+            <p className="rounded-2xl border border-slate-300 bg-slate-50 p-4">
               행사 삭제는 아직 제공하지 않습니다. 운영 중 실수를 줄이기 위해
               비활성 상태로 전환하는 방식부터 사용합니다.
             </p>
-            <p className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              참가자 등록, 문제 CRUD, 라이브 진행, Q&A, 추첨 기능은 다음
-              단계에서 연결합니다.
+            <p className="rounded-2xl border border-slate-300 bg-slate-50 p-4">
+              참가자 등록, 문제 관리, 라이브 진행, Q&A, 추첨 기능을 행사별
+              상세 화면에서 확인하고 운영합니다.
             </p>
           </div>
         </AdminPanel>

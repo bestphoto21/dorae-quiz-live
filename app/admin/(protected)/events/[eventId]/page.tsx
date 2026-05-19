@@ -113,10 +113,40 @@ async function getLiveState(eventId: string): Promise<LiveStateSummary | null> {
   return data as LiveStateSummary | null;
 }
 
+function liveModeLabel(mode: string | null | undefined) {
+  const labels: Record<string, string> = {
+    waiting: "대기",
+    question: "퀴즈 진행",
+    closed: "응답 마감",
+    result: "결과 공개",
+    draw: "럭키드로우",
+    qna: "Q&A",
+  };
+
+  return labels[mode ?? "waiting"] ?? "대기";
+}
+
+function sceneLabel(scene: string | null | undefined) {
+  const labels: Record<string, string> = {
+    waiting: "대기 화면",
+    break: "휴식 화면",
+    question: "퀴즈 문제 화면",
+    closed: "응답 마감 화면",
+    result: "결과 화면",
+    qna: "Q&A 대기 화면",
+    qna_waiting: "Q&A 대기 화면",
+    qna_question: "승인 질문 송출 화면",
+    draw: "럭키드로우 준비 화면",
+    draw_winner: "당첨자 발표 화면",
+  };
+
+  return labels[scene ?? "waiting"] ?? "대기 화면";
+}
+
 function StatCard({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-      <p className="text-sm font-black uppercase text-slate-500">{label}</p>
+    <div className="rounded-2xl border border-slate-300 bg-slate-50 p-4">
+      <p className="text-sm font-black text-slate-700">{label}</p>
       <p className="mt-2 text-3xl font-black text-slate-950">
         {value.toLocaleString("ko-KR")}
       </p>
@@ -126,8 +156,8 @@ function StatCard({ label, value }: { label: string; value: number }) {
 
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-      <p className="text-sm font-black uppercase text-slate-500">{label}</p>
+    <div className="rounded-2xl border border-slate-300 bg-slate-50 p-4">
+      <p className="text-sm font-black text-slate-700">{label}</p>
       <p className="mt-2 break-all text-base font-bold text-slate-950">
         {value}
       </p>
@@ -169,7 +199,7 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
               </StatusBadge>
               <StatusBadge tone="cyan">{event.event_code}</StatusBadge>
               <StatusBadge tone="slate">
-                live: {liveState?.mode ?? "waiting"}
+                현재 운영: {liveModeLabel(liveState?.mode)}
               </StatusBadge>
             </div>
 
@@ -185,7 +215,7 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
             {event.screen_notice && (
               <div className="mt-4 rounded-2xl border border-cyan-200 bg-cyan-50 p-4">
                 <p className="text-sm font-black uppercase text-cyan-700">
-                  Screen Notice
+                  스크린 안내
                 </p>
                 <p className="mt-2 text-sm font-bold leading-6 text-cyan-950">
                   {event.screen_notice}
@@ -211,22 +241,22 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
             <OperatorLink
               href={`/admin/events/${eventId}/questions`}
               title="문제 관리"
-              description="문항과 선택지를 준비하는 화면입니다. CRUD 기능은 다음 단계에서 연결합니다."
+              description="문항과 선택지를 준비하고 정답 정보를 관리하는 화면입니다."
             />
             <OperatorLink
               href={`/admin/events/${eventId}/live`}
               title="라이브 진행"
-              description="문제 시작, 정답 공개, 결과 송출을 운영할 화면입니다."
+              description="문제 시작, 정답 공개, 결과 송출을 운영하는 화면입니다."
             />
             <OperatorLink
               href={`/admin/events/${eventId}/draw`}
               title="추첨"
-              description="참가자 또는 정답자 기준 추첨을 진행할 화면입니다."
+              description="참가자 또는 정답자 기준 추첨을 진행하고 스크린에 발표합니다."
             />
             <OperatorLink
               href={`/admin/events/${eventId}/qna`}
               title="Q&A"
-              description="참가자 질문을 승인하고 송출 후보로 관리할 화면입니다."
+              description="참가자 질문을 승인하고 현장 스크린에 송출합니다."
             />
             <OperatorLink
               href={`/admin/events/${eventId}/rehearsal`}
@@ -258,13 +288,16 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
 
           <AdminPanel title="라이브 상태">
             <div className="grid gap-3 text-sm font-bold text-slate-700">
-              <DetailRow label="Mode" value={liveState?.mode ?? "waiting"} />
               <DetailRow
-                label="Screen Scene"
-                value={liveState?.screen_scene ?? "미지정"}
+                label="현재 운영 모드"
+                value={liveModeLabel(liveState?.mode)}
               />
               <DetailRow
-                label="Updated"
+                label="현재 송출 화면"
+                value={sceneLabel(liveState?.screen_scene)}
+              />
+              <DetailRow
+                label="마지막 변경"
                 value={formatDateTime(liveState?.updated_at ?? null)}
               />
             </div>
@@ -291,7 +324,7 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
                 label="스크린 URL"
                 value={`/screen/${event.event_code}`}
               />
-              <p className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-black text-slate-950">
+              <p className="rounded-2xl border border-slate-300 bg-slate-50 p-4 text-sm font-black text-slate-950">
                 실제 전체 주소는 배포 후 Vercel 도메인을 기준으로 결정됩니다.
               </p>
             </div>

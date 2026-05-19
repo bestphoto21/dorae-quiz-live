@@ -85,15 +85,15 @@ function questionTypeTone(questionType: QuestionType) {
 }
 
 function selectClasses() {
-  return "mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-bold text-slate-950 shadow-sm outline-none transition focus:border-slate-950";
+  return "mt-2 w-full rounded-2xl border border-slate-400 bg-white px-4 py-3 text-sm font-bold text-slate-950 shadow-sm outline-none transition focus:border-slate-950";
 }
 
 function inputClasses() {
-  return "mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-bold text-slate-950 shadow-sm outline-none transition focus:border-slate-950";
+  return "mt-2 w-full rounded-2xl border border-slate-400 bg-white px-4 py-3 text-sm font-bold text-slate-950 shadow-sm outline-none transition placeholder:text-slate-500 focus:border-slate-950";
 }
 
 function labelClasses() {
-  return "text-xs font-black uppercase text-slate-500";
+  return "text-xs font-black text-slate-700";
 }
 
 function SessionCreateForm({ eventId }: { eventId: string }) {
@@ -161,7 +161,7 @@ function SessionCard({
           >
             {session.title}
           </Link>
-          <p className="mt-2 text-sm font-bold text-slate-500">
+          <p className="mt-2 text-sm font-bold text-slate-700">
             문제 {questionCount.toLocaleString("ko-KR")}개
           </p>
         </div>
@@ -203,7 +203,7 @@ function SessionCard({
             </div>
             <button
               type="submit"
-              className="min-h-11 rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-black text-slate-700 shadow-sm transition hover:border-slate-950 hover:text-slate-950"
+              className="min-h-11 rounded-2xl border border-slate-400 bg-white px-4 py-2 text-sm font-black text-slate-950 shadow-sm transition hover:border-slate-950 hover:bg-slate-50"
             >
               세션 저장
             </button>
@@ -225,7 +225,7 @@ function SessionCard({
             </label>
             <button
               type="submit"
-              className="mt-3 min-h-10 rounded-2xl border border-rose-600 bg-rose-600 px-4 py-2 text-sm font-black text-white shadow-sm"
+              className="mt-3 min-h-10 rounded-2xl border border-rose-700 bg-rose-700 px-4 py-2 text-sm font-black text-white shadow-sm"
             >
               세션 삭제
             </button>
@@ -427,7 +427,7 @@ function QuestionCard({
           <h3 className="mt-4 text-xl font-black leading-tight text-slate-950">
             {question.question_text}
           </h3>
-          <p className="mt-2 text-sm font-bold text-slate-500">
+          <p className="mt-2 text-sm font-bold text-slate-700">
             제한 시간 {question.time_limit_seconds}초 · order_index{" "}
             {question.order_index}
           </p>
@@ -439,7 +439,7 @@ function QuestionCard({
               <button
                 type="submit"
                 disabled={index === 0}
-                className="min-h-10 rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm font-black text-slate-700 shadow-sm transition hover:border-slate-950 disabled:opacity-40"
+                className="min-h-10 rounded-2xl border border-slate-400 bg-white px-3 py-2 text-sm font-black text-slate-950 shadow-sm transition hover:border-slate-950 hover:bg-slate-50 disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-200 disabled:text-slate-700"
               >
                 위로
               </button>
@@ -448,7 +448,7 @@ function QuestionCard({
               <button
                 type="submit"
                 disabled={index === total - 1}
-                className="min-h-10 rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm font-black text-slate-700 shadow-sm transition hover:border-slate-950 disabled:opacity-40"
+                className="min-h-10 rounded-2xl border border-slate-400 bg-white px-3 py-2 text-sm font-black text-slate-950 shadow-sm transition hover:border-slate-950 hover:bg-slate-50 disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-200 disabled:text-slate-700"
               >
                 아래로
               </button>
@@ -476,7 +476,7 @@ function QuestionCard({
 
       {canEdit ? (
         <div className="mt-5 grid gap-4">
-          <form action={updateAction} className="grid gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+          <form action={updateAction} className="grid gap-4 rounded-2xl border border-slate-300 bg-slate-50 p-4">
             <h4 className="text-base font-black text-slate-950">문제 수정</h4>
             <QuestionFormFields question={question} />
             <button
@@ -503,7 +503,7 @@ function QuestionCard({
             </label>
             <button
               type="submit"
-              className="mt-3 min-h-10 rounded-2xl border border-rose-600 bg-rose-600 px-4 py-2 text-sm font-black text-white shadow-sm"
+              className="mt-3 min-h-10 rounded-2xl border border-rose-700 bg-rose-700 px-4 py-2 text-sm font-black text-white shadow-sm"
             >
               문제 삭제
             </button>
@@ -561,7 +561,7 @@ export default async function QuestionsPage({
             </div>
             <Link
               href={`/admin/events/${eventId}`}
-              className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-black text-slate-700 shadow-sm transition hover:border-slate-950"
+              className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-slate-400 bg-white px-4 py-2 text-sm font-black text-slate-950 shadow-sm transition hover:border-slate-950 hover:bg-slate-50"
             >
               행사 개요
             </Link>
@@ -613,7 +613,7 @@ export default async function QuestionsPage({
                   </button>
                 </form>
               ) : (
-                <p className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-bold leading-6 text-slate-600">
+                <p className="rounded-2xl border border-slate-300 bg-slate-50 p-4 text-sm font-bold leading-6 text-slate-800">
                   조회 전용 역할입니다.
                 </p>
               )}

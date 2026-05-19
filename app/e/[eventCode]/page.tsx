@@ -65,7 +65,7 @@ function UnavailableEvent({ eventCode }: { eventCode: string }) {
         description="행사 코드가 올바르지 않거나 현재 참가자 입장이 비활성화되어 있습니다. 현장 운영자에게 문의해 주세요."
       />
       <MobileCard>
-        <StatusBadge tone="amber">Event Code</StatusBadge>
+        <StatusBadge tone="amber">행사 코드</StatusBadge>
         <p className="mt-3 break-all text-3xl font-black">
           {eventCode.toUpperCase()}
         </p>
@@ -93,7 +93,7 @@ export default async function EventPage({ params }: EventPageProps) {
   return (
     <div className="grid gap-5">
       <AudienceHero
-        label="Event Lobby"
+        label="행사 안내"
         title={event.title}
         description={
           event.subtitle ??
@@ -112,7 +112,7 @@ export default async function EventPage({ params }: EventPageProps) {
 
       <div className="grid gap-4 sm:grid-cols-3">
         <MobileCard>
-          <StatusBadge tone="slate">Event Code</StatusBadge>
+          <StatusBadge tone="slate">행사 코드</StatusBadge>
           <p className="mt-3 break-all text-4xl font-black">
             {event.event_code.toUpperCase()}
           </p>
@@ -135,12 +135,12 @@ export default async function EventPage({ params }: EventPageProps) {
         <h2 className="text-2xl font-black text-slate-950">
           개인정보 수집 안내
         </h2>
-        <p className="mt-3 text-base leading-7 text-slate-600">
+        <p className="mt-3 text-base font-bold leading-7 text-slate-700">
           참가 확인과 중복 등록 방지를 위해 이름과 휴대폰 번호를 수집합니다.
           휴대폰 번호는 화면 송출이나 공개 결과에 표시하지 않습니다.
         </p>
         {event.screen_notice && (
-          <p className="mt-4 rounded-2xl border border-cyan-200 bg-cyan-50 p-4 text-sm font-bold leading-6 text-cyan-800">
+          <p className="mt-4 rounded-2xl border border-cyan-300 bg-cyan-50 p-4 text-sm font-bold leading-6 text-cyan-950">
             {event.screen_notice}
           </p>
         )}

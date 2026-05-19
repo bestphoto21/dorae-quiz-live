@@ -112,15 +112,15 @@ function WaitingCard({ state, fallbackTitle }: { state: ParticipantState | null;
 
   return (
     <MobileCard>
-      <StatusBadge tone="cyan">Waiting</StatusBadge>
+      <StatusBadge tone="cyan">대기</StatusBadge>
       <h2 className="mt-5 text-4xl font-black leading-tight text-slate-950">
         퀴즈가 곧 시작됩니다
       </h2>
-      <p className="mt-4 text-base leading-7 text-slate-600">
+      <p className="mt-4 text-base leading-7 text-slate-700">
         {displayName ? `${displayName}님, ` : ""}
         {title} 진행자의 안내를 기다려 주세요.
       </p>
-      <p className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-bold leading-6 text-slate-600">
+      <p className="mt-5 rounded-2xl border border-slate-300 bg-slate-50 p-4 text-sm font-bold leading-6 text-slate-800">
         화면은 자동으로 새로고침됩니다.
       </p>
     </MobileCard>
@@ -154,8 +154,8 @@ function QuestionCard({
   return (
     <MobileCard>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <StatusBadge tone="cyan">Question</StatusBadge>
-        <span className="rounded-full bg-amber-50 px-4 py-2 text-sm font-black text-amber-700">
+        <StatusBadge tone="cyan">문제 진행</StatusBadge>
+        <span className="rounded-full border border-amber-300 bg-amber-100 px-4 py-2 text-sm font-black text-amber-950">
           {timeClosed ? "응답 마감" : `${secondsLeft ?? question.time_limit_seconds}초`}
         </span>
       </div>
@@ -178,11 +178,11 @@ function QuestionCard({
               className={`min-h-20 rounded-2xl border p-5 text-left text-2xl font-black shadow-sm transition ${
                 isSelected
                   ? "border-cyan-500 bg-cyan-50 text-cyan-900"
-                  : "border-slate-200 bg-slate-50 text-slate-700"
+                  : "border-slate-300 bg-slate-50 text-slate-900"
               } ${
                 canSubmit
                   ? "hover:border-slate-950 active:scale-[0.99]"
-                  : "cursor-not-allowed opacity-80"
+                  : "cursor-not-allowed"
               }`}
             >
               <span className="mr-3 text-cyan-700">{option.number}</span>
@@ -217,18 +217,18 @@ function QuestionCard({
 function ClosedCard({ state }: { state: ParticipantState }) {
   return (
     <MobileCard>
-      <StatusBadge tone="amber">Closed</StatusBadge>
+      <StatusBadge tone="amber">응답 마감</StatusBadge>
       <h2 className="mt-5 text-4xl font-black leading-tight text-slate-950">
         응답이 마감되었습니다
       </h2>
       {state.answer ? (
         <AnswerNotice state={state} />
       ) : (
-        <p className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-bold leading-6 text-slate-600">
+        <p className="mt-5 rounded-2xl border border-slate-300 bg-slate-50 p-4 text-sm font-bold leading-6 text-slate-800">
           이번 문제는 응답하지 못했습니다.
         </p>
       )}
-      <p className="mt-4 text-base leading-7 text-slate-600">
+      <p className="mt-4 text-base leading-7 text-slate-700">
         잠시 후 결과가 공개됩니다.
       </p>
     </MobileCard>
@@ -244,7 +244,7 @@ function ResultCard({ state }: { state: ParticipantState }) {
 
   return (
     <MobileCard>
-      <StatusBadge tone="green">Result</StatusBadge>
+      <StatusBadge tone="green">결과 공개</StatusBadge>
       <h2 className="mt-5 text-3xl font-black leading-tight text-slate-950">
         {question?.question_text ?? "결과 공개"}
       </h2>
@@ -263,7 +263,7 @@ function ResultCard({ state }: { state: ParticipantState }) {
                     ? "border-emerald-300 bg-emerald-50 text-emerald-900"
                     : isSelected
                       ? "border-cyan-300 bg-cyan-50 text-cyan-900"
-                      : "border-slate-200 bg-slate-50 text-slate-700"
+                      : "border-slate-300 bg-slate-50 text-slate-900"
                 }`}
               >
                 {option.number}. {option.label}
@@ -298,7 +298,7 @@ function ResultCard({ state }: { state: ParticipantState }) {
       )}
 
       {!state.answer && (
-        <p className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-bold leading-6 text-slate-600">
+        <p className="mt-5 rounded-2xl border border-slate-300 bg-slate-50 p-4 text-sm font-bold leading-6 text-slate-800">
           이번 문제는 응답하지 않았습니다.
         </p>
       )}
@@ -321,7 +321,7 @@ function SimpleModeCard({
       <h2 className="mt-5 text-4xl font-black leading-tight text-slate-950">
         {title}
       </h2>
-      <p className="mt-4 text-base leading-7 text-slate-600">{description}</p>
+      <p className="mt-4 text-base leading-7 text-slate-700">{description}</p>
     </MobileCard>
   );
 }
@@ -361,14 +361,13 @@ function QnaPanel({
     <MobileCard>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <StatusBadge tone={highlighted ? "cyan" : "slate"}>Q&A</StatusBadge>
-        <span className="text-xs font-black uppercase text-slate-400">
-          관리자 승인 후 표시
+        <span className="text-xs font-black text-slate-700">
+          운영자 검토 후 표시
         </span>
       </div>
       <h2 className="mt-4 text-2xl font-black text-slate-950">질문 남기기</h2>
-      <p className="mt-2 text-sm font-bold leading-6 text-slate-600">
-        질문은 바로 스크린에 보이지 않고, 관리자가 확인한 뒤 채택된 질문만
-        표시됩니다.
+      <p className="mt-2 text-sm font-bold leading-6 text-slate-700">
+        질문을 남기면 운영자가 확인한 뒤 승인된 질문만 스크린에 표시됩니다.
       </p>
 
       <form onSubmit={onSubmit} className="mt-5 grid gap-3">
@@ -378,16 +377,16 @@ function QnaPanel({
           maxLength={300}
           rows={4}
           placeholder="질문을 입력해 주세요."
-          className="w-full resize-none rounded-2xl border border-slate-300 bg-white px-4 py-3 text-base font-bold leading-7 text-slate-950 shadow-sm outline-none focus:border-slate-950"
+          className="w-full resize-none rounded-2xl border border-slate-400 bg-white px-4 py-3 text-base font-bold leading-7 text-slate-950 shadow-sm outline-none placeholder:text-slate-500 focus:border-slate-950"
         />
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <span className="text-xs font-bold text-slate-500">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <span className="text-xs font-bold text-slate-700">
             {questionText.length}/300
           </span>
           <button
             type="submit"
             disabled={pending}
-            className="min-h-12 rounded-2xl border border-slate-950 bg-slate-950 px-5 py-3 text-sm font-black text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
+            className="min-h-12 w-full rounded-2xl border border-slate-950 bg-slate-950 px-5 py-3 text-sm font-black text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-200 disabled:text-slate-700 sm:w-auto"
           >
             {pending ? "접수 중" : "질문 제출"}
           </button>
@@ -395,7 +394,7 @@ function QnaPanel({
       </form>
 
       {message && (
-        <p className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-700">
+          <p className="mt-4 rounded-2xl border border-emerald-300 bg-emerald-50 p-4 text-sm font-bold text-emerald-900">
           {message}
         </p>
       )}
@@ -416,7 +415,7 @@ function QnaPanel({
               <p className="text-sm font-bold leading-6 text-slate-800">
                 {question.question_text}
               </p>
-              <p className="mt-2 text-xs font-black text-slate-500">
+              <p className="mt-2 text-xs font-black text-slate-700">
                 {qnaStatusLabel(question.status)}
               </p>
             </div>
@@ -586,7 +585,7 @@ export default function PlayClient({ eventCode, eventTitle }: PlayClientProps) {
           참여 화면을 준비 중입니다
         </h2>
         {error && (
-          <p className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-bold text-rose-700">
+          <p className="mt-4 rounded-2xl border border-rose-300 bg-rose-50 p-4 text-sm font-bold text-rose-900">
             {error}
           </p>
         )}
@@ -618,7 +617,7 @@ export default function PlayClient({ eventCode, eventTitle }: PlayClientProps) {
   if (state.liveState.mode === "draw") {
     return withQna(
       <SimpleModeCard
-        label="Draw"
+        label="추첨"
         title="추첨이 진행 중입니다"
         description="추첨 결과는 현장 스크린을 확인해 주세요."
       />
@@ -630,7 +629,7 @@ export default function PlayClient({ eventCode, eventTitle }: PlayClientProps) {
       <SimpleModeCard
         label="Q&A"
         title="Q&A가 진행 중입니다"
-        description="질문 제출 기능은 다음 단계에서 연결됩니다."
+        description="질문을 남기면 운영자가 확인한 뒤 승인된 질문만 스크린에 표시됩니다."
       />
     );
   }

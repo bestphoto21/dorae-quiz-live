@@ -97,6 +97,28 @@ function sourceLabel(sourceType: string) {
   return "추첨";
 }
 
+function sceneLabel(scene: string | null | undefined) {
+  const labels: Record<string, string> = {
+    inactive: "비활성 행사",
+    waiting: "대기 화면",
+    break: "휴식 시간",
+    question: "퀴즈 진행",
+    quiz_question: "퀴즈 진행",
+    closed: "응답 마감",
+    result: "결과 공개",
+    quiz_results: "결과 공개",
+    qna: "질문 접수 중",
+    qna_waiting: "질문 접수 중",
+    qna_question: "현장 질문",
+    draw: "럭키드로우 준비",
+    lucky_draw_ready: "럭키드로우 준비",
+    draw_winner: "당첨자 발표",
+    lucky_draw_winner: "당첨자 발표",
+  };
+
+  return labels[scene ?? ""] ?? "송출 준비 중";
+}
+
 function Shell({
   state,
   children,
@@ -127,9 +149,9 @@ function Shell({
             className="rounded-3xl border border-white/15 bg-white/10 px-6 py-4 text-right"
             style={{ boxShadow: `inset 0 0 0 2px ${accentColor}33` }}
           >
-            <p className="text-sm font-black uppercase text-slate-300">Mode</p>
-            <p className="mt-1 text-3xl font-black text-emerald-300">
-              {(state?.liveState.screen_scene ?? state?.liveState.mode ?? "loading").toUpperCase()}
+            <p className="text-sm font-black text-slate-200">현재 송출</p>
+            <p className="mt-1 text-3xl font-black text-emerald-200">
+              {sceneLabel(state?.liveState.screen_scene ?? state?.liveState.mode)}
             </p>
           </div>
         </header>
@@ -147,8 +169,8 @@ function WaitingView({ state }: { state: ScreenState }) {
   return (
     <section className="grid flex-1 gap-5 lg:grid-cols-[1fr_26rem]">
       <div className="flex flex-col justify-center rounded-3xl bg-white p-8 text-slate-950 shadow-2xl sm:p-14">
-        <p className="text-2xl font-black uppercase text-cyan-700">
-          Live Event
+        <p className="text-2xl font-black text-cyan-800">
+          대기 화면
         </p>
         <h2 className="mt-6 text-6xl font-black leading-tight sm:text-9xl">
           {title}
@@ -163,13 +185,13 @@ function WaitingView({ state }: { state: ScreenState }) {
 
       <aside className="grid content-start gap-5">
         <div className="rounded-3xl border border-white/15 bg-white/10 p-6">
-          <p className="text-sm font-black uppercase text-slate-300">Notice</p>
+          <p className="text-sm font-black text-slate-200">현장 안내</p>
           <p className="mt-4 text-3xl font-black leading-tight">
             {state.event.screen_notice || "현장 안내를 기다려 주세요"}
           </p>
         </div>
         <div className="rounded-3xl border border-white/15 bg-white/10 p-6">
-          <p className="text-sm font-black uppercase text-slate-300">Venue</p>
+          <p className="text-sm font-black text-slate-200">장소</p>
           <p className="mt-4 text-4xl font-black">
             {state.event.venue || "Live Event"}
           </p>
@@ -183,7 +205,7 @@ function BreakView({ state }: { state: ScreenState }) {
   return (
     <section className="flex flex-1 items-center justify-center rounded-3xl bg-white p-10 text-center text-slate-950 shadow-2xl">
       <div>
-        <p className="text-3xl font-black uppercase text-amber-700">Break</p>
+        <p className="text-3xl font-black text-amber-800">휴식 시간</p>
         <h2 className="mt-6 text-6xl font-black leading-tight sm:text-9xl">
           {state.notice?.title || "잠시 쉬는 시간입니다"}
         </h2>
@@ -216,7 +238,7 @@ function QuestionView({
       <div className="flex flex-col justify-between rounded-3xl bg-white p-6 text-slate-950 shadow-2xl sm:p-10">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <span className="rounded-full bg-cyan-100 px-6 py-3 text-2xl font-black text-cyan-800">
-            QUESTION
+            퀴즈 진행
           </span>
           <span
             className={`rounded-full px-6 py-3 text-2xl font-black ${
@@ -254,7 +276,7 @@ function ClosedView({ state }: { state: ScreenState }) {
   return (
     <section className="grid flex-1 gap-5 lg:grid-cols-[1fr_24rem]">
       <div className="flex flex-col justify-center rounded-3xl bg-white p-8 text-center text-slate-950 shadow-2xl sm:p-12">
-        <p className="text-3xl font-black uppercase text-amber-700">Closed</p>
+        <p className="text-3xl font-black text-amber-800">응답 마감</p>
         <h2 className="mt-6 text-7xl font-black leading-tight sm:text-9xl">
           응답 마감
         </h2>
@@ -275,8 +297,8 @@ function ResultView({ state }: { state: ScreenState }) {
     <section className="grid flex-1 gap-5 lg:grid-cols-[1fr_24rem]">
       <div className="flex flex-col justify-between rounded-3xl bg-white p-6 text-slate-950 shadow-2xl sm:p-10">
         <div>
-          <p className="text-2xl font-black uppercase text-emerald-700">
-            Result
+          <p className="text-2xl font-black text-emerald-800">
+            결과 공개
           </p>
           <h2 className="mt-5 text-5xl font-black leading-tight sm:text-7xl">
             {question?.question_text ?? "결과 화면"}
@@ -359,7 +381,7 @@ function DrawPreparingView({ state }: { state: ScreenState }) {
     <section className="flex flex-1 items-center justify-center rounded-3xl bg-white p-10 text-center text-slate-950 shadow-2xl">
       <div>
         <p className="text-3xl font-black uppercase text-amber-700">
-          Lucky Draw
+          럭키드로우 준비
         </p>
         <h2 className="mt-6 text-7xl font-black sm:text-9xl">
           추첨 준비 중
@@ -385,7 +407,7 @@ function QnaQuestionView({ state }: { state: ScreenState }) {
     <section className="flex flex-1 items-center justify-center rounded-3xl bg-white p-8 text-slate-950 shadow-2xl sm:p-12">
       <div className="w-full">
         <p className="text-3xl font-black uppercase tracking-normal text-cyan-700">
-          Audience Q&A
+          현장 질문
         </p>
         <div className="mt-8 rounded-3xl border border-cyan-200 bg-cyan-50 p-8 sm:p-10">
           <p className="text-3xl font-black text-cyan-800">현장 질문</p>
@@ -395,7 +417,7 @@ function QnaQuestionView({ state }: { state: ScreenState }) {
         </div>
         <div className="mt-8 flex flex-wrap items-end justify-between gap-5 rounded-3xl border border-slate-200 bg-slate-50 p-7">
           <div>
-            <p className="text-2xl font-black text-slate-500">질문자</p>
+            <p className="text-2xl font-black text-slate-700">질문자</p>
             <p className="mt-2 text-5xl font-black text-slate-950">
               {qna.participant_display_name}
             </p>
@@ -417,7 +439,7 @@ function QnaWaitingView({ state }: { state: ScreenState }) {
     <section className="flex flex-1 items-center justify-center rounded-3xl bg-white p-10 text-center text-slate-950 shadow-2xl">
       <div>
         <p className="text-3xl font-black uppercase text-cyan-700">
-          Audience Q&A
+          질문 접수 중
         </p>
         <h2 className="mt-6 text-6xl font-black leading-tight sm:text-9xl">
           질문을 기다리는 중입니다
@@ -445,7 +467,7 @@ function PlaceholderView({
   return (
     <section className="flex flex-1 items-center justify-center rounded-3xl bg-white p-10 text-center text-slate-950 shadow-2xl">
       <div>
-        <p className="text-3xl font-black uppercase text-cyan-700">
+        <p className="text-3xl font-black text-cyan-800">
           {state.event.event_code}
         </p>
         <h2 className="mt-6 text-7xl font-black sm:text-9xl">{title}</h2>
@@ -459,13 +481,11 @@ function StatsPanel({ state }: { state: ScreenState }) {
   return (
     <aside className="grid content-start gap-5">
       <div className="rounded-3xl border border-white/15 bg-white/10 p-6">
-        <p className="text-sm font-black uppercase text-slate-300">Answers</p>
+        <p className="text-sm font-black text-slate-200">총 응답</p>
         <p className="mt-4 text-7xl font-black">{state.stats.total_answers}</p>
       </div>
       <div className="rounded-3xl border border-white/15 bg-white/10 p-6">
-        <p className="text-sm font-black uppercase text-slate-300">
-          Option Counts
-        </p>
+        <p className="text-sm font-black text-slate-200">선택지별 응답</p>
         <div className="mt-5 grid gap-3 text-3xl font-black">
           {(["1", "2", "3", "4"] as const).map((option) => (
             <p key={option}>
@@ -476,9 +496,7 @@ function StatsPanel({ state }: { state: ScreenState }) {
       </div>
       {typeof state.stats.correct_answers === "number" && (
         <div className="rounded-3xl border border-emerald-300/30 bg-emerald-400/15 p-6">
-          <p className="text-sm font-black uppercase text-emerald-100">
-            Correct
-          </p>
+          <p className="text-sm font-black text-emerald-100">정답</p>
           <p className="mt-4 text-7xl font-black text-emerald-200">
             {state.stats.correct_answers}
           </p>

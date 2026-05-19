@@ -23,14 +23,14 @@ export default async function ProtectedAdminLayout({
 
           <div className="flex flex-wrap items-center gap-3">
             <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2">
-              <p className="text-xs font-black uppercase text-slate-500">Admin</p>
+              <p className="text-xs font-black text-slate-700">관리자</p>
               <p className="text-sm font-black text-slate-950">{displayName}</p>
             </div>
 
             <form action={logoutAction}>
               <button
                 type="submit"
-                className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-black text-slate-700 shadow-sm transition hover:border-slate-950 hover:text-slate-950"
+                className="rounded-2xl border border-slate-400 bg-white px-4 py-3 text-sm font-black text-slate-950 shadow-sm transition hover:border-slate-950 hover:bg-slate-50"
               >
                 로그아웃
               </button>

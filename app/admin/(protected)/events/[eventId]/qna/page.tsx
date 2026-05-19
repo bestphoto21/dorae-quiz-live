@@ -115,8 +115,8 @@ function SubmitButton({
 }) {
   const classes = {
     dark: "border-slate-950 bg-slate-950 text-white hover:bg-slate-800",
-    cyan: "border-cyan-600 bg-cyan-600 text-white hover:bg-cyan-700",
-    amber: "border-amber-500 bg-amber-500 text-slate-950 hover:bg-amber-400",
+    cyan: "border-cyan-700 bg-cyan-700 text-white hover:bg-cyan-800",
+    amber: "border-amber-500 bg-amber-400 text-slate-950 hover:bg-amber-300",
     rose: "border-rose-600 bg-rose-600 text-white hover:bg-rose-700",
   };
 
@@ -124,7 +124,7 @@ function SubmitButton({
     <button
       type="submit"
       disabled={disabled}
-      className={`min-h-10 rounded-2xl border px-4 py-2 text-sm font-black shadow-sm transition disabled:cursor-not-allowed disabled:opacity-50 ${classes[tone]}`}
+      className={`min-h-10 rounded-2xl border px-4 py-2 text-sm font-black shadow-sm transition disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-200 disabled:text-slate-700 ${classes[tone]}`}
     >
       {children}
     </button>
@@ -149,7 +149,7 @@ function FilterPanel({
         <select
           name="status"
           defaultValue={currentStatus}
-          className="min-h-11 rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-950 shadow-sm"
+          className="min-h-11 rounded-2xl border border-slate-400 bg-white px-4 py-2 text-sm font-bold text-slate-950 shadow-sm"
         >
           {STATUS_OPTIONS.map((option) => (
             <option key={option.value} value={option.value}>
@@ -161,7 +161,7 @@ function FilterPanel({
           name="q"
           defaultValue={search}
           placeholder="질문 내용 검색"
-          className="min-h-11 rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-950 shadow-sm outline-none focus:border-slate-950"
+          className="min-h-11 rounded-2xl border border-slate-400 bg-white px-4 py-2 text-sm font-bold text-slate-950 shadow-sm outline-none placeholder:text-slate-500 focus:border-slate-950"
         />
         <SubmitButton>검색</SubmitButton>
       </form>
@@ -173,7 +173,7 @@ function FilterPanel({
             className={`rounded-2xl border px-4 py-2 text-sm font-black shadow-sm ${
               currentStatus === option.value
                 ? "border-slate-950 bg-slate-950 text-white"
-                : "border-slate-200 bg-white text-slate-700"
+                : "border-slate-400 bg-white text-slate-950 hover:border-slate-950"
             }`}
           >
             {option.label}
@@ -223,7 +223,7 @@ function QuestionActions({
           tone="rose"
           disabled={!canModerate || question.status === "deleted"}
         >
-          삭제 상태
+          삭제 상태로 변경
         </SubmitButton>
       </form>
       <form action={question.is_pinned ? unpinAction : pinAction}>
@@ -236,7 +236,7 @@ function QuestionActions({
           tone="dark"
           disabled={!canModerate || question.status !== "approved"}
         >
-          스크린 송출
+          승인 질문 스크린 송출
         </SubmitButton>
       </form>
     </div>
@@ -259,9 +259,9 @@ function QuestionCard({
           <StatusBadge tone={statusTone(question.status)}>
             {statusLabel(question.status)}
           </StatusBadge>
-          {question.is_pinned && <StatusBadge tone="amber">Pinned</StatusBadge>}
+          {question.is_pinned && <StatusBadge tone="amber">고정됨</StatusBadge>}
         </div>
-        <p className="text-xs font-black uppercase text-slate-400">
+        <p className="text-xs font-black text-slate-700">
           {formatDateTime(question.created_at)}
         </p>
       </div>
@@ -270,7 +270,7 @@ function QuestionCard({
         {question.question_text}
       </p>
 
-      <div className="mt-5 grid gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-bold text-slate-600">
+      <div className="mt-5 grid gap-2 rounded-2xl border border-slate-300 bg-slate-50 p-4 text-sm font-bold text-slate-800">
         <p>참가자: {question.participant_display_name}</p>
         {(question.organization || question.group_name) && (
           <p>
@@ -328,12 +328,12 @@ export default async function QnaPage({ params, searchParams }: QnaPageProps) {
             </p>
           )}
           {message && (
-            <p className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-700">
+            <p className="mt-4 rounded-2xl border border-emerald-300 bg-emerald-50 p-4 text-sm font-bold text-emerald-900">
               {message}
             </p>
           )}
           {error && (
-            <p className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-bold text-rose-700">
+            <p className="mt-4 rounded-2xl border border-rose-300 bg-rose-50 p-4 text-sm font-bold text-rose-900">
               {error}
             </p>
           )}

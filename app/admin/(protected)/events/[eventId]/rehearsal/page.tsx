@@ -69,6 +69,36 @@ function statusLabel(status: RehearsalStatus) {
   return "주의";
 }
 
+function liveModeLabel(mode: string | null | undefined) {
+  const labels: Record<string, string> = {
+    waiting: "대기",
+    question: "퀴즈 진행",
+    closed: "응답 마감",
+    result: "결과 공개",
+    draw: "럭키드로우",
+    qna: "Q&A",
+  };
+
+  return labels[mode ?? "waiting"] ?? "대기";
+}
+
+function sceneLabel(scene: string | null | undefined) {
+  const labels: Record<string, string> = {
+    waiting: "대기 화면",
+    break: "휴식 화면",
+    question: "퀴즈 문제 화면",
+    closed: "응답 마감 화면",
+    result: "결과 화면",
+    qna: "Q&A 대기 화면",
+    qna_waiting: "Q&A 대기 화면",
+    qna_question: "승인 질문 송출 화면",
+    draw: "럭키드로우 준비 화면",
+    draw_winner: "당첨자 발표 화면",
+  };
+
+  return labels[scene ?? "waiting"] ?? "대기 화면";
+}
+
 function CheckCard({
   title,
   status,
@@ -85,7 +115,7 @@ function CheckCard({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h3 className="text-xl font-black text-slate-950">{title}</h3>
-          <p className="mt-2 text-sm font-bold leading-6 text-slate-600">
+          <p className="mt-2 text-sm font-bold leading-6 text-slate-700">
             {summary}
           </p>
         </div>
@@ -98,8 +128,8 @@ function CheckCard({
 
 function Metric({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-      <p className="text-xs font-black uppercase text-slate-500">{label}</p>
+    <div className="rounded-2xl border border-slate-300 bg-slate-50 p-4">
+      <p className="text-xs font-black text-slate-700">{label}</p>
       <p className="mt-2 break-all text-base font-black text-slate-950">
         {typeof value === "number" ? value.toLocaleString("ko-KR") : value}
       </p>
@@ -396,7 +426,7 @@ export default async function RehearsalPage({ params }: RehearsalPageProps) {
             <Metric label="숨김/삭제" value={qna.hidden + qna.deleted} />
             <Link
               href={`/admin/events/${eventId}/qna`}
-              className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-cyan-600 bg-cyan-600 px-4 py-2 text-sm font-black text-white shadow-sm"
+              className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-cyan-700 bg-cyan-700 px-4 py-2 text-sm font-black text-white shadow-sm"
             >
               Q&A 검수하기
             </Link>
@@ -430,10 +460,13 @@ export default async function RehearsalPage({ params }: RehearsalPageProps) {
             status={liveState ? "ok" : "warn"}
             summary="원본 payload는 표시하지 않고 안전한 상태 요약만 보여줍니다."
           >
-            <Metric label="mode" value={liveState?.mode ?? "waiting"} />
             <Metric
-              label="screen_scene"
-              value={liveState?.screen_scene ?? "미지정"}
+              label="현재 운영 모드"
+              value={liveModeLabel(liveState?.mode)}
+            />
+            <Metric
+              label="현재 송출 화면"
+              value={sceneLabel(liveState?.screen_scene)}
             />
             <Metric
               label="현재 문제"
@@ -464,14 +497,14 @@ export default async function RehearsalPage({ params }: RehearsalPageProps) {
             </Link>
             <Link
               href={liveUrl}
-              className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-cyan-600 bg-cyan-600 px-5 py-3 text-base font-black text-white shadow-sm"
+              className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-cyan-700 bg-cyan-700 px-5 py-3 text-base font-black text-white shadow-sm"
             >
               라이브 콘솔로 이동
             </Link>
             <Link
               href={participantUrl}
               target="_blank"
-              className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-slate-300 bg-white px-5 py-3 text-base font-black text-slate-800 shadow-sm"
+              className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-slate-400 bg-white px-5 py-3 text-base font-black text-slate-950 shadow-sm"
             >
               참가자 입장 확인
             </Link>

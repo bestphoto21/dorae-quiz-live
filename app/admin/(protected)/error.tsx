@@ -12,7 +12,7 @@ export default function AdminError({ reset }: { reset: () => void }) {
         <h1 className="mt-4 text-4xl font-black leading-tight">
           관리자 화면을 불러오지 못했습니다
         </h1>
-        <p className="mt-4 text-base leading-7 text-slate-600">
+        <p className="mt-4 text-base font-bold leading-7 text-slate-700">
           내부 오류 내용은 화면에 표시하지 않습니다. 잠시 후 다시 시도하거나
           헬스체크에서 기본 연결 상태를 확인해 주세요.
         </p>
@@ -26,13 +26,13 @@ export default function AdminError({ reset }: { reset: () => void }) {
           </button>
           <Link
             href="/admin/events"
-            className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-slate-300 bg-white px-5 py-3 text-base font-black text-slate-800 shadow-sm"
+            className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-slate-400 bg-white px-5 py-3 text-base font-black text-slate-950 shadow-sm"
           >
             관리자 홈으로 이동
           </Link>
           <Link
             href="/admin/health"
-            className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-slate-300 bg-white px-5 py-3 text-base font-black text-slate-800 shadow-sm"
+            className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-slate-400 bg-white px-5 py-3 text-base font-black text-slate-950 shadow-sm"
           >
             헬스체크 열기
           </Link>

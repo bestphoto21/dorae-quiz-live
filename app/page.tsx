@@ -23,7 +23,7 @@ export default function Home() {
           <Link href="/" className="text-xl font-black">
             Dorae Quiz Live
           </Link>
-          <StatusBadge tone="cyan">Stage 1 Dummy UI</StatusBadge>
+          <StatusBadge tone="cyan">운영 점검용</StatusBadge>
         </header>
 
         <div className="grid gap-8 py-12 lg:grid-cols-[1fr_28rem] lg:items-center">
@@ -39,7 +39,9 @@ export default function Home() {
               더미 UI를 갖춘 1단계 프로젝트입니다.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <PrimaryLink href="/e/dorae2026">참가자 화면 보기</PrimaryLink>
+              <PrimaryLink href="/e/dorae2026" variant="accent">
+                참가자 화면 보기
+              </PrimaryLink>
               <PrimaryLink href="/admin" variant="light">
                 운영자 화면 보기
               </PrimaryLink>
@@ -48,7 +50,7 @@ export default function Home() {
 
           <div className="rounded-3xl border border-white/15 bg-white p-5 text-slate-950 shadow-2xl">
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-              <p className="text-sm font-bold uppercase text-slate-500">
+              <p className="text-sm font-bold uppercase text-slate-700">
                 Now On Screen
               </p>
               <p className="mt-4 text-5xl font-black">Q1</p>

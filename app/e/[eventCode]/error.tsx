@@ -14,7 +14,7 @@ export default function ParticipantEventError({
         <h1 className="mt-4 text-3xl font-black leading-tight">
           잠시 후 다시 시도해 주세요
         </h1>
-        <p className="mt-3 text-sm leading-6 text-slate-600">
+        <p className="mt-3 text-sm font-bold leading-6 text-slate-700">
           참가 화면을 안전하게 불러오지 못했습니다. 진행자의 안내를 기다려
           주세요.
         </p>
@@ -28,7 +28,7 @@ export default function ParticipantEventError({
           </button>
           <Link
             href="/"
-            className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-slate-300 bg-white px-5 py-3 text-base font-black text-slate-800 shadow-sm"
+            className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-slate-400 bg-white px-5 py-3 text-base font-black text-slate-950 shadow-sm"
           >
             첫 화면으로 이동
           </Link>

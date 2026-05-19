@@ -60,12 +60,12 @@ export default function ChecklistClient({ eventId }: ChecklistClientProps) {
           <h2 className="text-2xl font-black text-slate-950">
             필수 리허설 체크리스트
           </h2>
-          <p className="mt-2 text-sm leading-6 text-slate-600">
+          <p className="mt-2 text-sm font-bold leading-6 text-slate-700">
             이 체크 상태는 현재 브라우저에만 저장됩니다. 운영 PC가 바뀌면 다시
             확인해 주세요.
           </p>
         </div>
-        <div className="rounded-2xl border border-cyan-200 bg-cyan-50 px-4 py-3 text-sm font-black text-cyan-700">
+        <div className="rounded-2xl border border-cyan-300 bg-cyan-50 px-4 py-3 text-sm font-black text-cyan-950">
           {completedCount}/{CHECK_ITEMS.length} 완료
         </div>
       </div>
@@ -76,8 +76,8 @@ export default function ChecklistClient({ eventId }: ChecklistClientProps) {
             key={item}
             className={`flex min-h-14 cursor-pointer items-center gap-3 rounded-2xl border p-4 text-sm font-black shadow-sm transition ${
               checkedItems[item]
-                ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                : "border-slate-200 bg-slate-50 text-slate-700"
+                ? "border-emerald-300 bg-emerald-50 text-emerald-900"
+                : "border-slate-300 bg-slate-50 text-slate-900"
             }`}
           >
             <input
@@ -99,7 +99,7 @@ export default function ChecklistClient({ eventId }: ChecklistClientProps) {
       <button
         type="button"
         onClick={() => setCheckedItems({})}
-        className="mt-5 min-h-11 rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-black text-slate-700 shadow-sm transition hover:border-slate-950"
+        className="mt-5 min-h-11 rounded-2xl border border-slate-400 bg-white px-4 py-2 text-sm font-black text-slate-950 shadow-sm transition hover:border-slate-950 hover:bg-slate-50"
       >
         체크 상태 초기화
       </button>

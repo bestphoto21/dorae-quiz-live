@@ -104,8 +104,8 @@ export default async function PlayPage({ params }: PlayPageProps) {
       <MobileCard>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-sm font-black uppercase text-slate-500">
-              Participant
+            <p className="text-sm font-black text-slate-700">
+              참가자
             </p>
             <h1 className="mt-2 text-3xl font-black text-slate-950">
               {displayName}님
@@ -114,7 +114,7 @@ export default async function PlayPage({ params }: PlayPageProps) {
           <form action={clearAction}>
             <button
               type="submit"
-              className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-black text-slate-700 shadow-sm"
+              className="rounded-2xl border border-slate-400 bg-white px-4 py-3 text-sm font-black text-slate-950 shadow-sm transition hover:border-slate-950 hover:bg-slate-50"
             >
               다른 정보로 다시 등록
             </button>

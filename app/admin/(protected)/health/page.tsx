@@ -52,7 +52,7 @@ function HealthCard({ check }: { check: HealthCheck }) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h3 className="text-xl font-black text-slate-950">{check.label}</h3>
-          <p className="mt-2 text-sm font-bold leading-6 text-slate-600">
+          <p className="mt-2 text-sm font-bold leading-6 text-slate-700">
             {check.hint}
           </p>
         </div>
@@ -60,7 +60,7 @@ function HealthCard({ check }: { check: HealthCheck }) {
           {statusLabel(check.status)}
         </StatusBadge>
       </div>
-      <p className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-black text-slate-950">
+      <p className="mt-4 rounded-2xl border border-slate-300 bg-slate-50 p-4 text-sm font-black text-slate-950">
         {check.value}
       </p>
     </article>
@@ -238,19 +238,19 @@ export default async function AdminHealthPage() {
             </Link>
             <Link
               href="/admin/login"
-              className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-slate-300 bg-white px-5 py-3 text-base font-black text-slate-800 shadow-sm"
+              className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-slate-400 bg-white px-5 py-3 text-base font-black text-slate-950 shadow-sm"
             >
               로그인 화면
             </Link>
             <Link
               href="/admin/events"
-              className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-slate-300 bg-white px-5 py-3 text-base font-black text-slate-800 shadow-sm"
+              className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-slate-400 bg-white px-5 py-3 text-base font-black text-slate-950 shadow-sm"
             >
               리허설은 행사별 페이지에서
             </Link>
             <Link
               href="/admin/events"
-              className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-slate-300 bg-white px-5 py-3 text-base font-black text-slate-800 shadow-sm"
+              className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-slate-400 bg-white px-5 py-3 text-base font-black text-slate-950 shadow-sm"
             >
               운영 로그는 행사별 페이지에서
             </Link>

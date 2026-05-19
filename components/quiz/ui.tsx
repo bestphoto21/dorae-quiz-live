@@ -4,11 +4,11 @@ import type { ReactNode } from "react";
 type Tone = "slate" | "cyan" | "green" | "amber" | "rose";
 
 const badgeTone: Record<Tone, string> = {
-  slate: "border-slate-200 bg-slate-100 text-slate-700",
-  cyan: "border-cyan-200 bg-cyan-50 text-cyan-700",
-  green: "border-emerald-200 bg-emerald-50 text-emerald-700",
-  amber: "border-amber-200 bg-amber-50 text-amber-700",
-  rose: "border-rose-200 bg-rose-50 text-rose-700",
+  slate: "border-slate-300 bg-slate-100 text-slate-900",
+  cyan: "border-cyan-300 bg-cyan-100 text-cyan-950",
+  green: "border-emerald-300 bg-emerald-100 text-emerald-950",
+  amber: "border-amber-300 bg-amber-100 text-amber-950",
+  rose: "border-rose-300 bg-rose-100 text-rose-950",
 };
 
 export function StatusBadge({
@@ -34,13 +34,17 @@ export function PrimaryLink({
 }: {
   href: string;
   children: ReactNode;
-  variant?: "dark" | "light" | "outline";
+  variant?: "dark" | "light" | "outline" | "accent";
 }) {
   const classes = {
-    dark: "border-slate-950 bg-slate-950 text-white hover:bg-slate-800",
-    light: "border-white bg-white text-slate-950 hover:bg-slate-100",
+    dark:
+      "border-slate-950 bg-slate-950 text-white shadow-sm hover:bg-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-500",
+    light:
+      "border-white bg-white text-slate-950 shadow-sm hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300",
     outline:
-      "border-slate-300 bg-white text-slate-800 hover:border-slate-950 hover:text-slate-950",
+      "border-slate-400 bg-white text-slate-950 shadow-sm hover:border-slate-950 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-500",
+    accent:
+      "border-cyan-300 bg-cyan-300 text-slate-950 shadow-sm hover:bg-cyan-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white",
   };
 
   return (
@@ -84,7 +88,7 @@ export function DemoCard({
       className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-slate-950 hover:shadow-md"
     >
       <p className="text-lg font-black text-slate-950">{title}</p>
-      <p className="mt-2 break-all text-sm font-bold text-slate-500">
+      <p className="mt-2 break-all text-sm font-bold text-slate-700">
         {children}
       </p>
     </Link>
@@ -130,7 +134,7 @@ export function AudienceHero({
       <h1 className="mt-5 text-4xl font-black leading-tight text-slate-950 sm:text-6xl">
         {title}
       </h1>
-      <p className="mt-4 text-lg leading-8 text-slate-600">{description}</p>
+      <p className="mt-4 text-lg leading-8 text-slate-700">{description}</p>
       {children && <div className="mt-6 flex flex-wrap gap-3">{children}</div>}
     </section>
   );
@@ -161,7 +165,7 @@ export function AdminShell({
           <h1 className="mt-4 text-3xl font-black leading-tight sm:text-5xl">
             {title}
           </h1>
-          <p className="mt-3 max-w-3xl text-base leading-7 text-slate-600">
+          <p className="mt-3 max-w-3xl text-base leading-7 text-slate-700">
             {description}
           </p>
         </section>
@@ -184,7 +188,7 @@ export function AdminPanel({
     <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
       <h2 className="text-2xl font-black text-slate-950">{title}</h2>
       {description && (
-        <p className="mt-2 text-sm leading-6 text-slate-600">{description}</p>
+        <p className="mt-2 text-sm leading-6 text-slate-700">{description}</p>
       )}
       {children && <div className="mt-5">{children}</div>}
     </section>
@@ -200,16 +204,16 @@ export function AdminActionButton({
 }) {
   const classes = {
     dark: "border-slate-950 bg-slate-950 text-white",
-    cyan: "border-cyan-600 bg-cyan-600 text-white",
-    amber: "border-amber-500 bg-amber-500 text-slate-950",
-    rose: "border-rose-600 bg-rose-600 text-white",
+    cyan: "border-cyan-700 bg-cyan-700 text-white",
+    amber: "border-amber-500 bg-amber-400 text-slate-950",
+    rose: "border-rose-700 bg-rose-700 text-white",
   };
 
   return (
     <button
       type="button"
       disabled
-      className={`min-h-14 rounded-2xl border px-5 py-3 text-base font-black shadow-sm opacity-70 ${classes[tone]}`}
+      className={`min-h-14 rounded-2xl border px-5 py-3 text-base font-black shadow-sm disabled:cursor-not-allowed ${classes[tone]}`}
     >
       {children}
     </button>
@@ -226,7 +230,7 @@ export function EmptyState({
   return (
     <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center">
       <p className="text-xl font-black text-slate-950">{title}</p>
-      <p className="mt-2 text-sm leading-6 text-slate-600">{description}</p>
+      <p className="mt-2 text-sm leading-6 text-slate-700">{description}</p>
     </div>
   );
 }
@@ -246,7 +250,7 @@ export function OperatorLink({
       className="flex h-full flex-col rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-slate-950 hover:shadow-md"
     >
       <p className="text-2xl font-black text-slate-950">{title}</p>
-      <p className="mt-3 flex-1 text-sm leading-6 text-slate-600">
+      <p className="mt-3 flex-1 text-sm leading-6 text-slate-700">
         {description}
       </p>
       <span className="mt-5 inline-flex w-fit rounded-2xl border border-slate-950 bg-slate-950 px-4 py-2.5 text-sm font-black text-white">

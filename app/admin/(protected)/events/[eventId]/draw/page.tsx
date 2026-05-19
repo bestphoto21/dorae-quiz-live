@@ -86,6 +86,50 @@ function statusTone(status: DrawWinnerSummary["status"]) {
   return "amber";
 }
 
+function winnerStatusLabel(status: DrawWinnerSummary["status"]) {
+  if (status === "claimed") {
+    return "수령 완료";
+  }
+
+  if (status === "cancelled") {
+    return "당첨 취소";
+  }
+
+  if (status === "redrawn") {
+    return "재추첨 완료";
+  }
+
+  return "당첨 발표";
+}
+
+function sceneLabel(scene: string | null | undefined) {
+  if (scene === "draw_winner") {
+    return "당첨자 발표 화면";
+  }
+
+  if (scene === "draw") {
+    return "럭키드로우 준비 화면";
+  }
+
+  if (scene === "break") {
+    return "휴식 화면";
+  }
+
+  if (scene === "qna_waiting" || scene === "qna") {
+    return "Q&A 대기 화면";
+  }
+
+  if (scene === "question") {
+    return "퀴즈 문제 화면";
+  }
+
+  if (scene === "result") {
+    return "결과 화면";
+  }
+
+  return "대기 화면";
+}
+
 async function getLiveState(eventId: string): Promise<DrawLiveState | null> {
   const supabase = createAdminSupabaseClient();
   const { data, error } = await supabase
@@ -118,8 +162,8 @@ function SubmitButton({
 }) {
   const classes = {
     dark: "border-slate-950 bg-slate-950 text-white hover:bg-slate-800",
-    cyan: "border-cyan-600 bg-cyan-600 text-white hover:bg-cyan-700",
-    amber: "border-amber-500 bg-amber-500 text-slate-950 hover:bg-amber-400",
+    cyan: "border-cyan-700 bg-cyan-700 text-white hover:bg-cyan-800",
+    amber: "border-amber-500 bg-amber-400 text-slate-950 hover:bg-amber-300",
     rose: "border-rose-600 bg-rose-600 text-white hover:bg-rose-700",
   };
 
@@ -127,7 +171,7 @@ function SubmitButton({
     <button
       type="submit"
       disabled={disabled}
-      className={`min-h-11 rounded-2xl border px-4 py-2 text-sm font-black shadow-sm transition disabled:cursor-not-allowed disabled:opacity-50 ${classes[tone]}`}
+      className={`min-h-11 rounded-2xl border px-4 py-2 text-sm font-black shadow-sm transition disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-200 disabled:text-slate-700 ${classes[tone]}`}
     >
       {children}
     </button>
@@ -135,7 +179,7 @@ function SubmitButton({
 }
 
 function FieldLabel({ children }: { children: string }) {
-  return <label className="text-sm font-black text-slate-700">{children}</label>;
+  return <label className="text-sm font-black text-slate-800">{children}</label>;
 }
 
 function TextInput({
@@ -155,7 +199,7 @@ function TextInput({
       type={type}
       defaultValue={defaultValue}
       placeholder={placeholder}
-      className="min-h-11 w-full rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-950 shadow-sm outline-none focus:border-slate-950"
+      className="min-h-11 w-full rounded-2xl border border-slate-400 bg-white px-4 py-2 text-sm font-bold text-slate-950 shadow-sm outline-none placeholder:text-slate-500 focus:border-slate-950"
     />
   );
 }
@@ -177,7 +221,7 @@ function PrizeCard({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h3 className="text-xl font-black text-slate-950">{prize.name}</h3>
-          <p className="mt-1 text-sm font-bold text-slate-500">
+          <p className="mt-1 text-sm font-bold text-slate-700">
             생성: {formatDateTime(prize.created_at)}
           </p>
         </div>
@@ -200,7 +244,7 @@ function PrizeCard({
         <SubmitButton tone="rose" disabled={!canOperate || prize.winner_count > 0}>
           삭제
         </SubmitButton>
-        <p className="mt-2 text-xs font-bold leading-5 text-slate-500">
+        <p className="mt-2 text-xs font-bold leading-5 text-slate-700">
           당첨자와 연결된 경품은 운영 실수 방지를 위해 삭제할 수 없습니다.
         </p>
       </form>
@@ -264,7 +308,7 @@ function DrawForm({
           <FieldLabel>경품</FieldLabel>
           <select
             name="prize_id"
-            className="mt-2 min-h-11 w-full rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-950 shadow-sm"
+            className="mt-2 min-h-11 w-full rounded-2xl border border-slate-400 bg-white px-4 py-2 text-sm font-bold text-slate-950 shadow-sm"
             defaultValue=""
           >
             <option value="">경품 선택</option>
@@ -280,7 +324,7 @@ function DrawForm({
           <FieldLabel>추첨 대상</FieldLabel>
           <select
             name="source_type"
-            className="mt-2 min-h-11 w-full rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-950 shadow-sm"
+            className="mt-2 min-h-11 w-full rounded-2xl border border-slate-400 bg-white px-4 py-2 text-sm font-bold text-slate-950 shadow-sm"
             defaultValue="all_participants"
           >
             <option value="all_participants">전체 참가자</option>
@@ -293,7 +337,7 @@ function DrawForm({
           <FieldLabel>세션 필터</FieldLabel>
           <select
             name="source_session_id"
-            className="mt-2 min-h-11 w-full rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-950 shadow-sm"
+            className="mt-2 min-h-11 w-full rounded-2xl border border-slate-400 bg-white px-4 py-2 text-sm font-bold text-slate-950 shadow-sm"
             defaultValue=""
           >
             <option value="">세션 전체</option>
@@ -303,7 +347,7 @@ function DrawForm({
               </option>
             ))}
           </select>
-          <p className="mt-2 text-xs font-bold leading-5 text-slate-500">
+          <p className="mt-2 text-xs font-bold leading-5 text-slate-700">
             정답자 전체 추첨에서만 세션 필터가 적용됩니다.
           </p>
         </div>
@@ -312,7 +356,7 @@ function DrawForm({
           <FieldLabel>문제 선택</FieldLabel>
           <select
             name="source_question_id"
-            className="mt-2 min-h-11 w-full rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-950 shadow-sm"
+            className="mt-2 min-h-11 w-full rounded-2xl border border-slate-400 bg-white px-4 py-2 text-sm font-bold text-slate-950 shadow-sm"
             defaultValue=""
           >
             <option value="">문제 선택 없음</option>
@@ -324,13 +368,13 @@ function DrawForm({
               ))
             )}
           </select>
-          <p className="mt-2 text-xs font-bold leading-5 text-slate-500">
+          <p className="mt-2 text-xs font-bold leading-5 text-slate-700">
             특정 문제 정답자 추첨에서는 문제 선택이 필수입니다.
           </p>
         </div>
       </div>
 
-      <label className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-bold leading-6 text-slate-700">
+      <label className="flex items-start gap-3 rounded-2xl border border-slate-300 bg-slate-50 p-4 text-sm font-bold leading-6 text-slate-800">
         <input
           type="checkbox"
           name="exclude_already_won"
@@ -396,7 +440,7 @@ function WinnerCard({
     <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-black uppercase text-slate-500">Winner</p>
+          <p className="text-sm font-black text-slate-700">당첨자</p>
           <h3 className="mt-1 text-2xl font-black text-slate-950">
             {winner.participant_display_name}
           </h3>
@@ -404,10 +448,12 @@ function WinnerCard({
             {winner.prize_name}
           </p>
         </div>
-        <StatusBadge tone={statusTone(winner.status)}>{winner.status}</StatusBadge>
+        <StatusBadge tone={statusTone(winner.status)}>
+          {winnerStatusLabel(winner.status)}
+        </StatusBadge>
       </div>
 
-      <div className="mt-4 grid gap-2 text-sm font-bold text-slate-600">
+      <div className="mt-4 grid gap-2 text-sm font-bold text-slate-800">
         <p>추첨 방식: {sourceLabel(winner.source_type)}</p>
         {winner.source_question_text && (
           <p className="line-clamp-2">문제: {winner.source_question_text}</p>
@@ -437,13 +483,13 @@ function ScreenStatePanel({ liveState }: { liveState: DrawLiveState | null }) {
     >
       <div className="grid gap-3">
         <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-          <p className="text-xs font-black uppercase text-slate-500">Mode</p>
+          <p className="text-xs font-black text-slate-700">현재 송출 화면</p>
           <p className="mt-2 text-sm font-bold text-slate-950">
-            {liveState?.mode ?? "waiting"} / {liveState?.screen_scene ?? "none"}
+            {sceneLabel(liveState?.screen_scene ?? liveState?.mode)}
           </p>
         </div>
         <div className="rounded-2xl border border-cyan-200 bg-cyan-50 p-4">
-          <p className="text-xs font-black uppercase text-cyan-700">Winner</p>
+          <p className="text-xs font-black text-cyan-900">발표 당첨자</p>
           <p className="mt-2 text-xl font-black text-cyan-950">
             {winnerName ?? "발표 대기"}
           </p>
@@ -583,11 +629,11 @@ export default async function DrawPage({ params, searchParams }: DrawPageProps) 
               description="현재 정책은 한 행사에서 한 참가자 1회 당첨입니다."
             >
               <div className="grid gap-3 text-sm font-bold leading-6 text-slate-600">
-                <p className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <p className="rounded-2xl border border-slate-300 bg-slate-50 p-4">
                   cancelled 또는 redrawn 상태도 기존 당첨 이력으로 남습니다. 현재
                   DB unique 제약 때문에 같은 참가자는 다시 당첨될 수 없습니다.
                 </p>
-                <p className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <p className="rounded-2xl border border-slate-300 bg-slate-50 p-4">
                   스크린 발표 payload에는 당첨자 이름, 경품명, 추첨 방식만 저장하며
                   전화번호는 포함하지 않습니다.
                 </p>

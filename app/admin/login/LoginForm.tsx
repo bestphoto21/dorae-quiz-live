@@ -18,7 +18,7 @@ export default function LoginForm() {
       <div>
         <label
           htmlFor="email"
-          className="text-sm font-black uppercase text-slate-500"
+          className="text-sm font-black text-slate-700"
         >
           이메일
         </label>
@@ -28,7 +28,7 @@ export default function LoginForm() {
           type="email"
           autoComplete="email"
           required
-          className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 text-lg font-bold text-slate-950 shadow-sm outline-none placeholder:text-slate-400"
+          className="mt-2 w-full rounded-2xl border border-slate-400 bg-white px-5 py-4 text-lg font-bold text-slate-950 shadow-sm outline-none placeholder:text-slate-500 focus:border-slate-950"
           placeholder="admin@example.com"
         />
       </div>
@@ -36,7 +36,7 @@ export default function LoginForm() {
       <div>
         <label
           htmlFor="password"
-          className="text-sm font-black uppercase text-slate-500"
+          className="text-sm font-black text-slate-700"
         >
           비밀번호
         </label>
@@ -46,13 +46,13 @@ export default function LoginForm() {
           type="password"
           autoComplete="current-password"
           required
-          className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-5 py-4 text-lg font-bold text-slate-950 shadow-sm outline-none placeholder:text-slate-400"
+          className="mt-2 w-full rounded-2xl border border-slate-400 bg-white px-5 py-4 text-lg font-bold text-slate-950 shadow-sm outline-none placeholder:text-slate-500 focus:border-slate-950"
           placeholder="비밀번호"
         />
       </div>
 
       {state.message && (
-        <p className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">
+        <p className="rounded-2xl border border-rose-300 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-900">
           {state.message}
         </p>
       )}
@@ -60,7 +60,7 @@ export default function LoginForm() {
       <button
         type="submit"
         disabled={isPending}
-        className="min-h-14 rounded-2xl border border-slate-950 bg-slate-950 px-5 py-4 text-lg font-black text-white shadow-sm transition hover:bg-slate-800 disabled:opacity-60"
+        className="min-h-14 rounded-2xl border border-slate-950 bg-slate-950 px-5 py-4 text-lg font-black text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-200 disabled:text-slate-700"
       >
         {isPending ? "로그인 중..." : "로그인"}
       </button>

@@ -33,7 +33,7 @@ export default async function AdminEventLayout({
             <p className="truncate text-sm font-black text-slate-950">
               {event.title}
             </p>
-            <p className="text-xs font-bold text-slate-500">
+            <p className="text-xs font-bold text-slate-700">
               /e/{event.event_code}
             </p>
           </div>
@@ -42,7 +42,7 @@ export default async function AdminEventLayout({
               <Link
                 key={link.href}
                 href={link.href}
-                className="shrink-0 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-700 transition hover:border-slate-950 hover:text-slate-950"
+                className="shrink-0 rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-black text-slate-950 transition hover:border-slate-950 hover:bg-slate-50"
               >
                 {link.label}
               </Link>

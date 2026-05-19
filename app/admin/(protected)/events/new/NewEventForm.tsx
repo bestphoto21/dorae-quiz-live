@@ -17,11 +17,11 @@ function FieldError({ message }: { message?: string }) {
 }
 
 function labelClasses() {
-  return "text-sm font-black uppercase text-slate-500";
+  return "text-sm font-black text-slate-700";
 }
 
 function inputClasses() {
-  return "mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-base font-bold text-slate-950 shadow-sm outline-none transition focus:border-slate-950";
+  return "mt-2 w-full rounded-2xl border border-slate-400 bg-white px-4 py-3 text-base font-bold text-slate-950 shadow-sm outline-none transition placeholder:text-slate-500 focus:border-slate-950";
 }
 
 export default function NewEventForm() {
@@ -61,7 +61,7 @@ export default function NewEventForm() {
             className={inputClasses()}
             placeholder="dorae-2026"
           />
-          <p className="mt-2 text-sm leading-6 text-slate-500">
+          <p className="mt-2 text-sm font-bold leading-6 text-slate-700">
             소문자 영문, 숫자, 하이픈만 사용할 수 있습니다.
           </p>
           <FieldError message={state.fieldErrors?.event_code} />
@@ -129,7 +129,7 @@ export default function NewEventForm() {
               name="primary_color"
               type="color"
               defaultValue="#0f172a"
-              className="h-12 w-16 rounded-2xl border border-slate-300 bg-white p-1 shadow-sm"
+              className="h-12 w-16 rounded-2xl border border-slate-400 bg-white p-1 shadow-sm"
             />
             <p className="text-sm font-bold text-slate-600">
               기본값은 진한 슬레이트입니다.
@@ -192,14 +192,14 @@ export default function NewEventForm() {
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
         <Link
           href="/admin/events"
-          className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-slate-300 bg-white px-5 py-3 text-base font-black text-slate-700 shadow-sm transition hover:border-slate-950 hover:text-slate-950"
+          className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-slate-400 bg-white px-5 py-3 text-base font-black text-slate-950 shadow-sm transition hover:border-slate-950 hover:bg-slate-50"
         >
           취소
         </Link>
         <button
           type="submit"
           disabled={isPending}
-          className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-slate-950 bg-slate-950 px-5 py-3 text-base font-black text-white shadow-sm transition hover:bg-slate-800 disabled:opacity-60"
+          className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-slate-950 bg-slate-950 px-5 py-3 text-base font-black text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-200 disabled:text-slate-700"
         >
           {isPending ? "생성 중..." : "행사 만들기"}
         </button>

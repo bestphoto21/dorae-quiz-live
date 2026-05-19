@@ -141,6 +141,46 @@ function actionTone(action: string) {
   return "slate";
 }
 
+function actionLabel(action: string) {
+  const labels: Record<string, string> = {
+    qna_question_deleted: "Q&A 질문 삭제 상태 변경",
+    qna_question_approved: "Q&A 질문 승인",
+    qna_question_hidden: "Q&A 질문 숨김",
+    qna_question_pinned: "Q&A 질문 고정",
+    qna_question_unpinned: "Q&A 질문 고정 해제",
+    qna_question_screened: "승인 질문 스크린 송출",
+    live_screen_set_lucky_draw: "럭키드로우 준비 화면 송출",
+    live_screen_set_qna_waiting: "Q&A 대기 화면 송출",
+    live_screen_set_quiz: "퀴즈 화면 송출",
+    live_answer_revealed: "정답 공개",
+  };
+
+  return labels[action] ?? action;
+}
+
+function detailLabel(key: string) {
+  const labels: Record<string, string> = {
+    event_id: "행사 ID",
+    mode: "운영 모드",
+    screen_scene: "송출 화면",
+    changed_at: "변경 시각",
+    qna_question_id: "Q&A 질문 ID",
+    status: "상태",
+    is_pinned: "고정 여부",
+    question_id: "문제 ID",
+    quiz_session_id: "퀴즈 세션 ID",
+    session_id: "세션 ID",
+    prize_id: "경품 ID",
+    winner_id: "당첨자 ID",
+    draw_result_id: "추첨 결과 ID",
+    participant_count: "참가자 수",
+    source_type: "추첨 대상",
+    source_question_id: "추첨 문제 ID",
+  };
+
+  return labels[key] ?? key;
+}
+
 function adminLabel(
   adminUserId: string | null,
   adminMap: Map<string, AdminDisplayRow>
@@ -287,7 +327,7 @@ export default async function LogsPage({ params, searchParams }: LogsPageProps) 
           <div className="flex flex-wrap gap-3">
             <Link
               href={`/admin/events/${eventId}/rehearsal`}
-              className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-black text-slate-700 shadow-sm"
+              className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-slate-400 bg-white px-4 py-2 text-sm font-black text-slate-950 shadow-sm"
             >
               리허설 체크로 이동
             </Link>
@@ -305,12 +345,12 @@ export default async function LogsPage({ params, searchParams }: LogsPageProps) 
             <select
               name="action"
               defaultValue={action}
-              className="min-h-11 rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-950 shadow-sm"
+              className="min-h-11 rounded-2xl border border-slate-400 bg-white px-4 py-2 text-sm font-bold text-slate-950 shadow-sm"
             >
               <option value="">전체 action</option>
               {actionOptions.map((option) => (
                 <option key={option} value={option}>
-                  {option}
+                  {actionLabel(option)}
                 </option>
               ))}
             </select>
@@ -318,7 +358,7 @@ export default async function LogsPage({ params, searchParams }: LogsPageProps) 
               type="date"
               name="date"
               defaultValue={date}
-              className="min-h-11 rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-950 shadow-sm"
+              className="min-h-11 rounded-2xl border border-slate-400 bg-white px-4 py-2 text-sm font-bold text-slate-950 shadow-sm"
             />
             <button
               type="submit"
@@ -346,7 +386,7 @@ export default async function LogsPage({ params, searchParams }: LogsPageProps) 
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
                         <StatusBadge tone={actionTone(log.action)}>
-                          {log.action}
+                          {actionLabel(log.action)}
                         </StatusBadge>
                         <p className="mt-3 text-sm font-bold text-slate-600">
                           {formatDateTime(log.created_at)}
@@ -359,8 +399,8 @@ export default async function LogsPage({ params, searchParams }: LogsPageProps) 
 
                     <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
                       <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-                        <p className="text-xs font-black uppercase text-slate-500">
-                          event_id
+                        <p className="text-xs font-black text-slate-700">
+                          행사 ID
                         </p>
                         <p className="mt-1 break-all text-sm font-bold text-slate-950">
                           {log.event_id}
@@ -371,8 +411,8 @@ export default async function LogsPage({ params, searchParams }: LogsPageProps) 
                           key={`${log.id}-${detail.key}`}
                           className="rounded-2xl border border-slate-200 bg-slate-50 p-3"
                         >
-                          <p className="text-xs font-black uppercase text-slate-500">
-                            {detail.key}
+                          <p className="text-xs font-black text-slate-700">
+                            {detailLabel(detail.key)}
                           </p>
                           <p className="mt-1 break-all text-sm font-bold text-slate-950">
                             {detail.value}
