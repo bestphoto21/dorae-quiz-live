@@ -13,6 +13,8 @@ export type EventAdminRole =
   | "screen_operator"
   | "qna_moderator";
 
+export type EventAccessRole = "super_admin" | EventAdminRole;
+
 export type EventRecord = {
   id: string;
   event_code: string;
@@ -167,6 +169,54 @@ export async function canManageEvent(
   }
 
   return Boolean(data);
+}
+
+export async function getEventScopedRole(
+  admin: AdminProfile,
+  eventId: string
+): Promise<EventAccessRole | null> {
+  assertServerOnly();
+
+  if (isSuperAdmin(admin)) {
+    return "super_admin";
+  }
+
+  const supabase = createAdminSupabaseClient();
+  const { data, error } = await supabase
+    .from("event_admins")
+    .select("role")
+    .eq("event_id", eventId)
+    .eq("admin_user_id", admin.id)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[event-access] Failed to load event scoped role.", {
+      adminUserId: admin.id,
+      eventId,
+      message: error.message,
+      code: error.code,
+    });
+
+    return null;
+  }
+
+  return (data?.role as EventAdminRole | undefined) ?? null;
+}
+
+export function canEditEventQuestionsByRole(role: EventAccessRole | null) {
+  // For question-bank mutations in this MVP, platform super_admin and
+  // event-scoped event_admin/operator may edit. screen_operator and
+  // qna_moderator can inspect the event, but must not change quiz content.
+  return role === "super_admin" || role === "event_admin" || role === "operator";
+}
+
+export async function canEditEventQuestions(
+  admin: AdminProfile,
+  eventId: string
+) {
+  const role = await getEventScopedRole(admin, eventId);
+
+  return canEditEventQuestionsByRole(role);
 }
 
 export async function requireEventAccess(eventId: string): Promise<{
