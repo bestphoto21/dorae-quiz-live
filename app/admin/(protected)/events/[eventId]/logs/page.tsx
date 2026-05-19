@@ -121,7 +121,7 @@ function sanitizeDetail(detail: unknown) {
     })
     .map(([key, value]) => ({
       key,
-      value: value === null ? "null" : String(value),
+      value: value === null ? "없음" : detailValueLabel(key, String(value)),
     }));
 }
 
@@ -143,19 +143,124 @@ function actionTone(action: string) {
 
 function actionLabel(action: string) {
   const labels: Record<string, string> = {
+    event_created: "행사 생성",
+    event_updated: "행사 수정",
+    quiz_session_created: "퀴즈 세션 생성",
+    quiz_session_updated: "퀴즈 세션 수정",
+    quiz_session_deleted: "퀴즈 세션 삭제",
+    question_created: "문제 생성",
+    question_updated: "문제 수정",
+    question_deleted: "문제 삭제",
     qna_question_deleted: "Q&A 질문 삭제 상태 변경",
     qna_question_approved: "Q&A 질문 승인",
     qna_question_hidden: "Q&A 질문 숨김",
     qna_question_pinned: "Q&A 질문 고정",
     qna_question_unpinned: "Q&A 질문 고정 해제",
     qna_question_screened: "승인 질문 스크린 송출",
+    live_question_started: "퀴즈 문제 송출",
+    live_question_closed: "응답 마감",
+    live_result_shown: "결과 화면 송출",
+    live_screen_set_waiting: "대기 화면 송출",
+    live_screen_set_break: "휴식 화면 송출",
     live_screen_set_lucky_draw: "럭키드로우 준비 화면 송출",
     live_screen_set_qna_waiting: "Q&A 대기 화면 송출",
     live_screen_set_quiz: "퀴즈 화면 송출",
     live_answer_revealed: "정답 공개",
+    prize_created: "경품 생성",
+    prize_updated: "경품 수정",
+    prize_deleted: "경품 삭제",
+    draw_winner_created: "당첨자 추첨",
+    draw_winner_screened: "당첨자 스크린 송출",
+    draw_winner_status_updated: "당첨자 상태 변경",
   };
 
   return labels[action] ?? action;
+}
+
+function modeValueLabel(value: string) {
+  const labels: Record<string, string> = {
+    waiting: "대기",
+    question: "퀴즈 진행",
+    closed: "응답 마감",
+    result: "결과 공개",
+    draw: "럭키드로우",
+    qna: "Q&A",
+  };
+
+  return labels[value] ?? value;
+}
+
+function sceneValueLabel(value: string) {
+  const labels: Record<string, string> = {
+    waiting: "대기 화면",
+    break: "휴식 화면",
+    question: "퀴즈 문제 화면",
+    quiz_question: "퀴즈 문제 화면",
+    closed: "응답 마감 화면",
+    result: "결과 화면",
+    quiz_results: "결과 화면",
+    qna: "Q&A 대기 화면",
+    qna_waiting: "Q&A 대기 화면",
+    qna_question: "승인 질문 송출 화면",
+    draw: "럭키드로우 준비 화면",
+    lucky_draw_ready: "럭키드로우 준비 화면",
+    draw_winner: "당첨자 발표 화면",
+    lucky_draw_winner: "당첨자 발표 화면",
+  };
+
+  return labels[value] ?? value;
+}
+
+function sourceTypeValueLabel(value: string) {
+  const labels: Record<string, string> = {
+    all_participants: "전체 참가자",
+    correct_answers: "정답자 전체",
+    question_correct_answers: "특정 문제 정답자",
+  };
+
+  return labels[value] ?? value;
+}
+
+function statusValueLabel(value: string) {
+  const labels: Record<string, string> = {
+    pending: "대기",
+    approved: "승인됨",
+    hidden: "숨김",
+    deleted: "삭제 상태",
+    claimed: "수령 완료",
+    cancelled: "취소",
+    redrawn: "재추첨 완료",
+  };
+
+  return labels[value] ?? value;
+}
+
+function detailValueLabel(key: string, value: string) {
+  if (key === "mode") {
+    return modeValueLabel(value);
+  }
+
+  if (key === "screen_scene") {
+    return sceneValueLabel(value);
+  }
+
+  if (key === "source_type") {
+    return sourceTypeValueLabel(value);
+  }
+
+  if (key === "status") {
+    return statusValueLabel(value);
+  }
+
+  if (key === "is_pinned") {
+    return value === "true" ? "고정" : "고정 안 됨";
+  }
+
+  if (key === "changed_at") {
+    return formatDateTime(value);
+  }
+
+  return value;
 }
 
 function detailLabel(key: string) {
@@ -347,7 +452,7 @@ export default async function LogsPage({ params, searchParams }: LogsPageProps) 
               defaultValue={action}
               className="min-h-11 rounded-2xl border border-slate-400 bg-white px-4 py-2 text-sm font-bold text-[color:#0a1a38] shadow-sm"
             >
-              <option value="">전체 action</option>
+              <option value="">전체 작업</option>
               {actionOptions.map((option) => (
                 <option key={option} value={option}>
                   {actionLabel(option)}

@@ -188,11 +188,25 @@ export async function registerParticipantAction(
     logAction = "participant_registered";
   }
 
-  await setParticipantSessionCookie({
-    participant_id: participantId,
-    event_id: event.id,
-    event_code: event.event_code,
-  });
+  try {
+    await setParticipantSessionCookie({
+      participant_id: participantId,
+      event_id: event.id,
+      event_code: event.event_code,
+    });
+  } catch (error) {
+    console.error("[participant-register] Failed to issue participant session.", {
+      eventId: event.id,
+      participantId,
+      message: error instanceof Error ? error.message : "Unknown error",
+    });
+
+    redirectToJoin(
+      normalizedEventCode,
+      "참가자 세션 준비 중 오류가 발생했습니다. 운영자에게 문의해 주세요."
+    );
+  }
+
   await writeParticipantLog({
     eventId: event.id,
     participantId,

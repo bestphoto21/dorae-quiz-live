@@ -62,6 +62,7 @@ type ScreenState = {
 
 type ScreenStageProps = {
   eventCode: string;
+  initialState?: ScreenState | null;
 };
 
 function getSecondsLeft(questionEndsAt: string | null, now: number) {
@@ -343,6 +344,17 @@ function ResultView({ state }: { state: ScreenState }) {
   );
 }
 
+function normalizeScene(scene: string | null | undefined) {
+  const sceneAliases: Record<string, string> = {
+    quiz_question: "question",
+    quiz_results: "result",
+    lucky_draw_ready: "draw",
+    lucky_draw_winner: "draw_winner",
+  };
+
+  return scene ? (sceneAliases[scene] ?? scene) : scene;
+}
+
 function DrawWinnerView({ state }: { state: ScreenState }) {
   const draw = state.draw;
 
@@ -506,8 +518,11 @@ function StatsPanel({ state }: { state: ScreenState }) {
   );
 }
 
-export default function ScreenStage({ eventCode }: ScreenStageProps) {
-  const [state, setState] = useState<ScreenState | null>(null);
+export default function ScreenStage({
+  eventCode,
+  initialState = null,
+}: ScreenStageProps) {
+  const [state, setState] = useState<ScreenState | null>(initialState);
   const [error, setError] = useState<string | null>(null);
   const [now, setNow] = useState<number | null>(null);
 
@@ -560,7 +575,9 @@ export default function ScreenStage({ eventCode }: ScreenStageProps) {
         : getSecondsLeft(state?.liveState.question_ends_at ?? null, now),
     [state?.liveState.question_ends_at, now]
   );
-  const scene = state?.liveState.screen_scene ?? state?.liveState.mode;
+  const scene = normalizeScene(
+    state?.liveState.screen_scene ?? state?.liveState.mode
+  );
 
   if (!state) {
     return (
