@@ -37,6 +37,7 @@ type ScreenState = {
   stats: {
     total_answers: number;
     option_counts: Record<"1" | "2" | "3" | "4", number>;
+    correct_answers?: number;
   };
 };
 
@@ -305,6 +306,16 @@ function StatsPanel({ state }: { state: ScreenState }) {
           ))}
         </div>
       </div>
+      {typeof state.stats.correct_answers === "number" && (
+        <div className="rounded-3xl border border-emerald-300/30 bg-emerald-400/15 p-6">
+          <p className="text-sm font-black uppercase text-emerald-100">
+            Correct
+          </p>
+          <p className="mt-4 text-7xl font-black text-emerald-200">
+            {state.stats.correct_answers}
+          </p>
+        </div>
+      )}
     </aside>
   );
 }

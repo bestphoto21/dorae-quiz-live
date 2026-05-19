@@ -11,6 +11,10 @@ import {
   type QuestionRecord,
   type QuizSessionRecord,
 } from "@/lib/data/quiz";
+import {
+  emptyAnswerStats,
+  getAnswerStatsForQuestion,
+} from "@/lib/data/answer-stats";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import {
   closeQuestion,
@@ -272,6 +276,12 @@ export default async function LivePage({ params, searchParams }: LivePageProps) 
       ? questions.find((question) => question.id === liveState?.current_question_id) ??
         null
       : null;
+  const answerStats = liveState?.current_question_id
+    ? await getAnswerStatsForQuestion(
+        liveState.current_question_id,
+        liveState.reveal_answer
+      )
+    : emptyAnswerStats();
   const waitingAction = setWaitingMode.bind(null, eventId);
   const closeAction = closeQuestion.bind(null, eventId);
   const revealAction = revealQuestionAnswer.bind(null, eventId);
@@ -447,13 +457,33 @@ export default async function LivePage({ params, searchParams }: LivePageProps) 
             </AdminPanel>
 
             <AdminPanel title="응답 통계">
-              {/* TODO: answers 기반 집계가 연결되면 현재 문제의 응답 수와 선택지별 카운트를 표시한다. */}
               <div className="grid gap-3">
-                <StateRow label="전체 응답" value="0" />
-                <StateRow label="1번" value="0" />
-                <StateRow label="2번" value="0" />
-                <StateRow label="3번" value="0" />
-                <StateRow label="4번" value="0" />
+                <StateRow
+                  label="전체 응답"
+                  value={answerStats.total_answers.toLocaleString("ko-KR")}
+                />
+                <StateRow
+                  label="1번"
+                  value={answerStats.option_counts["1"].toLocaleString("ko-KR")}
+                />
+                <StateRow
+                  label="2번"
+                  value={answerStats.option_counts["2"].toLocaleString("ko-KR")}
+                />
+                <StateRow
+                  label="3번"
+                  value={answerStats.option_counts["3"].toLocaleString("ko-KR")}
+                />
+                <StateRow
+                  label="4번"
+                  value={answerStats.option_counts["4"].toLocaleString("ko-KR")}
+                />
+                {typeof answerStats.correct_answers === "number" && (
+                  <StateRow
+                    label="정답자"
+                    value={answerStats.correct_answers.toLocaleString("ko-KR")}
+                  />
+                )}
               </div>
             </AdminPanel>
           </aside>

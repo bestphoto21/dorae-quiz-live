@@ -51,7 +51,8 @@ Cookie properties:
 - `sameSite: lax`.
 - `secure: true` in production.
 - Expires after about 7 days.
-- Scoped to `/e/[eventCode]`.
+- Available to the same-origin app so `/e/[eventCode]/play` and the participant state API can both verify the session.
+- The cookie name contains the event code, so different events remain separated.
 
 Client JavaScript cannot read the cookie. If a participant changes the cookie value manually, signature verification fails and the user is sent back to the join page.
 

@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { MobileCard, StatusBadge } from "@/components/quiz/ui";
+import { submitAnswer } from "./actions";
 
 type ParticipantMode = "waiting" | "question" | "closed" | "result" | "draw" | "qna";
 
@@ -11,9 +12,16 @@ type ParticipantState = {
     event_code: string;
     title: string;
     subtitle: string | null;
+    primary_color: string | null;
+    logo_url: string | null;
+    screen_notice: string | null;
+  };
+  participant: {
+    display_name: string;
   };
   liveState: {
     mode: ParticipantMode;
+    screen_scene: string | null;
     question_started_at: string | null;
     question_ends_at: string | null;
     reveal_answer: boolean;
@@ -30,9 +38,16 @@ type ParticipantState = {
     time_limit_seconds: number;
     correct_option?: number;
   } | null;
+  answer: {
+    selected_option: number;
+    answered_at: string;
+    is_correct?: boolean;
+  } | null;
+  canAnswer: boolean;
   stats: {
     total_answers: number;
     option_counts: Record<"1" | "2" | "3" | "4", number>;
+    correct_answers?: number;
   };
 };
 
@@ -58,7 +73,30 @@ function optionEntries(question: NonNullable<ParticipantState["question"]>) {
   ];
 }
 
-function WaitingCard({ title }: { title: string }) {
+function AnswerNotice({ state }: { state: ParticipantState }) {
+  if (!state.answer) {
+    return null;
+  }
+
+  return (
+    <div className="mt-5 rounded-2xl border border-cyan-200 bg-cyan-50 p-4">
+      <p className="text-sm font-black text-cyan-700">응답 완료</p>
+      <p className="mt-1 text-lg font-black text-cyan-950">
+        선택한 답: {state.answer.selected_option}번
+      </p>
+      {!state.liveState.reveal_answer && (
+        <p className="mt-2 text-sm font-bold leading-6 text-cyan-800">
+          정답은 운영자가 공개한 뒤 확인할 수 있습니다.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function WaitingCard({ state, fallbackTitle }: { state: ParticipantState | null; fallbackTitle: string }) {
+  const title = state?.event.title || fallbackTitle;
+  const displayName = state?.participant.display_name;
+
   return (
     <MobileCard>
       <StatusBadge tone="cyan">Waiting</StatusBadge>
@@ -66,7 +104,11 @@ function WaitingCard({ title }: { title: string }) {
         퀴즈가 곧 시작됩니다
       </h2>
       <p className="mt-4 text-base leading-7 text-slate-600">
+        {displayName ? `${displayName}님, ` : ""}
         {title} 진행자의 안내를 기다려 주세요.
+      </p>
+      <p className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-bold leading-6 text-slate-600">
+        화면은 자동으로 새로고침됩니다.
       </p>
     </MobileCard>
   );
@@ -75,24 +117,33 @@ function WaitingCard({ title }: { title: string }) {
 function QuestionCard({
   state,
   secondsLeft,
+  pendingOption,
+  submitMessage,
+  submitError,
+  onSubmit,
 }: {
   state: ParticipantState;
   secondsLeft: number | null;
+  pendingOption: number | null;
+  submitMessage: string | null;
+  submitError: string | null;
+  onSubmit: (selectedOption: number) => void;
 }) {
   const question = state.question;
 
   if (!question) {
-    return <WaitingCard title={state.event.title} />;
+    return <WaitingCard state={state} fallbackTitle={state.event.title} />;
   }
+
+  const timeClosed = secondsLeft === 0;
+  const canSubmit = state.canAnswer && !timeClosed && pendingOption === null;
 
   return (
     <MobileCard>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <StatusBadge tone="cyan">Question</StatusBadge>
         <span className="rounded-full bg-amber-50 px-4 py-2 text-sm font-black text-amber-700">
-          {secondsLeft === 0
-            ? "응답 마감"
-            : `${secondsLeft ?? question.time_limit_seconds}초`}
+          {timeClosed ? "응답 마감" : `${secondsLeft ?? question.time_limit_seconds}초`}
         </span>
       </div>
 
@@ -101,33 +152,69 @@ function QuestionCard({
       </h2>
 
       <div className="mt-7 grid gap-3">
-        {optionEntries(question).map((option) => (
-          <button
-            key={option.number}
-            type="button"
-            disabled
-            className="min-h-20 rounded-2xl border border-slate-200 bg-slate-50 p-5 text-left text-2xl font-black text-slate-700 shadow-sm"
-          >
-            <span className="mr-3 text-cyan-700">{option.number}</span>
-            {option.label}
-          </button>
-        ))}
+        {optionEntries(question).map((option) => {
+          const isSelected = state.answer?.selected_option === option.number;
+          const isPending = pendingOption === option.number;
+
+          return (
+            <button
+              key={option.number}
+              type="button"
+              disabled={!canSubmit}
+              onClick={() => onSubmit(option.number)}
+              className={`min-h-20 rounded-2xl border p-5 text-left text-2xl font-black shadow-sm transition ${
+                isSelected
+                  ? "border-cyan-500 bg-cyan-50 text-cyan-900"
+                  : "border-slate-200 bg-slate-50 text-slate-700"
+              } ${
+                canSubmit
+                  ? "hover:border-slate-950 active:scale-[0.99]"
+                  : "cursor-not-allowed opacity-80"
+              }`}
+            >
+              <span className="mr-3 text-cyan-700">{option.number}</span>
+              {option.label}
+              {isPending && <span className="ml-3 text-base">제출 중</span>}
+            </button>
+          );
+        })}
       </div>
 
-      <p className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-bold leading-6 text-slate-600">
-        답변 제출 기능은 다음 단계에서 연결됩니다.
-      </p>
+      <AnswerNotice state={state} />
+
+      {!state.answer && !state.canAnswer && (
+        <p className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold leading-6 text-amber-800">
+          현재는 응답할 수 없습니다. 문제가 진행 중인지와 남은 시간을 확인해 주세요.
+        </p>
+      )}
+      {submitMessage && (
+        <p className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-700">
+          {submitMessage}
+        </p>
+      )}
+      {submitError && (
+        <p className="mt-5 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-bold text-rose-700">
+          {submitError}
+        </p>
+      )}
     </MobileCard>
   );
 }
 
-function ClosedCard() {
+function ClosedCard({ state }: { state: ParticipantState }) {
   return (
     <MobileCard>
       <StatusBadge tone="amber">Closed</StatusBadge>
       <h2 className="mt-5 text-4xl font-black leading-tight text-slate-950">
         응답이 마감되었습니다
       </h2>
+      {state.answer ? (
+        <AnswerNotice state={state} />
+      ) : (
+        <p className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-bold leading-6 text-slate-600">
+          이번 문제는 응답하지 못했습니다.
+        </p>
+      )}
       <p className="mt-4 text-base leading-7 text-slate-600">
         잠시 후 결과가 공개됩니다.
       </p>
@@ -137,6 +224,10 @@ function ClosedCard() {
 
 function ResultCard({ state }: { state: ParticipantState }) {
   const question = state.question;
+  const selectedOption = state.answer?.selected_option;
+  const correctOption = question?.correct_option;
+  const showCorrectness =
+    state.liveState.reveal_answer && typeof state.answer?.is_correct === "boolean";
 
   return (
     <MobileCard>
@@ -144,13 +235,58 @@ function ResultCard({ state }: { state: ParticipantState }) {
       <h2 className="mt-5 text-3xl font-black leading-tight text-slate-950">
         {question?.question_text ?? "결과 공개"}
       </h2>
-      {question?.correct_option ? (
-        <p className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-3xl font-black text-emerald-800">
-          정답: {question.correct_option}번
+
+      {question && (
+        <div className="mt-6 grid gap-3">
+          {optionEntries(question).map((option) => {
+            const isCorrect = correctOption === option.number;
+            const isSelected = selectedOption === option.number;
+
+            return (
+              <div
+                key={option.number}
+                className={`rounded-2xl border p-4 text-lg font-black ${
+                  isCorrect
+                    ? "border-emerald-300 bg-emerald-50 text-emerald-900"
+                    : isSelected
+                      ? "border-cyan-300 bg-cyan-50 text-cyan-900"
+                      : "border-slate-200 bg-slate-50 text-slate-700"
+                }`}
+              >
+                {option.number}. {option.label}
+                {isSelected && <span className="ml-2 text-sm">내 선택</span>}
+                {isCorrect && <span className="ml-2 text-sm">정답</span>}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {correctOption ? (
+        <p className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-2xl font-black text-emerald-800">
+          정답: {correctOption}번
         </p>
       ) : (
         <p className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-base font-bold leading-7 text-amber-800">
           정답은 아직 공개되지 않았습니다.
+        </p>
+      )}
+
+      {showCorrectness && (
+        <p
+          className={`mt-5 rounded-2xl border p-5 text-2xl font-black ${
+            state.answer?.is_correct
+              ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+              : "border-rose-200 bg-rose-50 text-rose-700"
+          }`}
+        >
+          {state.answer?.is_correct ? "정답입니다" : "아쉽지만 오답입니다"}
+        </p>
+      )}
+
+      {!state.answer && (
+        <p className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-bold leading-6 text-slate-600">
+          이번 문제는 응답하지 않았습니다.
         </p>
       )}
     </MobileCard>
@@ -180,23 +316,37 @@ function SimpleModeCard({
 export default function PlayClient({ eventCode, eventTitle }: PlayClientProps) {
   const [state, setState] = useState<ParticipantState | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [submitMessage, setSubmitMessage] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [pendingOption, setPendingOption] = useState<number | null>(null);
   const [now, setNow] = useState<number | null>(null);
+
+  const loadState = useCallback(async () => {
+    const response = await fetch(
+      `/api/participant/${encodeURIComponent(eventCode)}/state`,
+      { cache: "no-store" }
+    );
+
+    if (!response.ok) {
+      throw new Error("participant state request failed");
+    }
+
+    return (await response.json()) as ParticipantState;
+  }, [eventCode]);
+
+  const refreshState = useCallback(async () => {
+    const nextState = await loadState();
+
+    setState(nextState);
+    setError(null);
+  }, [loadState]);
 
   useEffect(() => {
     let active = true;
 
-    async function fetchState() {
+    async function refreshIfActive() {
       try {
-        const response = await fetch(
-          `/api/participant/${encodeURIComponent(eventCode)}/state`,
-          { cache: "no-store" }
-        );
-
-        if (!response.ok) {
-          throw new Error("participant state request failed");
-        }
-
-        const nextState = (await response.json()) as ParticipantState;
+        const nextState = await loadState();
 
         if (active) {
           setState(nextState);
@@ -209,14 +359,14 @@ export default function PlayClient({ eventCode, eventTitle }: PlayClientProps) {
       }
     }
 
-    fetchState();
-    const pollingId = window.setInterval(fetchState, 2000);
+    refreshIfActive();
+    const pollingId = window.setInterval(refreshIfActive, 2000);
 
     return () => {
       active = false;
       window.clearInterval(pollingId);
     };
-  }, [eventCode]);
+  }, [loadState]);
 
   useEffect(() => {
     const tickId = window.setInterval(() => setNow(Date.now()), 1000);
@@ -228,6 +378,32 @@ export default function PlayClient({ eventCode, eventTitle }: PlayClientProps) {
     () => getSecondsLeft(state?.liveState.question_ends_at ?? null, now),
     [state?.liveState.question_ends_at, now]
   );
+
+  async function handleSubmit(selectedOption: number) {
+    if (!state?.question || !state.canAnswer || pendingOption !== null) {
+      return;
+    }
+
+    setPendingOption(selectedOption);
+    setSubmitMessage(null);
+    setSubmitError(null);
+
+    try {
+      const result = await submitAnswer(eventCode, state.question.id, selectedOption);
+
+      if (result.ok) {
+        setSubmitMessage(result.message);
+      } else {
+        setSubmitError(result.message);
+      }
+
+      await refreshState();
+    } catch {
+      setSubmitError("응답 제출 중 오류가 발생했습니다.");
+    } finally {
+      setPendingOption(null);
+    }
+  }
 
   if (!state) {
     return (
@@ -246,11 +422,20 @@ export default function PlayClient({ eventCode, eventTitle }: PlayClientProps) {
   }
 
   if (state.liveState.mode === "question") {
-    return <QuestionCard state={state} secondsLeft={secondsLeft} />;
+    return (
+      <QuestionCard
+        state={state}
+        secondsLeft={secondsLeft}
+        pendingOption={pendingOption}
+        submitMessage={submitMessage}
+        submitError={submitError}
+        onSubmit={handleSubmit}
+      />
+    );
   }
 
   if (state.liveState.mode === "closed") {
-    return <ClosedCard />;
+    return <ClosedCard state={state} />;
   }
 
   if (state.liveState.mode === "result") {
@@ -277,5 +462,5 @@ export default function PlayClient({ eventCode, eventTitle }: PlayClientProps) {
     );
   }
 
-  return <WaitingCard title={state.event.title || eventTitle} />;
+  return <WaitingCard state={state} fallbackTitle={eventTitle} />;
 }

@@ -72,7 +72,9 @@ function getCookieName(eventCode: string) {
 }
 
 function getCookiePath(eventCode: string) {
-  return `/e/${normalizeEventCode(eventCode)}`;
+  void eventCode;
+
+  return "/";
 }
 
 export function createParticipantSessionCookie(
@@ -146,8 +148,16 @@ export async function setParticipantSessionCookie(
 
   const cookieStore = await cookies();
   const eventCode = normalizeEventCode(payload.event_code);
+  const cookieName = getCookieName(eventCode);
 
-  cookieStore.set(getCookieName(eventCode), createParticipantSessionCookie(payload), {
+  cookieStore.set(cookieName, "", {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    maxAge: 0,
+    path: `/e/${eventCode}`,
+  });
+  cookieStore.set(cookieName, createParticipantSessionCookie(payload), {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
@@ -181,12 +191,20 @@ export async function clearParticipantSessionCookie(eventCode: string) {
 
   const normalizedEventCode = normalizeEventCode(eventCode);
   const cookieStore = await cookies();
-
-  cookieStore.set(getCookieName(normalizedEventCode), "", {
+  const cookieName = getCookieName(normalizedEventCode);
+  const baseOptions = {
     httpOnly: true,
-    sameSite: "lax",
+    sameSite: "lax" as const,
     secure: process.env.NODE_ENV === "production",
     maxAge: 0,
+  };
+
+  cookieStore.set(cookieName, "", {
+    ...baseOptions,
     path: getCookiePath(normalizedEventCode),
+  });
+  cookieStore.set(cookieName, "", {
+    ...baseOptions,
+    path: `/e/${normalizedEventCode}`,
   });
 }

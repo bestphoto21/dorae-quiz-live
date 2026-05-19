@@ -1,4 +1,8 @@
 import { NextResponse } from "next/server";
+import {
+  emptyAnswerStats,
+  getAnswerStatsForQuestion,
+} from "@/lib/data/answer-stats";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
 type ScreenStateRouteProps = {
@@ -37,16 +41,6 @@ type ScreenQuestionRow = {
   question_type: string;
   time_limit_seconds: number;
   correct_option: number;
-};
-
-const EMPTY_STATS = {
-  total_answers: 0,
-  option_counts: {
-    "1": 0,
-    "2": 0,
-    "3": 0,
-    "4": 0,
-  },
 };
 
 function jsonResponse(body: unknown, status = 200) {
@@ -119,7 +113,7 @@ export async function GET(_request: Request, { params }: ScreenStateRouteProps) 
         screen_scene: "inactive",
       },
       question: null,
-      stats: EMPTY_STATS,
+      stats: emptyAnswerStats(),
     });
   }
 
@@ -147,6 +141,7 @@ export async function GET(_request: Request, { params }: ScreenStateRouteProps) 
     current_question_id: null,
   };
   let question = null;
+  let stats = emptyAnswerStats();
 
   if (liveState.current_question_id) {
     const { data: questionData, error: questionError } = await supabase
@@ -182,6 +177,10 @@ export async function GET(_request: Request, { params }: ScreenStateRouteProps) 
           ? { correct_option: currentQuestion.correct_option }
           : {}),
       };
+      stats = await getAnswerStatsForQuestion(
+        currentQuestion.id,
+        liveState.reveal_answer
+      );
     }
   }
 
@@ -196,8 +195,7 @@ export async function GET(_request: Request, { params }: ScreenStateRouteProps) 
       show_results: liveState.show_results,
     },
     question,
-    // TODO: answers 기반 집계가 구현되면 현재 문제의 선택지별 응답 수를
-    // 서버에서 계산해 이 객체만 screen-safe 형태로 반환한다.
-    stats: EMPTY_STATS,
+    // correct_answers is omitted before reveal_answer to avoid leaking the key.
+    stats,
   });
 }
