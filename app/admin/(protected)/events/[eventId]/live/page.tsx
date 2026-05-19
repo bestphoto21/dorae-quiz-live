@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { AdminPanel, AdminShell, EmptyState, StatusBadge } from "@/components/quiz/ui";
 import {
+  canOperateLiveScreenByRole,
   canOperateLiveByRole,
+  canSetQnaScreenByRole,
   getEventScopedRole,
   requireEventAccess,
 } from "@/lib/auth/events";
@@ -19,6 +21,9 @@ import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import {
   closeQuestion,
   revealQuestionAnswer,
+  setBreakMode,
+  setLuckyDrawMode,
+  setQnaWaitingMode,
   setWaitingMode,
   showResultMode,
   startQuestion,
@@ -117,6 +122,73 @@ function StateRow({ label, value }: { label: string; value: string }) {
       <p className="mt-2 break-all text-sm font-bold text-slate-950">{value}</p>
     </div>
   );
+}
+
+function sceneDescription(liveState: LiveStateRecord | null) {
+  const scene = liveState?.screen_scene ?? liveState?.mode ?? "waiting";
+
+  if (scene === "question") {
+    return "퀴즈 문제가 참가자와 스크린에 표시되는 중입니다.";
+  }
+
+  if (scene === "closed") {
+    return "응답 마감 화면이 송출 중입니다.";
+  }
+
+  if (scene === "result") {
+    return liveState?.reveal_answer
+      ? "정답 공개 화면이 송출 중입니다."
+      : "결과 화면이 송출 중입니다.";
+  }
+
+  if (scene === "qna_question") {
+    return "관리자가 승인한 Q&A 질문이 스크린에 송출 중입니다.";
+  }
+
+  if (scene === "qna_waiting" || scene === "qna") {
+    return "Q&A 질문 접수 대기 화면이 송출 중입니다.";
+  }
+
+  if (scene === "draw_winner") {
+    return "럭키드로우 당첨자 발표 화면이 송출 중입니다.";
+  }
+
+  if (scene === "draw") {
+    return "럭키드로우 준비 화면이 송출 중입니다.";
+  }
+
+  if (scene === "break") {
+    return "휴식 화면이 송출 중입니다.";
+  }
+
+  return "대기 화면이 송출 중입니다.";
+}
+
+function broadcastStatus(liveState: LiveStateRecord | null) {
+  const scene = liveState?.screen_scene ?? liveState?.mode ?? "waiting";
+
+  return {
+    quiz:
+      scene === "question"
+        ? "문제 송출 중"
+        : scene === "closed"
+          ? "응답 마감"
+          : scene === "result"
+            ? "결과 화면"
+            : "대기",
+    qna:
+      scene === "qna_question"
+        ? "승인 질문 송출 중"
+        : scene === "qna_waiting" || scene === "qna"
+          ? "Q&A 대기"
+          : "꺼짐",
+    draw:
+      scene === "draw_winner"
+        ? "당첨자 발표 중"
+        : scene === "draw"
+          ? "추첨 준비"
+          : "꺼짐",
+  };
 }
 
 function SessionSelector({
@@ -255,6 +327,9 @@ export default async function LivePage({ params, searchParams }: LivePageProps) 
   const { admin, event } = await requireEventAccess(eventId);
   const role = await getEventScopedRole(admin, eventId);
   const canOperate = canOperateLiveByRole(role);
+  const canOperateScreen = canOperateLiveScreenByRole(role);
+  const canSetQnaScreen = canSetQnaScreenByRole(role);
+  const canUseAnyScreenAction = canOperateScreen || canSetQnaScreen;
   const [liveState, sessions] = await Promise.all([
     getLiveState(eventId),
     getQuizSessionsForEvent(eventId),
@@ -283,11 +358,18 @@ export default async function LivePage({ params, searchParams }: LivePageProps) 
       )
     : emptyAnswerStats();
   const waitingAction = setWaitingMode.bind(null, eventId);
+  const qnaWaitingAction = setQnaWaitingMode.bind(null, eventId);
+  const breakAction = setBreakMode.bind(null, eventId);
+  const luckyDrawAction = setLuckyDrawMode.bind(null, eventId);
   const closeAction = closeQuestion.bind(null, eventId);
   const revealAction = revealQuestionAnswer.bind(null, eventId);
   const resultAction = showResultMode.bind(null, eventId);
   const message = getSingle(query.message);
   const error = getSingle(query.error);
+  const status = broadcastStatus(liveState);
+  const participantUrl = `/e/${event.event_code}`;
+  const joinUrl = `/e/${event.event_code}/join`;
+  const screenUrl = `/screen/${event.event_code}`;
 
   return (
     <AdminShell
@@ -303,16 +385,21 @@ export default async function LivePage({ params, searchParams }: LivePageProps) 
             <StatusBadge tone="slate">
               scene: {liveState?.screen_scene ?? "waiting"}
             </StatusBadge>
-            <StatusBadge tone={canOperate ? "green" : "amber"}>
-              {canOperate ? "라이브 제어 가능" : "조회 전용"}
+            <StatusBadge
+              tone={canOperate ? "green" : canUseAnyScreenAction ? "cyan" : "amber"}
+            >
+              {canOperate
+                ? "라이브 제어 가능"
+                : canUseAnyScreenAction
+                  ? "일부 스크린 전환 가능"
+                  : "조회 전용"}
             </StatusBadge>
           </div>
 
           {!canOperate && (
             <p className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold leading-6 text-amber-800">
-              qna_moderator는 라이브 문제 진행을 제어할 수 없습니다.
-              super_admin, event_admin, operator, screen_operator 권한이
-              필요합니다.
+              현재 역할은 퀴즈 진행 제어가 제한될 수 있습니다. Q&A moderator는
+              Q&A 대기 화면 전환만 사용할 수 있습니다.
             </p>
           )}
 
@@ -327,6 +414,69 @@ export default async function LivePage({ params, searchParams }: LivePageProps) 
             </p>
           )}
         </AdminPanel>
+
+        <div className="grid gap-5 xl:grid-cols-[1.4fr_1fr]">
+          <AdminPanel
+            title="현재 송출 상태"
+            description="지금 현장 스크린에 무엇이 나가는지 먼저 확인한 뒤 전환해 주세요."
+          >
+            <div className="rounded-3xl border border-cyan-200 bg-cyan-50 p-5">
+              <p className="text-sm font-black uppercase text-cyan-700">
+                Live Output
+              </p>
+              <h2 className="mt-3 text-3xl font-black leading-tight text-slate-950">
+                {sceneDescription(liveState)}
+              </h2>
+            </div>
+            <div className="mt-4 grid gap-3 md:grid-cols-3">
+              <StateRow label="퀴즈" value={status.quiz} />
+              <StateRow label="Q&A" value={status.qna} />
+              <StateRow label="럭키드로우" value={status.draw} />
+            </div>
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              <StateRow label="스크린 URL" value={screenUrl} />
+              <StateRow label="참가자 입장 URL" value={participantUrl} />
+              <StateRow label="참가자 등록 URL" value={joinUrl} />
+              <StateRow
+                label="정답 공개"
+                value={liveState?.reveal_answer ? "공개 중" : "비공개"}
+              />
+            </div>
+          </AdminPanel>
+
+          <AdminPanel
+            title="현장 링크"
+            description="새 창으로 스크린을 열고, 참가자 QR에는 참가자 입장 URL을 사용합니다."
+          >
+            <div className="grid gap-3">
+              <Link
+                href={screenUrl}
+                target="_blank"
+                className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-slate-950 bg-slate-950 px-5 py-3 text-base font-black text-white shadow-sm transition hover:bg-slate-800"
+              >
+                스크린 새 창 열기
+              </Link>
+              <Link
+                href={participantUrl}
+                target="_blank"
+                className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-slate-300 bg-white px-5 py-3 text-base font-black text-slate-800 shadow-sm transition hover:border-slate-950"
+              >
+                참가자 입장 페이지 열기
+              </Link>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <p className="text-xs font-black uppercase text-slate-500">
+                  QR에 넣을 URL
+                </p>
+                <p className="mt-2 break-all text-lg font-black text-slate-950">
+                  {participantUrl}
+                </p>
+                <p className="mt-2 text-sm font-bold leading-6 text-slate-600">
+                  배포 후에는 Vercel 도메인을 포함한 전체 URL로 교체해 주세요.
+                </p>
+              </div>
+            </div>
+          </AdminPanel>
+        </div>
 
         <div className="grid gap-5 xl:grid-cols-[24rem_1fr_22rem]">
           <section className="grid content-start gap-5">
@@ -419,14 +569,43 @@ export default async function LivePage({ params, searchParams }: LivePageProps) 
             </AdminPanel>
 
             <AdminPanel
-              title="진행 제어"
-              description="실수 방지를 위해 버튼은 현재 송출 상태를 바로 바꾸는 명령형 라벨로 표시합니다."
+              title="스크린 전환"
+              description="질문, 정답, 당첨자를 노출하지 않는 안전한 기본 화면 전환입니다."
+            >
+              {canOperateScreen || canSetQnaScreen ? (
+                <div className="grid gap-3">
+                  {canOperateScreen && (
+                    <>
+                      <ControlButton action={waitingAction} tone="dark">
+                        대기 화면 송출
+                      </ControlButton>
+                      <ControlButton action={breakAction} tone="amber">
+                        휴식 화면 송출
+                      </ControlButton>
+                      <ControlButton action={luckyDrawAction} tone="dark">
+                        럭키드로우 준비 화면 송출
+                      </ControlButton>
+                    </>
+                  )}
+                  {canSetQnaScreen && (
+                    <ControlButton action={qnaWaitingAction} tone="cyan">
+                      Q&A 대기 화면 송출
+                    </ControlButton>
+                  )}
+                </div>
+              ) : (
+                <p className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-bold leading-6 text-slate-600">
+                  현재 역할은 스크린 상태를 조회할 수 있지만 변경할 수 없습니다.
+                </p>
+              )}
+            </AdminPanel>
+
+            <AdminPanel
+              title="퀴즈 진행 제어"
+              description="정답 공개 버튼은 스크린과 참가자 화면에 정답을 노출합니다."
             >
               {canOperate ? (
                 <div className="grid gap-3">
-                  <ControlButton action={waitingAction} tone="dark">
-                    대기 화면으로 전환
-                  </ControlButton>
                   <ControlButton
                     action={closeAction}
                     tone="amber"
@@ -451,7 +630,7 @@ export default async function LivePage({ params, searchParams }: LivePageProps) 
                 </div>
               ) : (
                 <p className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-bold leading-6 text-slate-600">
-                  현재 역할은 라이브 상태를 조회할 수 있지만 변경할 수 없습니다.
+                  현재 역할은 퀴즈 문제 진행을 조회할 수 있지만 변경할 수 없습니다.
                 </p>
               )}
             </AdminPanel>

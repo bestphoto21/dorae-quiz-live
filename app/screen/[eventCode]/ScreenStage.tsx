@@ -49,6 +49,10 @@ type ScreenState = {
     group_name: string | null;
     created_at: string | null;
   } | null;
+  notice: {
+    title: string | null;
+    message: string | null;
+  } | null;
   stats: {
     total_answers: number;
     option_counts: Record<"1" | "2" | "3" | "4", number>;
@@ -136,17 +140,21 @@ function Shell({
 }
 
 function WaitingView({ state }: { state: ScreenState }) {
+  const title = state.notice?.title || "잠시 후 시작합니다";
+  const message =
+    state.notice?.message || "QR을 통해 입장하고 진행자의 안내를 기다려 주세요";
+
   return (
-    <section className="grid flex-1 gap-5 lg:grid-cols-[1fr_24rem]">
-      <div className="flex flex-col justify-center rounded-3xl bg-white p-8 text-slate-950 shadow-2xl sm:p-12">
+    <section className="grid flex-1 gap-5 lg:grid-cols-[1fr_26rem]">
+      <div className="flex flex-col justify-center rounded-3xl bg-white p-8 text-slate-950 shadow-2xl sm:p-14">
         <p className="text-2xl font-black uppercase text-cyan-700">
-          참가 준비
+          Live Event
         </p>
-        <h2 className="mt-6 text-6xl font-black leading-tight sm:text-8xl">
-          곧 시작합니다
+        <h2 className="mt-6 text-6xl font-black leading-tight sm:text-9xl">
+          {title}
         </h2>
         <p className="mt-6 text-3xl font-bold leading-tight text-slate-600">
-          참가자는 아래 주소로 접속해 주세요
+          {message}
         </p>
         <p className="mt-8 break-all rounded-3xl border border-slate-200 bg-slate-50 p-6 text-5xl font-black text-slate-950">
           /e/{state.event.event_code}
@@ -167,6 +175,25 @@ function WaitingView({ state }: { state: ScreenState }) {
           </p>
         </div>
       </aside>
+    </section>
+  );
+}
+
+function BreakView({ state }: { state: ScreenState }) {
+  return (
+    <section className="flex flex-1 items-center justify-center rounded-3xl bg-white p-10 text-center text-slate-950 shadow-2xl">
+      <div>
+        <p className="text-3xl font-black uppercase text-amber-700">Break</p>
+        <h2 className="mt-6 text-6xl font-black leading-tight sm:text-9xl">
+          {state.notice?.title || "잠시 쉬는 시간입니다"}
+        </h2>
+        <p className="mt-6 text-3xl font-bold leading-tight text-slate-600">
+          {state.notice?.message || "곧 다시 시작합니다"}
+        </p>
+        <p className="mt-10 text-4xl font-black text-cyan-700">
+          {state.event.title}
+        </p>
+      </div>
     </section>
   );
 }
@@ -545,6 +572,7 @@ export default function ScreenStage({ eventCode }: ScreenStageProps) {
         />
       )}
       {scene === "waiting" && <WaitingView state={state} />}
+      {scene === "break" && <BreakView state={state} />}
       {scene === "question" && (
         <QuestionView state={state} secondsLeft={secondsLeft} />
       )}
@@ -559,6 +587,7 @@ export default function ScreenStage({ eventCode }: ScreenStageProps) {
       {![
         "inactive",
         "waiting",
+        "break",
         "question",
         "closed",
         "result",

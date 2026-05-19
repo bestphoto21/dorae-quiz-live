@@ -237,6 +237,17 @@ export async function canOperateLive(admin: AdminProfile, eventId: string) {
   return canOperateLiveByRole(role);
 }
 
+export function canOperateLiveScreenByRole(role: EventAccessRole | null) {
+  // General stage-screen changes are safe for screen operators because they do
+  // not create winners or reveal unapproved audience text. Q&A moderators get a
+  // narrower Q&A waiting action in the live console instead.
+  return canOperateLiveByRole(role);
+}
+
+export function canSetQnaScreenByRole(role: EventAccessRole | null) {
+  return canOperateLiveByRole(role) || role === "qna_moderator";
+}
+
 export function canOperateDrawByRole(role: EventAccessRole | null) {
   // Draw operation can create real winners and affect prize fulfillment, so it
   // is narrower than live screen control. screen_operator and qna_moderator can
