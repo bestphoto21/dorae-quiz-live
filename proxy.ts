@@ -59,21 +59,11 @@ export async function proxy(request: NextRequest) {
   }
 
   if (!session) {
-    console.info("[admin-proxy] No session found. Redirecting to login.", {
-      pathname,
-    });
-
     const loginUrl = new URL("/admin/login", request.url);
     loginUrl.searchParams.set("next", pathname);
 
     return NextResponse.redirect(loginUrl);
   }
-
-  console.info("[admin-proxy] Session found for admin route.", {
-    pathname,
-    userId: session.user.id,
-    email: session.user.email,
-  });
 
   return response;
 }

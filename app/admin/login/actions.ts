@@ -21,11 +21,6 @@ export async function loginAction(
   const email = getFormString(formData, "email");
   const password = getFormString(formData, "password");
 
-  console.info("[admin-login] Login action received form data.", {
-    hasEmail: Boolean(email),
-    hasPassword: Boolean(password),
-  });
-
   if (!email) {
     console.error("[admin-login] Missing email after trim.");
   }
@@ -60,31 +55,10 @@ export async function loginAction(
     };
   }
 
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
-
-  if (userError || !user) {
-    console.error("[admin-login] Sign-in returned no verified auth user.", {
-      message: userError?.message,
-      status: userError?.status,
-      name: userError?.name,
-      hasUser: Boolean(user),
-    });
-  } else {
-    console.info("[admin-login] Supabase sign-in succeeded.", {
-      userId: user.id,
-      email: user.email,
-    });
-  }
-
   const admin = await getCurrentAdmin();
 
   if (!admin) {
-    console.error(
-      "[admin-login] Active admin profile was not found after sign-in."
-    );
+    console.error("[admin-login] Active admin profile was not found.");
 
     await supabase.auth.signOut();
 

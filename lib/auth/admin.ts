@@ -60,8 +60,6 @@ export async function getCurrentAdmin(): Promise<AdminProfile | null> {
   const user = await getCurrentUser();
 
   if (!user) {
-    console.error("[admin-auth] Cannot load admin profile without auth user.");
-
     return null;
   }
 
@@ -85,7 +83,6 @@ export async function getCurrentAdmin(): Promise<AdminProfile | null> {
   if (!data) {
     console.error("[admin-auth] No admin_profiles row found.", {
       userId: user.id,
-      email: user.email,
     });
 
     return null;
@@ -94,7 +91,6 @@ export async function getCurrentAdmin(): Promise<AdminProfile | null> {
   if (!data.is_active) {
     console.error("[admin-auth] Admin profile is inactive.", {
       userId: user.id,
-      email: data.email,
     });
 
     return null;
