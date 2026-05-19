@@ -1,6 +1,6 @@
 # Environment Setup
 
-This project is prepared for Supabase, but it does not connect to Supabase yet. No database query, authentication flow, participant registration, realtime feature, or admin function is implemented in this step.
+This project uses Supabase for admin authentication and trusted server-side data access. Participant registration also uses a separate signed HTTP-only session cookie.
 
 ## Required Variables
 
@@ -10,6 +10,7 @@ Create a local `.env.local` file from `.env.example`:
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
+PARTICIPANT_SESSION_SECRET=
 ```
 
 Do not commit `.env.local`.
@@ -44,6 +45,18 @@ Never:
 - paste it into screenshots or support tickets
 - commit it to Git
 
+## Participant Session Secret
+
+`PARTICIPANT_SESSION_SECRET` is used to sign participant session cookies with HMAC-SHA256.
+
+Rules:
+
+- Keep it server-only.
+- Do not add the `NEXT_PUBLIC_` prefix.
+- Use a long random value of at least 32 characters.
+- Add it manually to `.env.local` and to deployment environment variables.
+- Rotate it carefully because existing participant session cookies become invalid after rotation.
+
 ## Local `.env.local`
 
 Use this shape locally:
@@ -52,6 +65,7 @@ Use this shape locally:
 NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-publishable-or-anon-public-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-secret-key
+PARTICIPANT_SESSION_SECRET=replace-with-a-long-random-server-only-secret
 ```
 
 `.env.local` is ignored by Git. `.env.example` is safe to commit because it contains no real values.
@@ -63,6 +77,7 @@ When deploying later, add these variables in Vercel Project Settings > Environme
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
+- `PARTICIPANT_SESSION_SECRET`
 
 Use the same variable names across Production, Preview, and Development unless you intentionally connect each environment to a different Supabase project.
 
@@ -78,13 +93,17 @@ The project has three Supabase utility entry points:
 
 `server.ts` creates a cookie-aware server client for Server Components, Server Actions, and Route Handlers. It also uses only the public Supabase URL and public/anon key. It does not use the service role key.
 
-`admin.ts` creates a service-role admin client. It is server-only and must be used only from trusted server code after authorization checks are implemented.
+`admin.ts` creates a service-role admin client. It is server-only and must be used only from trusted server code after authorization checks.
+
+Participant session helpers live under `lib/participants/` and use only `PARTICIPANT_SESSION_SECRET` on the server.
 
 ## Security Rules
 
 - Keep `.env.local` out of Git.
 - Only `NEXT_PUBLIC_` variables may be used in browser code.
 - Keep `SUPABASE_SERVICE_ROLE_KEY` server-only.
+- Keep `PARTICIPANT_SESSION_SECRET` server-only.
 - Do not create broad RLS policies just to make development easier.
 - Prefer server actions or route handlers for sensitive writes.
 - Do not expose participant phone numbers or normalized phone numbers to browser public screens.
+- Do not expose unrevealed `correct_option` values to participant or screen clients.

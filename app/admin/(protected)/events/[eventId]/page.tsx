@@ -260,11 +260,24 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
             description="복사 버튼은 아직 더미 단계입니다. 현재는 주소를 직접 선택해서 사용할 수 있습니다."
           >
             <div className="grid gap-3">
+              <DetailRow
+                label="참가자 QR URL"
+                value={`/e/${event.event_code}`}
+              />
+              <DetailRow
+                label="참가자 등록 URL"
+                value={`/e/${event.event_code}/join`}
+              />
+              <DetailRow
+                label="참가자 참여 URL"
+                value={`/e/${event.event_code}/play`}
+              />
+              <DetailRow
+                label="스크린 URL"
+                value={`/screen/${event.event_code}`}
+              />
               <p className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-black text-slate-950">
-                /e/{event.event_code}
-              </p>
-              <p className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-black text-slate-950">
-                /screen/{event.event_code}
+                실제 전체 주소는 배포 후 Vercel 도메인을 기준으로 결정됩니다.
               </p>
             </div>
           </AdminPanel>

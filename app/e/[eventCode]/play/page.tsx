@@ -1,52 +1,128 @@
-import { AudienceHero, MobileCard, PrimaryLink } from "@/components/quiz/ui";
+import { redirect } from "next/navigation";
+import { AudienceHero, MobileCard } from "@/components/quiz/ui";
+import { readParticipantSessionCookie } from "@/lib/participants/session";
+import { createAdminSupabaseClient } from "@/lib/supabase/admin";
+import { clearParticipantSessionAction } from "../join/actions";
+import PlayClient from "./PlayClient";
 
 type PlayPageProps = {
   params: Promise<{ eventCode: string }>;
 };
 
-const answers = ["현장 참여", "온라인 강의", "사전 등록", "결과 발표"];
+type PlayEvent = {
+  id: string;
+  event_code: string;
+  title: string;
+  subtitle: string | null;
+  is_active: boolean | null;
+};
+
+type PlayParticipant = {
+  id: string;
+  name: string;
+  display_name: string | null;
+};
+
+async function getEvent(eventCode: string) {
+  const supabase = createAdminSupabaseClient();
+  const { data, error } = await supabase
+    .from("events")
+    .select("id, event_code, title, subtitle, is_active")
+    .eq("event_code", eventCode.trim().toLowerCase())
+    .maybeSingle();
+
+  if (error) {
+    console.error("[participant-play] Failed to load event.", {
+      eventCode,
+      message: error.message,
+      code: error.code,
+    });
+  }
+
+  return data as PlayEvent | null;
+}
+
+async function getParticipant(participantId: string, eventId: string) {
+  const supabase = createAdminSupabaseClient();
+  const { data, error } = await supabase
+    .from("participants")
+    .select("id, name, display_name")
+    .eq("id", participantId)
+    .eq("event_id", eventId)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[participant-play] Failed to load participant.", {
+      eventId,
+      participantId,
+      message: error.message,
+      code: error.code,
+    });
+  }
+
+  return data as PlayParticipant | null;
+}
 
 export default async function PlayPage({ params }: PlayPageProps) {
   const { eventCode } = await params;
+  const normalizedEventCode = eventCode.trim().toLowerCase();
+  const session = await readParticipantSessionCookie(normalizedEventCode);
+
+  if (!session) {
+    redirect(`/e/${normalizedEventCode}/join`);
+  }
+
+  const event = await getEvent(normalizedEventCode);
+
+  if (!event || event.id !== session.event_id) {
+    redirect(`/e/${normalizedEventCode}/join`);
+  }
+
+  if (event.is_active === false) {
+    return (
+      <div className="grid gap-5">
+        <AudienceHero
+          label="Play"
+          title="현재 참여할 수 없습니다"
+          description="행사가 비활성화되어 참가자 화면을 사용할 수 없습니다. 현장 운영자에게 문의해 주세요."
+        />
+      </div>
+    );
+  }
+
+  const participant = await getParticipant(session.participant_id, event.id);
+
+  if (!participant) {
+    redirect(`/e/${event.event_code}/join`);
+  }
+
+  const displayName = participant.display_name?.trim() || participant.name;
+  const clearAction = clearParticipantSessionAction.bind(null, event.event_code);
 
   return (
     <div className="grid gap-5">
-      <AudienceHero
-        label="Question 01"
-        title="문제 풀이 화면"
-        description="참가자가 손쉽게 누를 수 있도록 선택지를 크게 배치한 더미 화면입니다."
-      />
-
       <MobileCard>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <span className="rounded-full bg-cyan-50 px-4 py-2 text-sm font-black text-cyan-700">
-            Q1
-          </span>
-          <span className="rounded-full bg-amber-50 px-4 py-2 text-sm font-black text-amber-700">
-            30초
-          </span>
-        </div>
-        <h2 className="mt-6 text-3xl font-black leading-tight sm:text-5xl">
-          오늘 행사의 실시간 퀴즈 플랫폼에서 가장 중요한 화면은?
-        </h2>
-        <div className="mt-7 grid gap-3 sm:grid-cols-2">
-          {answers.map((answer, index) => (
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-black uppercase text-slate-500">
+              Participant
+            </p>
+            <h1 className="mt-2 text-3xl font-black text-slate-950">
+              {displayName}님
+            </h1>
+          </div>
+          <form action={clearAction}>
             <button
-              key={answer}
-              type="button"
-              disabled
-              className="min-h-24 rounded-2xl border border-slate-200 bg-slate-50 p-5 text-left text-2xl font-black text-slate-700 shadow-sm"
+              type="submit"
+              className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-black text-slate-700 shadow-sm"
             >
-              <span className="mr-3 text-cyan-700">{index + 1}</span>
-              {answer}
+              다른 정보로 다시 등록
             </button>
-          ))}
+          </form>
         </div>
       </MobileCard>
 
-      <PrimaryLink href={`/e/${eventCode}`} variant="outline">
-        이벤트 홈으로
-      </PrimaryLink>
+      <PlayClient eventCode={event.event_code} eventTitle={event.title} />
     </div>
   );
 }
