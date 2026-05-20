@@ -222,6 +222,13 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
                 </p>
               </div>
             )}
+
+            <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold leading-6 text-amber-950">
+              시작/종료 시간은 참가자 안내와 운영 기준용입니다. 실제 퀴즈
+              시작, 마감, 정답 공개, Q&A 송출, 럭키드로우 진행은 라이브
+              콘솔에서 운영자가 직접 제어합니다. 행사를 완전히 막으려면
+              행사 설정에서 비활성 상태로 전환하세요.
+            </div>
           </AdminPanel>
 
           <AdminPanel

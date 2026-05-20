@@ -29,9 +29,14 @@ export default function NewEventForm() {
     createEventAction,
     initialState
   );
+  const values = state.values;
 
   return (
-    <form action={formAction} className="grid gap-6">
+    <form
+      key={values ? JSON.stringify(values) : "new-event-form"}
+      action={formAction}
+      className="grid gap-6"
+    >
       <div className="grid gap-5 lg:grid-cols-2">
         <div>
           <label htmlFor="title" className={labelClasses()}>
@@ -44,6 +49,7 @@ export default function NewEventForm() {
             required
             className={inputClasses()}
             placeholder="도래 실시간 퀴즈"
+            defaultValue={values?.title ?? ""}
           />
           <FieldError message={state.fieldErrors?.title} />
         </div>
@@ -60,6 +66,7 @@ export default function NewEventForm() {
             pattern="[a-z0-9-]+"
             className={inputClasses()}
             placeholder="dorae-2026"
+            defaultValue={values?.event_code ?? ""}
           />
           <p className="mt-2 text-sm font-bold leading-6 text-slate-700">
             소문자 영문, 숫자, 하이픈만 사용할 수 있습니다.
@@ -77,6 +84,7 @@ export default function NewEventForm() {
             type="text"
             className={inputClasses()}
             placeholder="참가자와 함께하는 라이브 이벤트"
+            defaultValue={values?.subtitle ?? ""}
           />
         </div>
 
@@ -90,6 +98,7 @@ export default function NewEventForm() {
             type="text"
             className={inputClasses()}
             placeholder="메인홀"
+            defaultValue={values?.venue ?? ""}
           />
         </div>
 
@@ -102,6 +111,7 @@ export default function NewEventForm() {
             name="starts_at"
             type="datetime-local"
             className={inputClasses()}
+            defaultValue={values?.starts_at ?? ""}
           />
           <FieldError message={state.fieldErrors?.starts_at} />
         </div>
@@ -115,6 +125,7 @@ export default function NewEventForm() {
             name="ends_at"
             type="datetime-local"
             className={inputClasses()}
+            defaultValue={values?.ends_at ?? ""}
           />
           <FieldError message={state.fieldErrors?.ends_at} />
         </div>
@@ -128,7 +139,7 @@ export default function NewEventForm() {
               id="primary_color"
               name="primary_color"
               type="color"
-              defaultValue="#0a1a38"
+              defaultValue={values?.primary_color ?? "#0a1a38"}
               className="h-12 w-16 rounded-2xl border border-slate-400 bg-white p-1 shadow-sm"
             />
             <p className="text-sm font-bold text-slate-600">
@@ -148,6 +159,7 @@ export default function NewEventForm() {
             type="url"
             className={inputClasses()}
             placeholder="https://example.com/logo.png"
+            defaultValue={values?.logo_url ?? ""}
           />
         </div>
       </div>
@@ -162,14 +174,21 @@ export default function NewEventForm() {
           rows={4}
           className={`${inputClasses()} resize-y leading-7`}
           placeholder="현장 송출 화면에 표시할 안내 문구"
+          defaultValue={values?.screen_notice ?? ""}
         />
+      </div>
+
+      <div className="rounded-2xl border border-cyan-200 bg-cyan-50 p-4 text-sm font-bold leading-6 text-cyan-950">
+        시작/종료 시간은 참가자 안내와 운영 기준용입니다. 실제 퀴즈 시작,
+        마감, 정답 공개, Q&A 송출, 럭키드로우 진행은 라이브 콘솔에서 직접
+        제어합니다.
       </div>
 
       <label className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
         <input
           name="is_active"
           type="checkbox"
-          defaultChecked
+          defaultChecked={values?.is_active ?? true}
           className="mt-1 h-5 w-5 rounded border-slate-300"
         />
         <span>
@@ -177,8 +196,8 @@ export default function NewEventForm() {
             활성 행사로 생성
           </span>
           <span className="mt-1 block text-sm leading-6 text-slate-600">
-            비활성 행사는 다음 단계에서 참가자 입장을 막는 기준으로 사용할
-            예정입니다.
+            행사를 완전히 막으려면 비활성 상태로 생성하세요. 비활성 행사는
+            참가자 입장과 스크린 송출이 제한됩니다.
           </span>
         </span>
       </label>

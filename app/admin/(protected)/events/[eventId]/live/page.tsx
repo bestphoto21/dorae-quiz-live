@@ -433,6 +433,12 @@ export default async function LivePage({ params, searchParams }: LivePageProps) 
             </p>
           )}
 
+          <p className="mt-4 rounded-2xl border border-cyan-200 bg-cyan-50 p-4 text-sm font-bold leading-6 text-cyan-950">
+            행사 시작/종료 시간은 자동 진행이나 자동 종료 조건이 아닙니다.
+            퀴즈 시작, 응답 마감, 정답 공개, Q&A 송출, 럭키드로우 진행은 이
+            라이브 콘솔에서 직접 제어합니다.
+          </p>
+
           {message && (
             <p className="mt-4 rounded-2xl border border-emerald-300 bg-emerald-50 p-4 text-sm font-bold text-emerald-900">
               {message}

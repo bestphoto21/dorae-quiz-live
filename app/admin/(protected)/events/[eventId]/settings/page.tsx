@@ -26,7 +26,7 @@ export default async function EventSettingsPage({
     >
       <AdminPanel
         title="기본 정보 수정"
-        description="비활성 처리는 다음 단계에서 참가자 입장 차단 기준으로 연결할 예정입니다."
+        description="시작/종료 시간은 운영 기준용이며, 실제 진행은 라이브 콘솔에서 수동 제어합니다."
       >
         {message && (
           <p className="mb-5 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700">

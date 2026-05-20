@@ -13,9 +13,23 @@ export type EventFormField =
   | "ends_at"
   | "primary_color";
 
+export type EventFormValues = {
+  title: string;
+  subtitle: string;
+  event_code: string;
+  venue: string;
+  starts_at: string;
+  ends_at: string;
+  primary_color: string;
+  logo_url: string;
+  screen_notice: string;
+  is_active: boolean;
+};
+
 export type EventFormState = {
   message: string | null;
   fieldErrors?: Partial<Record<EventFormField, string>>;
+  values?: EventFormValues;
 };
 
 const HEX_COLOR_PATTERN = /^#[0-9a-f]{6}$/i;
@@ -38,13 +52,11 @@ function normalizeEventCode(value: string) {
   return value.trim().toLowerCase();
 }
 
-function parseOptionalDateTime(
-  formData: FormData,
+function parseOptionalDateTimeValue(
+  value: string,
   key: "starts_at" | "ends_at",
   fieldErrors: Partial<Record<EventFormField, string>>
 ) {
-  const value = getFormString(formData, key);
-
   if (!value) {
     return null;
   }
@@ -61,6 +73,11 @@ function parseOptionalDateTime(
     `${year}-${month}-${day}T${hour}:${minute}:${second}+09:00`
   );
 
+  if (Number.isNaN(date.getTime())) {
+    fieldErrors[key] = "날짜와 시간을 다시 확인해 주세요.";
+    return null;
+  }
+
   return date.toISOString();
 }
 
@@ -70,28 +87,49 @@ function getPrimaryColor(formData: FormData) {
   return value || DEFAULT_PRIMARY_COLOR;
 }
 
+function getEventFormValues(formData: FormData): EventFormValues {
+  return {
+    title: getFormString(formData, "title"),
+    subtitle: getFormString(formData, "subtitle"),
+    event_code: normalizeEventCode(getFormString(formData, "event_code")),
+    venue: getFormString(formData, "venue"),
+    starts_at: getFormString(formData, "starts_at"),
+    ends_at: getFormString(formData, "ends_at"),
+    primary_color: getPrimaryColor(formData),
+    logo_url: getFormString(formData, "logo_url"),
+    screen_notice: getFormString(formData, "screen_notice"),
+    is_active: formData.get("is_active") === "on",
+  };
+}
+
 function validateEventFields(formData: FormData, includeEventCode: boolean) {
   const fieldErrors: Partial<Record<EventFormField, string>> = {};
-  const title = getFormString(formData, "title");
-  const eventCode = normalizeEventCode(getFormString(formData, "event_code"));
-  const primaryColor = getPrimaryColor(formData);
-  const startsAt = parseOptionalDateTime(formData, "starts_at", fieldErrors);
-  const endsAt = parseOptionalDateTime(formData, "ends_at", fieldErrors);
+  const formValues = getEventFormValues(formData);
+  const startsAt = parseOptionalDateTimeValue(
+    formValues.starts_at,
+    "starts_at",
+    fieldErrors
+  );
+  const endsAt = parseOptionalDateTimeValue(
+    formValues.ends_at,
+    "ends_at",
+    fieldErrors
+  );
 
-  if (!title) {
+  if (!formValues.title) {
     fieldErrors.title = "행사명을 입력해 주세요.";
   }
 
   if (includeEventCode) {
-    if (!eventCode) {
+    if (!formValues.event_code) {
       fieldErrors.event_code = "행사 코드를 입력해 주세요.";
-    } else if (!EVENT_CODE_PATTERN.test(eventCode)) {
+    } else if (!EVENT_CODE_PATTERN.test(formValues.event_code)) {
       fieldErrors.event_code =
         "행사 코드는 소문자 영문, 숫자, 하이픈만 사용할 수 있습니다.";
     }
   }
 
-  if (!HEX_COLOR_PATTERN.test(primaryColor)) {
+  if (!HEX_COLOR_PATTERN.test(formValues.primary_color)) {
     fieldErrors.primary_color = "대표 색상은 #0a1a38 형식으로 입력해 주세요.";
   }
 
@@ -101,18 +139,19 @@ function validateEventFields(formData: FormData, includeEventCode: boolean) {
 
   return {
     values: {
-      title,
-      subtitle: nullIfBlank(getFormString(formData, "subtitle")),
-      event_code: eventCode,
-      venue: nullIfBlank(getFormString(formData, "venue")),
+      title: formValues.title,
+      subtitle: nullIfBlank(formValues.subtitle),
+      event_code: formValues.event_code,
+      venue: nullIfBlank(formValues.venue),
       starts_at: startsAt,
       ends_at: endsAt,
-      primary_color: primaryColor,
-      logo_url: nullIfBlank(getFormString(formData, "logo_url")),
-      screen_notice: nullIfBlank(getFormString(formData, "screen_notice")),
-      is_active: formData.get("is_active") === "on",
+      primary_color: formValues.primary_color,
+      logo_url: nullIfBlank(formValues.logo_url),
+      screen_notice: nullIfBlank(formValues.screen_notice),
+      is_active: formValues.is_active,
     },
     fieldErrors,
+    formValues,
   };
 }
 
@@ -151,12 +190,16 @@ export async function createEventAction(
   formData: FormData
 ): Promise<EventFormState> {
   const admin = await requireAdmin();
-  const { values, fieldErrors } = validateEventFields(formData, true);
+  const { values, fieldErrors, formValues } = validateEventFields(
+    formData,
+    true
+  );
 
   if (Object.keys(fieldErrors).length > 0) {
     return {
       message: "입력값을 확인해 주세요.",
       fieldErrors,
+      values: formValues,
     };
   }
 
@@ -176,6 +219,7 @@ export async function createEventAction(
 
     return {
       message: "행사 코드 중복 확인 중 오류가 발생했습니다.",
+      values: formValues,
     };
   }
 
@@ -185,6 +229,7 @@ export async function createEventAction(
       fieldErrors: {
         event_code: "이미 사용 중인 행사 코드입니다.",
       },
+      values: formValues,
     };
   }
 
@@ -218,11 +263,13 @@ export async function createEventAction(
         fieldErrors: {
           event_code: "이미 사용 중인 행사 코드입니다.",
         },
+        values: formValues,
       };
     }
 
     return {
       message: "행사 생성 중 오류가 발생했습니다.",
+      values: formValues,
     };
   }
 
@@ -246,6 +293,7 @@ export async function createEventAction(
 
     return {
       message: "행사는 생성됐지만 라이브 상태 초기화에 실패했습니다.",
+      values: formValues,
     };
   }
 
@@ -270,6 +318,7 @@ export async function createEventAction(
 
     return {
       message: "행사는 생성됐지만 관리자 권한 연결에 실패했습니다.",
+      values: formValues,
     };
   }
 
@@ -297,12 +346,16 @@ export async function updateEventAction(
   formData: FormData
 ): Promise<EventFormState> {
   const { admin, event } = await requireEventAccess(eventId);
-  const { values, fieldErrors } = validateEventFields(formData, false);
+  const { values, fieldErrors, formValues } = validateEventFields(
+    formData,
+    false
+  );
 
   if (Object.keys(fieldErrors).length > 0) {
     return {
       message: "입력값을 확인해 주세요.",
       fieldErrors,
+      values: formValues,
     };
   }
 
@@ -332,6 +385,7 @@ export async function updateEventAction(
 
     return {
       message: "행사 저장 중 오류가 발생했습니다.",
+      values: formValues,
     };
   }
 

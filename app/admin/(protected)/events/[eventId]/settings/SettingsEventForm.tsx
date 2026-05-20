@@ -78,9 +78,14 @@ export default function SettingsEventForm({
   action,
 }: SettingsEventFormProps) {
   const [state, formAction, isPending] = useActionState(action, initialState);
+  const values = state.values;
 
   return (
-    <form action={formAction} className="grid gap-6">
+    <form
+      key={values ? JSON.stringify(values) : `settings-event-form-${event.id}`}
+      action={formAction}
+      className="grid gap-6"
+    >
       <div className="grid gap-5 lg:grid-cols-2">
         <div>
           <label htmlFor="title" className={labelClasses()}>
@@ -91,7 +96,7 @@ export default function SettingsEventForm({
             name="title"
             type="text"
             required
-            defaultValue={event.title}
+            defaultValue={values?.title ?? event.title}
             className={inputClasses()}
           />
           <FieldError message={state.fieldErrors?.title} />
@@ -121,7 +126,7 @@ export default function SettingsEventForm({
             id="subtitle"
             name="subtitle"
             type="text"
-            defaultValue={event.subtitle ?? ""}
+            defaultValue={values?.subtitle ?? event.subtitle ?? ""}
             className={inputClasses()}
           />
         </div>
@@ -134,7 +139,7 @@ export default function SettingsEventForm({
             id="venue"
             name="venue"
             type="text"
-            defaultValue={event.venue ?? ""}
+            defaultValue={values?.venue ?? event.venue ?? ""}
             className={inputClasses()}
           />
         </div>
@@ -147,7 +152,7 @@ export default function SettingsEventForm({
             id="starts_at"
             name="starts_at"
             type="datetime-local"
-            defaultValue={toDateTimeLocal(event.starts_at)}
+            defaultValue={values?.starts_at ?? toDateTimeLocal(event.starts_at)}
             className={inputClasses()}
           />
           <FieldError message={state.fieldErrors?.starts_at} />
@@ -161,7 +166,7 @@ export default function SettingsEventForm({
             id="ends_at"
             name="ends_at"
             type="datetime-local"
-            defaultValue={toDateTimeLocal(event.ends_at)}
+            defaultValue={values?.ends_at ?? toDateTimeLocal(event.ends_at)}
             className={inputClasses()}
           />
           <FieldError message={state.fieldErrors?.ends_at} />
@@ -176,7 +181,9 @@ export default function SettingsEventForm({
               id="primary_color"
               name="primary_color"
               type="color"
-              defaultValue={event.primary_color ?? "#0a1a38"}
+              defaultValue={
+                values?.primary_color ?? event.primary_color ?? "#0a1a38"
+              }
               className="h-12 w-16 rounded-2xl border border-slate-400 bg-white p-1 shadow-sm"
             />
             <p className="text-sm font-bold text-slate-600">
@@ -194,7 +201,7 @@ export default function SettingsEventForm({
             id="logo_url"
             name="logo_url"
             type="url"
-            defaultValue={event.logo_url ?? ""}
+            defaultValue={values?.logo_url ?? event.logo_url ?? ""}
             className={inputClasses()}
           />
         </div>
@@ -208,16 +215,22 @@ export default function SettingsEventForm({
           id="screen_notice"
           name="screen_notice"
           rows={4}
-          defaultValue={event.screen_notice ?? ""}
+          defaultValue={values?.screen_notice ?? event.screen_notice ?? ""}
           className={`${inputClasses()} resize-y leading-7`}
         />
+      </div>
+
+      <div className="rounded-2xl border border-cyan-200 bg-cyan-50 p-4 text-sm font-bold leading-6 text-cyan-950">
+        시작/종료 시간은 참가자 안내와 운영 기준용입니다. 실제 퀴즈 시작,
+        마감, 정답 공개, Q&A 송출, 럭키드로우 진행은 라이브 콘솔에서 직접
+        제어합니다.
       </div>
 
       <label className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
         <input
           name="is_active"
           type="checkbox"
-          defaultChecked={event.is_active ?? true}
+          defaultChecked={values?.is_active ?? event.is_active ?? true}
           className="mt-1 h-5 w-5 rounded border-slate-300"
         />
         <span>
@@ -225,8 +238,8 @@ export default function SettingsEventForm({
             활성 행사
           </span>
           <span className="mt-1 block text-sm leading-6 text-slate-600">
-            비활성으로 저장하면 다음 단계에서 참가자 입장을 막는 기준으로
-            사용할 예정입니다. 현재는 관리자 표시 상태만 바뀝니다.
+            행사를 완전히 막으려면 비활성 상태로 전환하세요. 비활성 행사는
+            참가자 입장과 스크린 송출이 제한됩니다.
           </span>
         </span>
       </label>

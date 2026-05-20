@@ -12,6 +12,7 @@ Do not paste real secret values, participant contact data, or raw payloads into 
 4. Confirm Supabase is online.
 5. Prepare one test event code.
 6. Prepare one admin account with access to the test event.
+7. Treat event start/end time as an operating reference, not automatic start or automatic shutdown. Live console controls the actual quiz start, close, answer reveal, Q&A output, and lucky draw flow.
 
 ## A. Admin Flow
 
@@ -22,15 +23,17 @@ Do not paste real secret values, participant contact data, or raw payloads into 
 5. Confirm Supabase connection is healthy.
 6. Open `/admin/events`.
 7. Open the event detail page.
-8. Open `/admin/events/[eventId]/live`.
-9. Open `/admin/events/[eventId]/rehearsal`.
-10. Open `/admin/events/[eventId]/logs`.
+8. Confirm validation errors on event create/settings forms keep the typed values.
+9. Open `/admin/events/[eventId]/live`.
+10. Open `/admin/events/[eventId]/rehearsal`.
+11. Open `/admin/events/[eventId]/logs`.
 
 Expected result:
 
 - No stack trace appears.
 - No secret value appears.
 - Admin email is not exposed in health or log detail views.
+- If `event.is_active=false`, participant entry and screen behavior are intentionally restricted.
 
 ## B. Participant Flow
 
