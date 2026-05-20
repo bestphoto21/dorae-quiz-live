@@ -5,7 +5,9 @@ import {
   OperatorLink,
   StatusBadge,
 } from "@/components/quiz/ui";
+import { EventJoinQr } from "@/components/quiz/QrCode";
 import { requireEventAccess } from "@/lib/auth/events";
+import { buildPublicUrl, getConfiguredSiteUrl } from "@/lib/site-url";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
 type EventDetailPageProps = {
@@ -138,6 +140,7 @@ function sceneLabel(scene: string | null | undefined) {
     qna_question: "승인 질문 송출 화면",
     draw: "럭키드로우 준비 화면",
     draw_winner: "당첨자 발표 화면",
+    join_qr: "QR 참여 안내 화면",
   };
 
   return labels[scene ?? "waiting"] ?? "대기 화면";
@@ -165,6 +168,19 @@ function DetailRow({ label, value }: { label: string; value: string }) {
   );
 }
 
+function UrlBox({ label, value }: { label: string; value: string }) {
+  return (
+    <label className="block rounded-2xl border border-slate-300 bg-slate-50 p-4">
+      <span className="text-sm font-black text-slate-700">{label}</span>
+      <input
+        readOnly
+        value={value}
+        className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-bold text-[color:#0a1a38]"
+      />
+    </label>
+  );
+}
+
 export default async function EventDetailPage({ params }: EventDetailPageProps) {
   const { eventId } = await params;
   const { event } = await requireEventAccess(eventId);
@@ -184,6 +200,21 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
     getExactCount("draw_winners", eventId),
     getLiveState(eventId),
   ]);
+  const siteUrl = getConfiguredSiteUrl();
+  const eventCode = event.event_code?.trim() ?? "";
+  const hasEventCode = eventCode.length > 0;
+  const participantHomeUrl = hasEventCode
+    ? buildPublicUrl(`/e/${eventCode}`)
+    : "행사 코드가 없습니다.";
+  const joinUrl = hasEventCode
+    ? buildPublicUrl(`/e/${eventCode}/join`)
+    : "행사 코드가 없습니다.";
+  const playUrl = hasEventCode
+    ? buildPublicUrl(`/e/${eventCode}/play`)
+    : "행사 코드가 없습니다.";
+  const screenUrl = hasEventCode
+    ? buildPublicUrl(`/screen/${eventCode}`)
+    : "행사 코드가 없습니다.";
 
   return (
     <AdminShell
@@ -208,8 +239,8 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
               <DetailRow label="대표 색상" value={event.primary_color ?? "#0a1a38"} />
               <DetailRow label="시작" value={formatDateTime(event.starts_at)} />
               <DetailRow label="종료" value={formatDateTime(event.ends_at)} />
-              <DetailRow label="참가자 URL" value={`/e/${event.event_code}`} />
-              <DetailRow label="스크린 URL" value={`/screen/${event.event_code}`} />
+              <DetailRow label="참가자 URL" value={participantHomeUrl} />
+              <DetailRow label="스크린 URL" value={screenUrl} />
             </div>
 
             {event.screen_notice && (
@@ -312,28 +343,26 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
 
           <AdminPanel
             title="주소 안내"
-            description="복사 버튼은 아직 더미 단계입니다. 현재는 주소를 직접 선택해서 사용할 수 있습니다."
+            description="참가자 등록 URL과 스크린 URL은 행사별로 다릅니다. QR은 참가자 등록 페이지로 연결됩니다."
           >
             <div className="grid gap-3">
-              <DetailRow
-                label="참가자 QR URL"
-                value={`/e/${event.event_code}`}
-              />
-              <DetailRow
-                label="참가자 등록 URL"
-                value={`/e/${event.event_code}/join`}
-              />
-              <DetailRow
-                label="참가자 참여 URL"
-                value={`/e/${event.event_code}/play`}
-              />
-              <DetailRow
-                label="스크린 URL"
-                value={`/screen/${event.event_code}`}
-              />
-              <p className="rounded-2xl border border-slate-300 bg-slate-50 p-4 text-sm font-black text-[color:#0a1a38]">
-                실제 전체 주소는 배포 후 Vercel 도메인을 기준으로 결정됩니다.
-              </p>
+              {hasEventCode ? (
+                <EventJoinQr joinUrl={joinUrl} />
+              ) : (
+                <p className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm font-black leading-6 text-amber-950">
+                  행사 코드가 없어 참가자 등록 QR을 표시할 수 없습니다. 행사
+                  설정에서 행사 코드를 확인해 주세요.
+                </p>
+              )}
+              <UrlBox label="참가자 등록 URL" value={joinUrl} />
+              <UrlBox label="참가자 플레이 URL" value={playUrl} />
+              <UrlBox label="스크린 URL" value={screenUrl} />
+              {!siteUrl && (
+                <p className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm font-black leading-6 text-amber-950">
+                  NEXT_PUBLIC_SITE_URL이 설정되지 않아 상대경로로 표시됩니다.
+                  배포 전 실제 서비스 주소로 설정해 주세요.
+                </p>
+              )}
             </div>
           </AdminPanel>
         </div>

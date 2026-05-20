@@ -22,12 +22,14 @@ import {
   closeQuestion,
   revealQuestionAnswer,
   setBreakMode,
+  setJoinQrMode,
   setLuckyDrawMode,
   setQnaWaitingMode,
   setWaitingMode,
   showResultMode,
   startQuestion,
 } from "./actions";
+import { buildPublicUrl } from "@/lib/site-url";
 
 type LivePageProps = {
   params: Promise<{ eventId: string }>;
@@ -107,6 +109,7 @@ function sceneLabel(scene: string | null | undefined) {
     qna_question: "승인 질문 송출 화면",
     draw: "럭키드로우 준비 화면",
     draw_winner: "당첨자 발표 화면",
+    join_qr: "QR 참여 안내 화면",
   };
 
   return labels[scene ?? "waiting"] ?? "대기 화면";
@@ -179,6 +182,10 @@ function sceneDescription(liveState: LiveStateRecord | null) {
     return "Q&A 질문 접수 대기 화면이 송출 중입니다.";
   }
 
+  if (scene === "join_qr") {
+    return "참가자 등록 QR 안내 화면이 송출 중입니다.";
+  }
+
   if (scene === "draw_winner") {
     return "럭키드로우 당첨자 발표 화면이 송출 중입니다.";
   }
@@ -199,7 +206,9 @@ function broadcastStatus(liveState: LiveStateRecord | null) {
 
   return {
     quiz:
-      scene === "question"
+      scene === "join_qr"
+        ? "QR 참여 안내"
+        : scene === "question"
         ? "문제 송출 중"
         : scene === "closed"
           ? "응답 마감"
@@ -388,6 +397,7 @@ export default async function LivePage({ params, searchParams }: LivePageProps) 
       )
     : emptyAnswerStats();
   const waitingAction = setWaitingMode.bind(null, eventId);
+  const joinQrAction = setJoinQrMode.bind(null, eventId);
   const qnaWaitingAction = setQnaWaitingMode.bind(null, eventId);
   const breakAction = setBreakMode.bind(null, eventId);
   const luckyDrawAction = setLuckyDrawMode.bind(null, eventId);
@@ -397,9 +407,9 @@ export default async function LivePage({ params, searchParams }: LivePageProps) 
   const message = getSingle(query.message);
   const error = getSingle(query.error);
   const status = broadcastStatus(liveState);
-  const participantUrl = `/e/${event.event_code}`;
-  const joinUrl = `/e/${event.event_code}/join`;
-  const screenUrl = `/screen/${event.event_code}`;
+  const participantUrl = buildPublicUrl(`/e/${event.event_code}`);
+  const joinUrl = buildPublicUrl(`/e/${event.event_code}/join`);
+  const screenUrl = buildPublicUrl(`/screen/${event.event_code}`);
 
   return (
     <AdminShell
@@ -482,7 +492,7 @@ export default async function LivePage({ params, searchParams }: LivePageProps) 
 
           <AdminPanel
             title="현장 링크"
-            description="새 창으로 스크린을 열고, 참가자 QR에는 참가자 입장 URL을 사용합니다."
+            description="새 창으로 스크린을 열고, 참가자 QR에는 참가자 등록 URL을 사용합니다."
           >
             <div className="grid gap-3">
               <Link
@@ -497,7 +507,7 @@ export default async function LivePage({ params, searchParams }: LivePageProps) 
                 target="_blank"
                 className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-slate-400 bg-white px-5 py-3 text-base font-black text-[color:#0a1a38] shadow-sm transition hover:border-[#0a1a38] hover:bg-slate-50"
               >
-                참가자 입장 페이지 열기
+                참가자 등록 페이지 열기
               </Link>
               <Link
                 href={`/admin/events/${eventId}/rehearsal`}
@@ -516,10 +526,10 @@ export default async function LivePage({ params, searchParams }: LivePageProps) 
                   QR에 넣을 URL
                 </p>
                 <p className="mt-2 break-all text-lg font-black text-[color:#0a1a38]">
-                  {participantUrl}
+                  {joinUrl}
                 </p>
                 <p className="mt-2 text-sm font-bold leading-6 text-slate-700">
-                  배포 후에는 Vercel 도메인을 포함한 전체 URL로 교체해 주세요.
+                  QR 참여 안내 화면은 참가자 등록 URL로 연결됩니다.
                 </p>
               </div>
             </div>
@@ -626,6 +636,9 @@ export default async function LivePage({ params, searchParams }: LivePageProps) 
                     <>
                       <ControlButton action={waitingAction} tone="dark">
                         대기 화면 송출
+                      </ControlButton>
+                      <ControlButton action={joinQrAction} tone="dark">
+                        QR 참여 안내 화면 송출
                       </ControlButton>
                       <ControlButton action={breakAction} tone="amber">
                         휴식 화면 송출

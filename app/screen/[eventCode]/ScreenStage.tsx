@@ -1,5 +1,6 @@
 "use client";
 
+import { QrCode } from "@/components/quiz/QrCode";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 type ScreenMode = "waiting" | "question" | "closed" | "result" | "draw" | "qna";
@@ -50,6 +51,12 @@ type ScreenState = {
     created_at: string | null;
   } | null;
   notice: {
+    title: string | null;
+    message: string | null;
+  } | null;
+  joinQr: {
+    event_code: string;
+    join_url: string;
     title: string | null;
     message: string | null;
   } | null;
@@ -112,6 +119,7 @@ function sceneLabel(scene: string | null | undefined) {
     qna_waiting: "질문 접수 중",
     qna_question: "현장 질문",
     draw: "럭키드로우 준비",
+    join_qr: "QR 참여 안내",
     lucky_draw_ready: "럭키드로우 준비",
     draw_winner: "당첨자 발표",
     lucky_draw_winner: "당첨자 발표",
@@ -467,6 +475,44 @@ function QnaWaitingView({ state }: { state: ScreenState }) {
   );
 }
 
+function JoinQrView({ state }: { state: ScreenState }) {
+  const joinUrl = state.joinQr?.join_url || `/e/${state.event.event_code}/join`;
+  const title = state.joinQr?.title || state.event.title;
+  const message =
+    state.joinQr?.message || "휴대폰 카메라로 QR을 스캔해 참여해 주세요";
+
+  return (
+    <section className="grid flex-1 gap-6 lg:grid-cols-[1fr_34rem] lg:items-center">
+      <div className="flex flex-col justify-center rounded-3xl bg-white p-8 text-[color:#0a1a38] shadow-2xl sm:p-12">
+        <p className="text-3xl font-black text-cyan-800">QR로 참여하기</p>
+        <h2 className="mt-6 text-6xl font-black leading-tight sm:text-8xl">
+          {title}
+        </h2>
+        <p className="mt-6 text-3xl font-bold leading-tight text-slate-700">
+          {message}
+        </p>
+        <p className="mt-6 text-2xl font-black leading-tight text-cyan-800">
+          참가자 등록 후 퀴즈와 Q&A에 참여할 수 있습니다.
+        </p>
+        <p className="mt-8 break-all rounded-3xl border border-slate-200 bg-slate-50 p-6 text-3xl font-black text-[color:#0a1a38]">
+          {joinUrl}
+        </p>
+      </div>
+
+      <aside className="rounded-3xl border border-white/20 bg-white p-6 shadow-2xl">
+        <QrCode
+          value={joinUrl}
+          title="참가자 등록 QR"
+          className="mx-auto h-auto w-full max-w-[30rem]"
+        />
+        <p className="mt-5 text-center text-2xl font-black text-[color:#0a1a38]">
+          휴대폰 카메라로 스캔
+        </p>
+      </aside>
+    </section>
+  );
+}
+
 function PlaceholderView({
   state,
   title,
@@ -607,6 +653,7 @@ export default function ScreenStage({
         />
       )}
       {scene === "waiting" && <WaitingView state={state} />}
+      {scene === "join_qr" && <JoinQrView state={state} />}
       {scene === "break" && <BreakView state={state} />}
       {scene === "question" && (
         <QuestionView state={state} secondsLeft={secondsLeft} />
@@ -622,6 +669,7 @@ export default function ScreenStage({
       {![
         "inactive",
         "waiting",
+        "join_qr",
         "break",
         "question",
         "closed",

@@ -10,10 +10,12 @@ import {
   getEventScopedRole,
   requireEventAccess,
 } from "@/lib/auth/events";
+import { buildPublicUrl } from "@/lib/site-url";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
 type LiveLogAction =
   | "live_screen_set_waiting"
+  | "live_screen_set_join_qr"
   | "live_screen_set_qna_waiting"
   | "live_screen_set_break"
   | "live_screen_set_quiz"
@@ -259,6 +261,65 @@ export async function setWaitingMode(eventId: string, formData: FormData) {
 
   revalidateLivePaths(eventId, event.event_code);
   redirectToLive({ eventId, message: "대기 화면으로 전환했습니다." });
+}
+
+export async function setJoinQrMode(eventId: string, formData: FormData) {
+  void formData;
+
+  const { admin, event } = await requireLiveScreenOperation(eventId, "general");
+  const eventCode = event.event_code?.trim();
+
+  if (!eventCode) {
+    redirectToLive({
+      eventId,
+      error: "행사 코드가 없어 QR 참여 안내 화면을 송출할 수 없습니다.",
+    });
+  }
+
+  const error = await upsertLiveState(eventId, {
+    current_session_id: null,
+    current_question_id: null,
+    mode: "waiting",
+    question_started_at: null,
+    question_ends_at: null,
+    reveal_answer: false,
+    show_results: false,
+    screen_scene: "join_qr",
+    screen_payload: {
+      event_code: eventCode,
+      join_url: buildPublicUrl(`/e/${eventCode}/join`),
+      title: event.title,
+      message: "휴대폰 카메라로 QR을 스캔해 참여해 주세요.",
+    },
+  });
+
+  if (error) {
+    console.error("[admin-live] Failed to set join QR mode.", {
+      eventId,
+      adminUserId: admin.id,
+      message: error.message,
+      code: error.code,
+    });
+
+    redirectToLive({
+      eventId,
+      error: "QR 참여 안내 화면 전환 중 오류가 발생했습니다.",
+    });
+  }
+
+  await writeOperationLog({
+    eventId,
+    adminUserId: admin.id,
+    action: "live_screen_set_join_qr",
+    detail: screenLogDetail({
+      eventId,
+      mode: "waiting",
+      screenScene: "join_qr",
+    }),
+  });
+
+  revalidateLivePaths(eventId, eventCode);
+  redirectToLive({ eventId, message: "QR 참여 안내 화면으로 전환했습니다." });
 }
 
 export async function setQnaWaitingMode(eventId: string, formData: FormData) {

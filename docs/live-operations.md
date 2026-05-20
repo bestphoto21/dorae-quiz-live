@@ -183,6 +183,7 @@ Screen transitions write operation logs with minimal detail:
 Examples:
 
 - `live_screen_set_waiting`
+- `live_screen_set_join_qr`
 - `live_screen_set_qna_waiting`
 - `live_screen_set_break`
 - `live_screen_set_quiz`

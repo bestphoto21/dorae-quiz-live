@@ -7,12 +7,9 @@ import {
 } from "@/components/quiz/ui";
 
 const routes = [
-  { href: "/e/dorae2026", label: "참가자 홈" },
-  { href: "/e/dorae2026/join", label: "참가 등록" },
-  { href: "/e/dorae2026/play", label: "문제 풀이" },
-  { href: "/screen/dorae2026", label: "송출 화면" },
   { href: "/admin", label: "운영자 홈" },
   { href: "/admin/events", label: "이벤트 관리" },
+  { href: "/admin/health", label: "운영 점검" },
 ];
 
 export default function Home() {
@@ -35,17 +32,21 @@ export default function Home() {
               현장 퀴즈를 크게, 빠르게, 실수 없이.
             </h1>
             <p className="mt-6 max-w-2xl text-xl leading-9 text-slate-300">
-              참가자 모바일 화면, 대형 송출 화면, 운영자 콘솔의 기본 라우팅과
-              더미 UI를 갖춘 1단계 프로젝트입니다.
+              참가자 등록, 퀴즈 진행, Q&A, 럭키드로우, 대형 스크린 송출을
+              행사별 운영 콘솔에서 관리합니다.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <PrimaryLink href="/e/dorae2026" variant="accent">
-                참가자 화면 보기
+              <PrimaryLink href="/admin" variant="accent">
+                운영자 홈 열기
               </PrimaryLink>
-              <PrimaryLink href="/admin" variant="light">
-                운영자 화면 보기
+              <PrimaryLink href="/admin/events" variant="light">
+                이벤트 관리 열기
               </PrimaryLink>
             </div>
+            <p className="mt-5 max-w-2xl rounded-2xl border border-white/15 bg-white/10 p-4 text-base font-bold leading-7 text-slate-100">
+              참가자 등록 URL과 스크린 URL은 행사별로 다릅니다. 관리자 이벤트
+              관리에서 해당 행사 상세 화면에 들어가 복사해 주세요.
+            </p>
           </div>
 
           <div className="rounded-3xl border border-white/15 bg-white p-5 text-[color:#0a1a38] shadow-2xl">
@@ -72,6 +73,13 @@ export default function Home() {
         </div>
 
         <SectionShell className="bg-white text-[color:#0a1a38]">
+          <div className="mb-5">
+            <StatusBadge tone="slate">운영자 바로가기</StatusBadge>
+            <p className="mt-3 text-sm font-bold leading-6 text-slate-700">
+              공개 메인 화면에는 특정 행사 코드의 참가자 링크를 고정하지
+              않습니다.
+            </p>
+          </div>
           <div className="grid gap-3 md:grid-cols-3">
             {routes.map((route) => (
               <DemoCard key={route.href} href={route.href} title={route.label}>

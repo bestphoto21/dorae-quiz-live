@@ -29,6 +29,13 @@ export type SafeNoticePayload = {
   message: string | null;
 };
 
+export type SafeJoinQrPayload = {
+  event_code: string;
+  join_url: string;
+  title: string | null;
+  message: string | null;
+};
+
 type QnaQuestionRow = {
   id: string;
   question_text: string;
@@ -75,6 +82,27 @@ export function toSafeNoticePayload(payload: unknown): SafeNoticePayload | null 
   const source = payload as Record<string, unknown>;
 
   return {
+    title: pickNullableString(source.title),
+    message: pickNullableString(source.message),
+  };
+}
+
+export function toSafeJoinQrPayload(payload: unknown): SafeJoinQrPayload | null {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    return null;
+  }
+
+  const source = payload as Record<string, unknown>;
+  const eventCode = pickString(source.event_code);
+  const joinUrl = pickString(source.join_url);
+
+  if (!eventCode || !joinUrl) {
+    return null;
+  }
+
+  return {
+    event_code: eventCode,
+    join_url: joinUrl,
     title: pickNullableString(source.title),
     message: pickNullableString(source.message),
   };
@@ -215,5 +243,6 @@ export async function buildSafeScreenPayload({
       mode === "qna" || scene === "qna_question"
         ? await getSafeQnaPayload({ eventId, payload })
         : null,
+    joinQr: scene === "join_qr" ? toSafeJoinQrPayload(payload) : null,
   };
 }

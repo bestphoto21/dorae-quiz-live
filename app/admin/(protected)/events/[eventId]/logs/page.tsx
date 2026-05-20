@@ -66,6 +66,7 @@ const BLOCKED_KEY_PATTERNS = [
 
 const IMPORTANT_ACTIONS = new Set([
   "qna_question_deleted",
+  "live_screen_set_join_qr",
   "live_screen_set_lucky_draw",
   "live_screen_set_qna_waiting",
   "live_screen_set_quiz",
@@ -165,6 +166,7 @@ function actionLabel(action: string) {
     live_question_closed: "응답 마감",
     live_result_shown: "결과 화면 송출",
     live_screen_set_waiting: "대기 화면 송출",
+    live_screen_set_join_qr: "QR 참여 안내 화면 송출",
     live_screen_set_break: "휴식 화면 송출",
     live_screen_set_lucky_draw: "럭키드로우 준비 화면 송출",
     live_screen_set_qna_waiting: "Q&A 대기 화면 송출",
@@ -207,6 +209,7 @@ function sceneValueLabel(value: string) {
     qna: "Q&A 대기 화면",
     qna_waiting: "Q&A 대기 화면",
     qna_question: "승인 질문 송출 화면",
+    join_qr: "QR 참여 안내 화면",
     draw: "럭키드로우 준비 화면",
     lucky_draw_ready: "럭키드로우 준비 화면",
     draw_winner: "당첨자 발표 화면",

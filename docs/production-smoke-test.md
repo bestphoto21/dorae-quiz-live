@@ -24,9 +24,11 @@ Do not paste real secret values, participant contact data, or raw payloads into 
 6. Open `/admin/events`.
 7. Open the event detail page.
 8. Confirm validation errors on event create/settings forms keep the typed values.
-9. Open `/admin/events/[eventId]/live`.
-10. Open `/admin/events/[eventId]/rehearsal`.
-11. Open `/admin/events/[eventId]/logs`.
+9. Confirm the event detail page shows the participant registration QR and that the QR URL points to `/e/[eventCode]/join`.
+10. Open `/admin/events/[eventId]/live`.
+11. Send the QR participation guide screen to the live screen.
+12. Open `/admin/events/[eventId]/rehearsal`.
+13. Open `/admin/events/[eventId]/logs`.
 
 Expected result:
 
@@ -59,20 +61,22 @@ Open `/screen/[eventCode]` in a separate browser window.
 Check:
 
 1. Waiting screen.
-2. Break screen.
-3. Quiz question output.
-4. Before answer reveal, answer key is not visible.
-5. After answer reveal, answer key is visible.
-6. Q&A waiting screen.
-7. Approved Q&A question output.
-8. Pending, hidden, or deleted Q&A question does not appear on screen.
-9. Lucky draw preparation screen.
-10. Winner output after saved draw result.
+2. QR participation guide screen with a scannable QR and visible `/e/[eventCode]/join` URL.
+3. Break screen.
+4. Quiz question output.
+5. Before answer reveal, answer key is not visible.
+6. After answer reveal, answer key is visible.
+7. Q&A waiting screen.
+8. Approved Q&A question output.
+9. Pending, hidden, or deleted Q&A question does not appear on screen.
+10. Lucky draw preparation screen.
+11. Winner output after saved draw result.
 
 Expected result:
 
 - Raw screen payload is not visible.
 - Participant contact data is not visible.
+- QR screen does not expose phone, email, secret values, or raw payload data.
 - Screen errors show a safe fallback, not internal details.
 
 ## D. Security Checks
