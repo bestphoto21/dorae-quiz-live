@@ -151,12 +151,16 @@ function actionLabel(action: string) {
     question_created: "문제 생성",
     question_updated: "문제 수정",
     question_deleted: "문제 삭제",
+    participant_registered: "참가자 등록",
+    answer_submitted: "참가자 응답 제출",
+    qna_question_submitted: "Q&A 질문 접수",
     qna_question_deleted: "Q&A 질문 삭제 상태 변경",
     qna_question_approved: "Q&A 질문 승인",
     qna_question_hidden: "Q&A 질문 숨김",
     qna_question_pinned: "Q&A 질문 고정",
     qna_question_unpinned: "Q&A 질문 고정 해제",
     qna_question_screened: "승인 질문 스크린 송출",
+    qna_question_shown_on_screen: "승인 질문 스크린 송출",
     live_question_started: "퀴즈 문제 송출",
     live_question_closed: "응답 마감",
     live_result_shown: "결과 화면 송출",
@@ -170,11 +174,12 @@ function actionLabel(action: string) {
     prize_updated: "경품 수정",
     prize_deleted: "경품 삭제",
     draw_winner_created: "당첨자 추첨",
+    draw_winner_selected: "럭키드로우 당첨자 선정",
     draw_winner_screened: "당첨자 스크린 송출",
     draw_winner_status_updated: "당첨자 상태 변경",
   };
 
-  return labels[action] ?? action;
+  return labels[action.toLowerCase()] ?? action;
 }
 
 function modeValueLabel(value: string) {
