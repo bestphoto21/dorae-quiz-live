@@ -2,6 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AudienceHero, MobileCard, StatusBadge } from "@/components/quiz/ui";
 import {
+  autoCloseExpiredSurveyForm,
+  isSurveyAcceptingResponses,
   normalizeSurveyQuestion,
   type SurveyQuestionRecord,
 } from "@/lib/data/surveys";
@@ -31,6 +33,9 @@ type SurveyForm = {
   title: string;
   description: string | null;
   status: "draft" | "open" | "closed" | "archived";
+  active_started_at: string | null;
+  active_ends_at: string | null;
+  closed_at: string | null;
 };
 
 function getSingle(value: string | string[] | undefined) {
@@ -83,12 +88,16 @@ async function getSurveyDetail({
   eventId: string;
   surveyFormId: string;
 }) {
+  await autoCloseExpiredSurveyForm({ eventId, surveyFormId });
+
   const supabase = createAdminSupabaseClient();
   const [{ data: formData, error: formError }, { data: questionData, error: questionError }] =
     await Promise.all([
       supabase
         .from("survey_forms")
-        .select("id, event_id, title, description, status")
+        .select(
+          "id, event_id, title, description, status, active_started_at, active_ends_at, closed_at"
+        )
         .eq("id", surveyFormId)
         .eq("event_id", eventId)
         .maybeSingle(),
@@ -303,7 +312,7 @@ export default async function SurveyDetailPage({
   const message = getSingle(query.message);
   const error = getSingle(query.error);
 
-  if (!form || form.status !== "open" || event.is_active === false) {
+  if (!form || !isSurveyAcceptingResponses(form) || event.is_active === false) {
     return (
       <div className="grid gap-5">
         <AudienceHero
@@ -383,7 +392,7 @@ export default async function SurveyDetailPage({
             {questions.map((question) => (
               <SurveyQuestionCard key={question.id} question={question} />
             ))}
-            <SurveySubmitButton />
+            <SurveySubmitButton endsAt={form.active_ends_at} />
           </form>
         ) : (
           <div className="rounded-2xl border border-amber-300 bg-amber-50 p-5 text-sm font-bold leading-6 text-amber-950">

@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 import { readParticipantSessionCookie } from "@/lib/participants/session";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import {
+  autoCloseExpiredSurveyForm,
+  isSurveyAcceptingResponses,
   normalizeSurveyQuestion,
   type SurveyQuestionRecord,
 } from "@/lib/data/surveys";
@@ -240,9 +242,14 @@ export async function submitSurveyResponse(
     redirect(`/e/${normalizedEventCode}/join`);
   }
 
+  await autoCloseExpiredSurveyForm({
+    eventId: event.id,
+    surveyFormId,
+  });
+
   const { data: surveyData, error: surveyError } = await supabase
     .from("survey_forms")
-    .select("id, event_id, title, status")
+    .select("id, event_id, title, status, active_started_at, active_ends_at, closed_at")
     .eq("id", surveyFormId)
     .eq("event_id", event.id)
     .maybeSingle();
@@ -262,11 +269,23 @@ export async function submitSurveyResponse(
     });
   }
 
-  if (!surveyData || surveyData.status !== "open") {
+  const survey = surveyData as
+    | {
+        id: string;
+        event_id: string;
+        title: string;
+        status: "draft" | "open" | "closed" | "archived";
+        active_started_at: string | null;
+        active_ends_at: string | null;
+        closed_at: string | null;
+      }
+    | null;
+
+  if (!survey || !isSurveyAcceptingResponses(survey)) {
     redirectToSurvey({
       eventCode: normalizedEventCode,
       surveyFormId,
-      error: "현재 제출할 수 없는 설문입니다.",
+      error: "설문 시간이 종료되었거나 현재 제출할 수 없는 설문입니다.",
     });
   }
 

@@ -168,6 +168,35 @@ survey with at least one response, then the server builds the candidate pool
 from `survey_responses` for that form. Phone numbers, email addresses, raw
 answers, and participant IDs are not shown on screen.
 
+## Timed Survey Operation
+
+The primary survey start button is "1분 설문 시작". When pressed, the selected
+survey is opened for 60 seconds, `active_started_at` and `active_ends_at` are
+saved, and the same event `live_state` row is updated to `mode = survey` and
+`screen_scene = survey_active`.
+
+There is no background cron requirement. Survey reads and submissions lazily
+close expired open surveys when `active_ends_at` has passed. The server action
+checks the time again on submit, so the browser countdown is only a user
+experience aid.
+
+The participant play page polls a small active-survey endpoint and shows a
+"진행 중인 설문" card when a timed survey is open. The survey list and detail
+pages show only currently submit-ready surveys and disable submission when the
+timer ends.
+
+The screen survey scenes are:
+
+- `survey_intro`: participation guide
+- `survey_active`: 60-second active survey with countdown, submitted count, and rate
+- `survey_status`: submitted count/rate view
+- `survey_closed`: final closed survey view
+
+The screen API returns only safe survey fields: title, description, status,
+submitted count, participant count, submitted rate, timing fields, survey URL,
+and message. It never returns participant ids, phone numbers, email addresses,
+answer rows, or raw `screen_payload`.
+
 ## Security Notes
 
 - Never import the service-role client into Client Components.
@@ -181,6 +210,5 @@ answers, and participant IDs are not shown on screen.
 
 Potential next phase:
 
-- One-minute survey timer and automatic close
 - CSV export for survey responses
 - Consent-answer-only lucky draw filtering

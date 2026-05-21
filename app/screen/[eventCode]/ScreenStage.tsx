@@ -10,7 +10,14 @@ import {
   type ReactNode,
 } from "react";
 
-type ScreenMode = "waiting" | "question" | "closed" | "result" | "draw" | "qna";
+type ScreenMode =
+  | "waiting"
+  | "question"
+  | "closed"
+  | "result"
+  | "draw"
+  | "qna"
+  | "survey";
 
 type ScreenState = {
   event: {
@@ -83,6 +90,12 @@ type ScreenState = {
     status: "draft" | "open" | "closed" | "archived";
     submitted_count: number;
     participant_count: number;
+    submitted_rate: number;
+    started_at: string | null;
+    ends_at: string | null;
+    server_now: string;
+    remaining_seconds: number;
+    is_closed: boolean;
     survey_url: string;
     message: string | null;
   } | null;
@@ -216,6 +229,18 @@ function getSecondsLeft(questionEndsAt: string | null, now: number) {
   return Math.max(0, Math.ceil((new Date(questionEndsAt).getTime() - now) / 1000));
 }
 
+function formatSeconds(seconds: number | null) {
+  if (seconds === null) {
+    return "--:--";
+  }
+
+  const safeSeconds = Math.max(0, seconds);
+  const minutes = Math.floor(safeSeconds / 60);
+  const remainingSeconds = safeSeconds % 60;
+
+  return `${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`;
+}
+
 function isOlderState(
   nextUpdatedAt: string | null | undefined,
   currentUpdatedAt: string | null
@@ -268,6 +293,9 @@ function screenStateFingerprint(state: ScreenState) {
     survey_url: state.survey?.survey_url ?? null,
     survey_submitted_count: state.survey?.submitted_count ?? null,
     survey_participant_count: state.survey?.participant_count ?? null,
+    survey_submitted_rate: state.survey?.submitted_rate ?? null,
+    survey_ends_at: state.survey?.ends_at ?? null,
+    survey_is_closed: state.survey?.is_closed ?? null,
     stats_total_answers: state.stats.total_answers,
     stats_option_counts: state.stats.option_counts,
     stats_correct_answers: state.stats.correct_answers ?? null,
@@ -310,7 +338,9 @@ function sceneLabel(scene: string | null | undefined) {
     draw: "럭키드로우 준비",
     join_qr: "QR 참여 안내",
     survey_intro: "설문 참여 안내",
+    survey_active: "설문 진행",
     survey_status: "설문 제출 현황",
+    survey_closed: "설문 마감",
     lucky_draw_ready: "럭키드로우 준비",
     draw_winner: "당첨자 발표",
     lucky_draw_winner: "당첨자 발표",
@@ -1151,7 +1181,13 @@ function surveyStatusLabel(status: NonNullable<ScreenState["survey"]>["status"])
   return labels[status];
 }
 
-function SurveyView({ state }: { state: ScreenState }) {
+function SurveyView({
+  state,
+  now,
+}: {
+  state: ScreenState;
+  now: number | null;
+}) {
   const survey = state.survey;
   const surveyUrl = survey?.survey_url || `/e/${state.event.event_code}/survey`;
   const title = survey?.title || "설문 참여 안내";
@@ -1160,19 +1196,27 @@ function SurveyView({ state }: { state: ScreenState }) {
   const submittedCount = survey?.submitted_count ?? 0;
   const participantCount = survey?.participant_count ?? 0;
   const progress =
-    participantCount > 0
+    survey?.submitted_rate ??
+    (participantCount > 0
       ? Math.min(100, Math.round((submittedCount / participantCount) * 100))
-      : 0;
-  const isStatusScene =
-    normalizeScene(state.liveState.screen_scene ?? state.liveState.mode) ===
-    "survey_status";
+      : 0);
+  const scene = normalizeScene(state.liveState.screen_scene ?? state.liveState.mode);
+  const isClosedScene = scene === "survey_closed" || survey?.is_closed;
+  const isStatusScene = scene === "survey_status";
+  const remainingSeconds =
+    survey?.ends_at && now !== null
+      ? getSecondsLeft(survey.ends_at, now)
+      : (survey?.remaining_seconds ?? null);
+  const heroLabel = isClosedScene
+    ? "설문이 마감되었습니다"
+    : isStatusScene
+      ? "설문 제출 현황"
+      : "지금 설문조사에 참여해주세요";
 
   return (
     <section className="grid flex-1 gap-6 lg:grid-cols-[1fr_34rem] lg:items-center">
       <div className="flex flex-col justify-center rounded-3xl bg-white p-8 text-[color:#0a1a38] shadow-2xl sm:p-12">
-        <p className="text-3xl font-black text-cyan-800">
-          {isStatusScene ? "설문 제출 현황" : "지금 설문조사에 참여해주세요"}
-        </p>
+        <p className="text-3xl font-black text-cyan-800">{heroLabel}</p>
         <h2 className="mt-6 text-6xl font-black leading-tight sm:text-8xl">
           {title}
         </h2>
@@ -1190,7 +1234,7 @@ function SurveyView({ state }: { state: ScreenState }) {
             </div>
             {survey && (
               <p className="rounded-full bg-[#0a1a38] px-5 py-3 text-2xl font-black text-white">
-                {surveyStatusLabel(survey.status)}
+                {isClosedScene ? "마감" : surveyStatusLabel(survey.status)}
               </p>
             )}
           </div>
@@ -1200,7 +1244,28 @@ function SurveyView({ state }: { state: ScreenState }) {
               style={{ width: `${progress}%` }}
             />
           </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-3xl border border-white bg-white p-5 shadow-sm">
+              <p className="text-lg font-black text-slate-600">참여율</p>
+              <p className="mt-2 text-6xl font-black text-cyan-700">
+                {progress}%
+              </p>
+            </div>
+            <div className="rounded-3xl border border-white bg-white p-5 shadow-sm">
+              <p className="text-lg font-black text-slate-600">
+                {isClosedScene ? "최종 상태" : "남은 시간"}
+              </p>
+              <p className="mt-2 text-6xl font-black text-[color:#0a1a38]">
+                {isClosedScene ? "마감" : formatSeconds(remainingSeconds)}
+              </p>
+            </div>
+          </div>
         </div>
+        {isClosedScene && (
+          <p className="mt-6 rounded-3xl border border-emerald-200 bg-emerald-50 p-5 text-3xl font-black text-emerald-900">
+            참여해주셔서 감사합니다.
+          </p>
+        )}
         <p className="mt-8 break-all rounded-3xl border border-slate-200 bg-white p-6 text-3xl font-black text-[color:#0a1a38] shadow-sm">
           {surveyUrl}
         </p>
@@ -1526,8 +1591,10 @@ export default function ScreenStage({
       )}
       {scene === "waiting" && <WaitingView state={state} />}
       {scene === "join_qr" && <JoinQrView state={state} />}
-      {(scene === "survey_intro" || scene === "survey_status") && (
-        <SurveyView state={state} />
+      {(["survey_intro", "survey_active", "survey_status", "survey_closed"].includes(
+        scene ?? ""
+      )) && (
+        <SurveyView state={state} now={now} />
       )}
       {scene === "break" && <BreakView state={state} />}
       {scene === "question" && (
@@ -1551,7 +1618,9 @@ export default function ScreenStage({
         "waiting",
         "join_qr",
         "survey_intro",
+        "survey_active",
         "survey_status",
+        "survey_closed",
         "break",
         "question",
         "closed",

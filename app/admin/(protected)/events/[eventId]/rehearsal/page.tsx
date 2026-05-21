@@ -77,6 +77,7 @@ function liveModeLabel(mode: string | null | undefined) {
     result: "결과 공개",
     draw: "럭키드로우",
     qna: "Q&A",
+    survey: "설문",
   };
 
   return labels[mode ?? "waiting"] ?? "대기";
@@ -94,6 +95,10 @@ function sceneLabel(scene: string | null | undefined) {
     qna_question: "승인 질문 송출 화면",
     draw: "럭키드로우 준비 화면",
     draw_winner: "당첨자 발표 화면",
+    survey_intro: "설문 참여 안내 화면",
+    survey_active: "설문 진행 화면",
+    survey_status: "설문 제출 현황 화면",
+    survey_closed: "설문 마감 화면",
   };
 
   return labels[scene ?? "waiting"] ?? "대기 화면";

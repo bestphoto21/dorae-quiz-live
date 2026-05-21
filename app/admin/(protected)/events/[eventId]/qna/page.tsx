@@ -131,6 +131,10 @@ function sceneLabel(scene: string | null | undefined) {
     question: "퀴즈 문제 화면",
     closed: "응답 마감 화면",
     result: "결과 화면",
+    survey_intro: "설문 참여 안내 화면",
+    survey_active: "설문 진행 화면",
+    survey_status: "설문 제출 현황 화면",
+    survey_closed: "설문 마감 화면",
   };
 
   return labels[scene ?? "waiting"] ?? "대기 화면";
@@ -144,6 +148,7 @@ function modeLabel(mode: string | null | undefined) {
     result: "결과 공개",
     draw: "럭키드로우",
     qna: "Q&A",
+    survey: "설문",
   };
 
   return labels[mode ?? "waiting"] ?? "대기";

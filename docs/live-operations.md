@@ -182,17 +182,17 @@ screen_scene = break
 
 ## Survey Screen
 
-Survey guide and submission-status screens are represented without a schema
-change as:
+Survey guide, active, status, and closed screens use the same event `live_state`
+row:
 
 ```text
-mode = waiting
-screen_scene = survey_intro | survey_status
+mode = survey
+screen_scene = survey_intro | survey_active | survey_status | survey_closed
 ```
 
-The survey management page can send these screens directly. Operators should
-start the survey first, then send the survey guide or status screen when the
-audience should participate.
+The survey management page can send these screens directly. Pressing
+"1분 설문 시작" opens the survey for 60 seconds and automatically sends
+`survey_active`.
 
 ## Screen Payload Privacy
 
@@ -232,13 +232,17 @@ Allowed fields are selected per scene.
 - `title`
 - `message`
 
-### `survey_intro` / `survey_status`
+### `survey_intro` / `survey_active` / `survey_status` / `survey_closed`
 
 - survey title
 - survey description
 - survey status
 - submitted count
 - participant count
+- submitted rate
+- active start/end time
+- server time
+- closed flag
 - survey URL
 - event code
 - screen message
@@ -282,7 +286,9 @@ Examples:
 - `live_screen_set_quiz`
 - `live_screen_set_lucky_draw`
 - `live_screen_set_survey_intro`
+- `live_screen_set_survey_active`
 - `live_screen_set_survey_status`
+- `live_screen_set_survey_closed`
 
 Do not log question text, phone numbers, email addresses, secrets, or raw screen payload.
 
@@ -301,6 +307,22 @@ Screen and participant clients currently refresh `live_state` through polling.
 - The current target is stable 1-2 second reflection for ordinary live-console transitions.
 
 If the event needs more immediate transitions later, introduce Supabase Realtime or Broadcast only as a change signal. Clients should still re-fetch the state API and render the server-built safe payload instead of trusting broadcast payloads directly.
+
+## Unified Screen Broadcast Rule
+
+Each event has one `/screen/[eventCode]` and one `live_state` row. Live console,
+survey, Q&A, draw, waiting, break, and QR buttons all update that same row for
+the same event. The last screen-control action wins.
+
+Survey start is both a status change and a screen broadcast: it opens the survey
+for 60 seconds and sends `screen_scene = survey_active`. Manual survey status
+screen controls still use the same row. Draw execution switches the same screen
+to `draw_winner`, and Q&A screen output switches it to the Q&A scene. Waiting,
+break, and QR controls intentionally overwrite the current scene.
+
+Survey expiration is lazy in server code. When an active survey has passed
+`active_ends_at`, survey reads, submissions, and the screen state API treat it
+as closed and return safe closed/status data.
 
 ## Rehearsal Checklist
 

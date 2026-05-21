@@ -12,7 +12,14 @@ import {
 import { MobileCard, StatusBadge } from "@/components/quiz/ui";
 import { submitAnswer, submitQnaQuestion } from "./actions";
 
-type ParticipantMode = "waiting" | "question" | "closed" | "result" | "draw" | "qna";
+type ParticipantMode =
+  | "waiting"
+  | "question"
+  | "closed"
+  | "result"
+  | "draw"
+  | "qna"
+  | "survey";
 
 type ParticipantState = {
   event: {

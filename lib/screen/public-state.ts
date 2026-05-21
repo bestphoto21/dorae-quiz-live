@@ -18,7 +18,7 @@ type ScreenEvent = {
 };
 
 type ScreenLiveState = {
-  mode: "waiting" | "question" | "closed" | "result" | "draw" | "qna";
+  mode: "waiting" | "question" | "closed" | "result" | "draw" | "qna" | "survey";
   screen_scene: string | null;
   screen_payload: unknown;
   current_question_id: string | null;
@@ -185,6 +185,10 @@ export async function getPublicScreenState(
     screenScene: liveState.screen_scene,
     payload: liveState.screen_payload,
   });
+  const publicScreenScene =
+    liveState.screen_scene === "survey_active" && safePayload.survey?.is_closed
+      ? "survey_closed"
+      : liveState.screen_scene;
   let question = null;
   let stats = emptyAnswerStats();
 
@@ -236,7 +240,7 @@ export async function getPublicScreenState(
       state_updated_at: liveState.updated_at,
       liveState: {
         mode: liveState.mode,
-        screen_scene: liveState.screen_scene,
+        screen_scene: publicScreenScene,
         question_started_at: liveState.question_started_at,
         question_ends_at: liveState.question_ends_at,
         reveal_answer: liveState.reveal_answer,

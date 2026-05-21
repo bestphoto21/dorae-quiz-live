@@ -1,4 +1,9 @@
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
+import {
+  autoCloseExpiredSurveyForm,
+  getSurveyRemainingSeconds,
+  isSurveyAcceptingResponses,
+} from "@/lib/data/surveys";
 
 // SERVER ONLY: screen-state builders may use the service-role admin client to
 // re-check approved Q&A questions, but this module must never be imported by
@@ -51,6 +56,12 @@ export type SafeSurveyPayload = {
   status: "draft" | "open" | "closed" | "archived";
   submitted_count: number;
   participant_count: number;
+  submitted_rate: number;
+  started_at: string | null;
+  ends_at: string | null;
+  server_now: string;
+  remaining_seconds: number;
+  is_closed: boolean;
   survey_url: string;
   message: string | null;
 };
@@ -100,6 +111,9 @@ type SurveyFormRow = {
   title: string;
   description: string | null;
   status: "draft" | "open" | "closed" | "archived";
+  active_started_at: string | null;
+  active_ends_at: string | null;
+  closed_at: string | null;
 };
 
 function assertServerOnly() {
@@ -341,10 +355,14 @@ export async function getSafeSurveyPayload({
   let survey: SurveyFormRow | null = null;
 
   if (surveyFormId) {
+    await autoCloseExpiredSurveyForm({ eventId, surveyFormId });
+
     const supabase = createAdminSupabaseClient();
     const { data, error } = await supabase
       .from("survey_forms")
-      .select("id, title, description, status")
+      .select(
+        "id, title, description, status, active_started_at, active_ends_at, closed_at"
+      )
       .eq("id", surveyFormId)
       .eq("event_id", eventId)
       .maybeSingle();
@@ -372,28 +390,56 @@ export async function getSafeSurveyPayload({
         countRows({ table: "participants", eventId }),
       ])
     : [null, null];
+  const safeSubmittedCount =
+    freshSubmittedCount ??
+    pickBoundedNumber({
+      value: source.submitted_count,
+      fallback: 0,
+      min: 0,
+      max: 100000,
+    });
+  const safeParticipantCount =
+    freshParticipantCount ??
+    pickBoundedNumber({
+      value: source.participant_count,
+      fallback: 0,
+      min: 0,
+      max: 100000,
+    });
+  const submittedRate =
+    safeParticipantCount > 0
+      ? Math.min(100, Math.round((safeSubmittedCount / safeParticipantCount) * 100))
+      : 0;
+  const now = new Date();
+  const surveyStatus = pickSurveyStatus(survey?.status ?? source.status);
+  const endsAt = survey?.active_ends_at ?? pickString(source.ends_at);
+  const startedAt = survey?.active_started_at ?? pickString(source.started_at);
+  const remainingSeconds = getSurveyRemainingSeconds(
+    { active_ends_at: endsAt },
+    now
+  );
+  const isClosed =
+    surveyStatus === "closed" ||
+    surveyStatus === "archived" ||
+    (surveyStatus === "open" &&
+      !isSurveyAcceptingResponses(
+        { status: surveyStatus, active_ends_at: endsAt },
+        now
+      ));
 
   return {
     event_code: pickString(source.event_code),
     title,
     description: survey?.description ?? pickNullableString(source.description),
-    status: pickSurveyStatus(survey?.status ?? source.status),
-    submitted_count:
-      freshSubmittedCount ??
-      pickBoundedNumber({
-        value: source.submitted_count,
-        fallback: 0,
-        min: 0,
-        max: 100000,
-      }),
-    participant_count:
-      freshParticipantCount ??
-      pickBoundedNumber({
-        value: source.participant_count,
-        fallback: 0,
-        min: 0,
-        max: 100000,
-      }),
+    status: surveyStatus,
+    submitted_count: safeSubmittedCount,
+    participant_count: safeParticipantCount,
+    submitted_rate: submittedRate,
+    started_at: startedAt,
+    ends_at: endsAt,
+    server_now: now.toISOString(),
+    remaining_seconds: remainingSeconds,
+    is_closed: isClosed,
     survey_url: surveyUrl,
     message: pickNullableString(source.message),
   };
@@ -586,7 +632,10 @@ export async function buildSafeScreenPayload({
         : null,
     joinQr: scene === "join_qr" ? toSafeJoinQrPayload(payload) : null,
     survey:
-      scene === "survey_intro" || scene === "survey_status"
+      scene === "survey_intro" ||
+      scene === "survey_active" ||
+      scene === "survey_status" ||
+      scene === "survey_closed"
         ? await getSafeSurveyPayload({ eventId, payload })
         : null,
   };

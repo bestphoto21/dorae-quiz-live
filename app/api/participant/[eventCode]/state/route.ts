@@ -31,7 +31,7 @@ type ParticipantRow = {
 };
 
 type ParticipantLiveState = {
-  mode: "waiting" | "question" | "closed" | "result" | "draw" | "qna";
+  mode: "waiting" | "question" | "closed" | "result" | "draw" | "qna" | "survey";
   screen_scene: string | null;
   current_session_id: string | null;
   current_question_id: string | null;

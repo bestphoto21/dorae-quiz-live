@@ -89,29 +89,32 @@ Use the seed output for the exact event ID. For the default event code:
 11. Reveal the answer.
 12. Start the next question.
 13. Open survey management and create the starter four surveys if needed.
-14. Add questions to one survey or use "기본 질문 10개 추가", then set it to `open`.
-15. Use the survey management screen controls to send waiting, break, QR entry, and survey guide screens.
-16. Open `/e/sim-202606/survey`, submit the survey once, and confirm duplicate submission is blocked.
-17. Confirm the admin survey page increments the survey submission count.
-18. Confirm the admin survey page shows the submitter name, submitted time, and answer details.
-19. Confirm rating, single-choice, and multiple-choice selections visibly change immediately on the participant form.
-20. Confirm the participant submit button shows a pending state and prevents double clicks.
-21. Send the survey submission-status screen and confirm the count updates after polling without a full-screen flash.
-22. Switch waiting -> QR -> survey guide -> survey status -> break and confirm the screen does not turn blank.
-23. Set the survey to `closed` and confirm it is no longer submittable.
-24. Use "작성 중으로 되돌리기" only when you need to edit the closed survey again.
-25. On the Q&A management page, use the screen controls for waiting, QR, break, and Q&A waiting.
-26. Approve a Q&A question and send it to screen.
-27. On the lucky draw page, use the screen controls for waiting, QR, break, and lucky draw ready.
-28. Run a survey respondent draw by selecting `설문 제출자`, choosing the submitted survey, and confirming the candidate count.
-29. Run an all-participant draw again to confirm the original source still works.
-30. Press "효과음 켜기" on the screen if testing draw sound.
-31. Run a draw and confirm the countdown/rolling animation appears.
-32. Confirm the final winner screen shows a short celebration effect and optional pop sound.
-33. Use "최근 당첨 결과 다시 송출" and confirm it replays the latest saved winner without drawing a new winner.
-34. Confirm the final winner matches the saved draw result.
-35. Switch away from the draw scene during animation and confirm the old timer does not overwrite the new screen.
-36. Confirm operation logs were written.
+14. Add questions to one survey or use "기본 질문 10개 추가", then press "1분 설문 시작".
+15. Confirm the same `/screen/sim-202606` automatically switches to `survey_active` with countdown, submitted count, participant count, and submitted rate.
+16. Use the survey management screen controls to send waiting, break, QR entry, survey active, and survey status screens.
+17. Open `/e/sim-202606/play` and confirm the active survey card appears automatically.
+18. Open `/e/sim-202606/survey`, submit the survey once, and confirm duplicate submission is blocked.
+19. Confirm the admin survey page increments the live submission count.
+20. Confirm the admin survey page shows the submitter name, submitted time, and answer details.
+21. Confirm rating, single-choice, and multiple-choice selections visibly change immediately on the participant form.
+22. Confirm the participant submit button shows a pending state and prevents double clicks.
+23. Send the survey submission-status screen and confirm the count updates after polling without a full-screen flash.
+24. Wait 60 seconds and confirm the survey is lazily closed, participant submission is blocked, and the screen shows the closed/status view.
+25. Switch waiting -> QR -> survey active -> survey status -> break and confirm the screen does not turn blank.
+26. Use "작성 중으로 되돌리기" only when you need to edit the closed survey again.
+27. On the Q&A management page, use the screen controls for waiting, QR, break, and Q&A waiting.
+28. Approve a Q&A question and send it to screen.
+29. On the lucky draw page, use the screen controls for waiting, QR, break, and lucky draw ready.
+30. Run a survey respondent draw by selecting `설문 제출자`, choosing the submitted survey, and confirming the candidate count.
+31. Confirm the same `/screen/sim-202606` switches from survey to `draw_winner`.
+32. Run an all-participant draw again to confirm the original source still works.
+33. Press "효과음 켜기" on the screen if testing draw sound.
+34. Run a draw and confirm the countdown/rolling animation appears.
+35. Confirm the final winner screen shows a short celebration effect and optional pop sound.
+36. Use "최근 당첨 결과 다시 송출" and confirm it replays the latest saved winner without drawing a new winner.
+37. Confirm the final winner matches the saved draw result.
+38. Switch away from the draw scene during animation and confirm the old timer does not overwrite the new screen.
+39. Confirm operation logs were written.
 
 ## Must Check
 
@@ -130,6 +133,8 @@ Use the seed output for the exact event ID. For the default event code:
 - Survey answer details are not shown on participant screens or screen projection.
 - Survey answer details appear only in the protected admin survey page and do not include phone, email, or participant IDs.
 - Survey respondent lucky draws use `survey_responses` candidates and do not expose answers or contact fields.
+- Timed surveys run for 60 seconds, auto-close lazily, and show submitted count/rate on the screen.
+- `/e/[eventCode]/play` shows the active survey card automatically while a timed survey is open.
 - Live screen changes appear in about 1-2 seconds while the screen window is visible.
 - Screen transitions keep the previous scene visible while polling is pending; the screen should not flash to a blank or full reload state.
 - Korean labels are not broken.

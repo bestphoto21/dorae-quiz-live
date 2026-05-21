@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AudienceHero, MobileCard, PrimaryLink, StatusBadge } from "@/components/quiz/ui";
-import { getOpenSurveyFormsForParticipant } from "@/lib/data/surveys";
+import {
+  getOpenSurveyFormsForParticipant,
+  getSurveyRemainingSeconds,
+} from "@/lib/data/surveys";
 import { readParticipantSessionCookie } from "@/lib/participants/session";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
@@ -145,6 +148,7 @@ export default async function SurveyListPage({
         <div className="grid gap-4">
           {forms.map((form) => {
             const submitted = submittedFormIds.has(form.id);
+            const remainingSeconds = getSurveyRemainingSeconds(form);
 
             return (
               <MobileCard key={form.id}>
@@ -159,6 +163,14 @@ export default async function SurveyListPage({
                     {form.description && (
                       <p className="mt-2 text-sm font-bold leading-6 text-slate-700">
                         {form.description}
+                      </p>
+                    )}
+                    {!submitted && (
+                      <p className="mt-3 text-sm font-black text-cyan-800">
+                        남은 시간 {Math.floor(remainingSeconds / 60)
+                          .toString()
+                          .padStart(2, "0")}
+                        :{(remainingSeconds % 60).toString().padStart(2, "0")}
                       </p>
                     )}
                   </div>

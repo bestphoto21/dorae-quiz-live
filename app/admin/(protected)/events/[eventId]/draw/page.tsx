@@ -98,6 +98,7 @@ function modeLabel(mode: string | null | undefined) {
     result: "결과 공개",
     draw: "럭키드로우",
     qna: "Q&A",
+    survey: "설문",
   };
 
   return labels[mode ?? "waiting"] ?? "대기";
@@ -150,6 +151,22 @@ function sceneLabel(scene: string | null | undefined) {
 
   if (scene === "qna_waiting" || scene === "qna") {
     return "Q&A 대기 화면";
+  }
+
+  if (scene === "survey_intro") {
+    return "설문 참여 안내 화면";
+  }
+
+  if (scene === "survey_active") {
+    return "설문 진행 화면";
+  }
+
+  if (scene === "survey_status") {
+    return "설문 제출 현황 화면";
+  }
+
+  if (scene === "survey_closed") {
+    return "설문 마감 화면";
   }
 
   if (scene === "question") {

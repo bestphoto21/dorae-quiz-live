@@ -3,6 +3,7 @@ import "server-only";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
 export type SurveyStatus = "draft" | "open" | "closed" | "archived";
+export const SURVEY_DURATION_SECONDS = 60;
 
 export type SurveyQuestionType =
   | "short_text"
@@ -18,6 +19,9 @@ export type SurveyFormRecord = {
   description: string | null;
   status: SurveyStatus;
   sort_order: number;
+  active_started_at: string | null;
+  active_ends_at: string | null;
+  closed_at: string | null;
   created_at: string | null;
   updated_at: string | null;
 };
@@ -68,11 +72,137 @@ export type SurveyRespondentDrawOption = {
   response_count: number;
 };
 
+export type SurveyStatsSnapshot = {
+  survey_form_id: string;
+  status: SurveyStatus;
+  submitted_count: number;
+  participant_count: number;
+  submitted_rate: number;
+  active_started_at: string | null;
+  active_ends_at: string | null;
+  closed_at: string | null;
+  server_now: string;
+  remaining_seconds: number;
+  is_closed: boolean;
+};
+
+export type ParticipantSurveyPrompt = {
+  id: string;
+  title: string;
+  description: string | null;
+  status: SurveyStatus;
+  active_started_at: string | null;
+  active_ends_at: string | null;
+  closed_at: string | null;
+  survey_url: string;
+  submitted: boolean;
+  remaining_seconds: number;
+  server_now: string;
+};
+
 function assertServerOnly() {
   if (typeof window !== "undefined") {
     throw new Error(
       "Survey data helpers must never run in the browser. Move this call to trusted server-only code."
     );
+  }
+}
+
+function getNow() {
+  return new Date();
+}
+
+export function getTimedSurveyEnd(startedAt: Date) {
+  return new Date(startedAt.getTime() + SURVEY_DURATION_SECONDS * 1000);
+}
+
+export function getSurveyRemainingSeconds(
+  survey: Pick<SurveyFormRecord, "active_ends_at">,
+  now: Date = getNow()
+) {
+  if (!survey.active_ends_at) {
+    return 0;
+  }
+
+  const endTime = Date.parse(survey.active_ends_at);
+
+  if (Number.isNaN(endTime)) {
+    return 0;
+  }
+
+  return Math.max(0, Math.ceil((endTime - now.getTime()) / 1000));
+}
+
+export function isSurveyAcceptingResponses(
+  survey: Pick<SurveyFormRecord, "status" | "active_ends_at">,
+  now: Date = getNow()
+) {
+  if (survey.status !== "open") {
+    return false;
+  }
+
+  if (!survey.active_ends_at) {
+    return true;
+  }
+
+  return Date.parse(survey.active_ends_at) > now.getTime();
+}
+
+export async function autoCloseExpiredSurveyForms(eventId: string) {
+  assertServerOnly();
+
+  const supabase = createAdminSupabaseClient();
+  const nowIso = getNow().toISOString();
+  const { error } = await supabase
+    .from("survey_forms")
+    .update({
+      status: "closed",
+      closed_at: nowIso,
+    })
+    .eq("event_id", eventId)
+    .eq("status", "open")
+    .not("active_ends_at", "is", null)
+    .lte("active_ends_at", nowIso);
+
+  if (error) {
+    console.error("[survey-data] Failed to auto-close expired surveys.", {
+      eventId,
+      message: error.message,
+      code: error.code,
+    });
+  }
+}
+
+export async function autoCloseExpiredSurveyForm({
+  eventId,
+  surveyFormId,
+}: {
+  eventId: string;
+  surveyFormId: string;
+}) {
+  assertServerOnly();
+
+  const supabase = createAdminSupabaseClient();
+  const nowIso = getNow().toISOString();
+  const { error } = await supabase
+    .from("survey_forms")
+    .update({
+      status: "closed",
+      closed_at: nowIso,
+    })
+    .eq("id", surveyFormId)
+    .eq("event_id", eventId)
+    .eq("status", "open")
+    .not("active_ends_at", "is", null)
+    .lte("active_ends_at", nowIso);
+
+  if (error) {
+    console.error("[survey-data] Failed to auto-close expired survey.", {
+      eventId,
+      surveyFormId,
+      message: error.message,
+      code: error.code,
+    });
   }
 }
 
@@ -145,6 +275,7 @@ export async function getSurveyFormsForEvent(
   eventId: string
 ): Promise<SurveyFormSummary[]> {
   assertServerOnly();
+  await autoCloseExpiredSurveyForms(eventId);
 
   const supabase = createAdminSupabaseClient();
   const [{ data: forms, error: formsError }, { data: questions, error: questionsError }, { data: responses, error: responsesError }] =
@@ -152,7 +283,7 @@ export async function getSurveyFormsForEvent(
       supabase
         .from("survey_forms")
         .select(
-          "id, event_id, title, description, status, sort_order, created_at, updated_at"
+          "id, event_id, title, description, status, sort_order, active_started_at, active_ends_at, closed_at, created_at, updated_at"
         )
         .eq("event_id", eventId)
         .order("sort_order", { ascending: true })
@@ -232,6 +363,7 @@ export async function getOpenSurveyFormsForParticipant({
   participantId: string;
 }) {
   assertServerOnly();
+  await autoCloseExpiredSurveyForms(eventId);
 
   const supabase = createAdminSupabaseClient();
   const [{ data: forms, error: formsError }, { data: responses, error: responsesError }] =
@@ -239,7 +371,7 @@ export async function getOpenSurveyFormsForParticipant({
       supabase
         .from("survey_forms")
         .select(
-          "id, event_id, title, description, status, sort_order, created_at, updated_at"
+          "id, event_id, title, description, status, sort_order, active_started_at, active_ends_at, closed_at, created_at, updated_at"
         )
         .eq("event_id", eventId)
         .eq("status", "open")
@@ -272,12 +404,184 @@ export async function getOpenSurveyFormsForParticipant({
   }
 
   return {
-    forms: (forms ?? []) as SurveyFormRecord[],
+    forms: ((forms ?? []) as SurveyFormRecord[]).filter((form) =>
+      isSurveyAcceptingResponses(form)
+    ),
     submittedFormIds: new Set(
       ((responses ?? []) as SurveyResponseRecord[]).map(
         (response) => response.survey_form_id
       )
     ),
+  };
+}
+
+export async function getSurveyStatsSnapshot({
+  eventId,
+  surveyFormId,
+}: {
+  eventId: string;
+  surveyFormId: string;
+}): Promise<SurveyStatsSnapshot | null> {
+  assertServerOnly();
+  await autoCloseExpiredSurveyForm({ eventId, surveyFormId });
+
+  const supabase = createAdminSupabaseClient();
+  const [
+    { data: surveyData, error: surveyError },
+    { count: submittedCount, error: submittedError },
+    { count: participantCount, error: participantError },
+  ] = await Promise.all([
+    supabase
+      .from("survey_forms")
+      .select("id, status, active_started_at, active_ends_at, closed_at")
+      .eq("id", surveyFormId)
+      .eq("event_id", eventId)
+      .maybeSingle(),
+    supabase
+      .from("survey_responses")
+      .select("id", { count: "exact", head: true })
+      .eq("event_id", eventId)
+      .eq("survey_form_id", surveyFormId),
+    supabase
+      .from("participants")
+      .select("id", { count: "exact", head: true })
+      .eq("event_id", eventId),
+  ]);
+
+  if (surveyError) {
+    console.error("[survey-data] Failed to load survey stats form.", {
+      eventId,
+      surveyFormId,
+      message: surveyError.message,
+      code: surveyError.code,
+    });
+
+    return null;
+  }
+
+  if (submittedError) {
+    console.error("[survey-data] Failed to count survey submissions.", {
+      eventId,
+      surveyFormId,
+      message: submittedError.message,
+      code: submittedError.code,
+    });
+  }
+
+  if (participantError) {
+    console.error("[survey-data] Failed to count survey participants.", {
+      eventId,
+      surveyFormId,
+      message: participantError.message,
+      code: participantError.code,
+    });
+  }
+
+  const survey = surveyData as
+    | Pick<
+        SurveyFormRecord,
+        "id" | "status" | "active_started_at" | "active_ends_at" | "closed_at"
+      >
+    | null;
+
+  if (!survey) {
+    return null;
+  }
+
+  const safeSubmittedCount = submittedCount ?? 0;
+  const safeParticipantCount = participantCount ?? 0;
+  const submittedRate =
+    safeParticipantCount > 0
+      ? Math.min(100, Math.round((safeSubmittedCount / safeParticipantCount) * 100))
+      : 0;
+  const now = getNow();
+
+  return {
+    survey_form_id: survey.id,
+    status: survey.status,
+    submitted_count: safeSubmittedCount,
+    participant_count: safeParticipantCount,
+    submitted_rate: submittedRate,
+    active_started_at: survey.active_started_at,
+    active_ends_at: survey.active_ends_at,
+    closed_at: survey.closed_at,
+    server_now: now.toISOString(),
+    remaining_seconds: getSurveyRemainingSeconds(survey, now),
+    is_closed: !isSurveyAcceptingResponses(survey, now),
+  };
+}
+
+export async function getActiveSurveyPromptForParticipant({
+  eventId,
+  eventCode,
+  participantId,
+}: {
+  eventId: string;
+  eventCode: string;
+  participantId: string;
+}): Promise<ParticipantSurveyPrompt | null> {
+  assertServerOnly();
+  await autoCloseExpiredSurveyForms(eventId);
+
+  const supabase = createAdminSupabaseClient();
+  const { data: formData, error: formError } = await supabase
+    .from("survey_forms")
+    .select(
+      "id, event_id, title, description, status, sort_order, active_started_at, active_ends_at, closed_at, created_at, updated_at"
+    )
+    .eq("event_id", eventId)
+    .eq("status", "open")
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (formError) {
+    console.error("[survey-data] Failed to load active survey prompt.", {
+      eventId,
+      message: formError.message,
+      code: formError.code,
+    });
+
+    return null;
+  }
+
+  const form = formData as SurveyFormRecord | null;
+
+  if (!form || !isSurveyAcceptingResponses(form)) {
+    return null;
+  }
+
+  const { data: responseData, error: responseError } = await supabase
+    .from("survey_responses")
+    .select("id")
+    .eq("survey_form_id", form.id)
+    .eq("participant_id", participantId)
+    .maybeSingle();
+
+  if (responseError) {
+    console.error("[survey-data] Failed to load active survey prompt response.", {
+      eventId,
+      surveyFormId: form.id,
+      message: responseError.message,
+      code: responseError.code,
+    });
+  }
+
+  const now = getNow();
+
+  return {
+    id: form.id,
+    title: form.title,
+    description: form.description,
+    status: form.status,
+    active_started_at: form.active_started_at,
+    active_ends_at: form.active_ends_at,
+    closed_at: form.closed_at,
+    survey_url: `/e/${eventCode}/survey/${form.id}`,
+    submitted: Boolean(responseData),
+    remaining_seconds: getSurveyRemainingSeconds(form, now),
+    server_now: now.toISOString(),
   };
 }
 
@@ -456,6 +760,7 @@ export async function getSurveyRespondentDrawOptions(
   eventId: string
 ): Promise<SurveyRespondentDrawOption[]> {
   assertServerOnly();
+  await autoCloseExpiredSurveyForms(eventId);
 
   const supabase = createAdminSupabaseClient();
   const [{ data: forms, error: formsError }, { data: responses, error: responsesError }] =

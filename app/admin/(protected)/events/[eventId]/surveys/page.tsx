@@ -41,6 +41,7 @@ import {
 } from "./actions";
 import { buildPublicUrl } from "@/lib/site-url";
 import { SurveyActionButton } from "./SurveyActionButton";
+import { SurveyStatsClient } from "./SurveyStatsClient";
 
 type SurveyPageProps = {
   params: Promise<{ eventId: string }>;
@@ -108,6 +109,7 @@ function screenModeLabel(mode: string | null | undefined) {
     result: "결과 공개",
     draw: "럭키드로우",
     qna: "Q&A",
+    survey: "설문",
   };
 
   return labels[mode ?? ""] ?? "송출 준비";
@@ -119,7 +121,9 @@ function screenSceneLabel(scene: string | null | undefined) {
     break: "휴식 화면",
     join_qr: "QR 입장 안내",
     survey_intro: "설문 참여 안내",
+    survey_active: "설문 진행",
     survey_status: "설문 제출 현황",
+    survey_closed: "설문 마감",
     question: "퀴즈 진행",
     quiz_question: "퀴즈 진행",
     result: "결과 공개",
@@ -499,7 +503,7 @@ function SurveyOperationPanel({
           {survey.status === "draft" && (
             <form action={startAction}>
               <SubmitButton disabled={!canManage || !hasQuestions}>
-                설문 시작
+                1분 설문 시작
               </SubmitButton>
             </form>
           )}
@@ -520,7 +524,7 @@ function SurveyOperationPanel({
         </div>
 
         <div className="grid gap-2 text-sm font-bold leading-6 text-slate-700">
-          <p>설문 시작: 참가자가 이 설문을 제출할 수 있습니다.</p>
+          <p>1분 설문 시작: 참가자에게 1분 동안 공개하고 스크린에 진행 화면을 송출합니다.</p>
           <p>설문 마감: 참가자 제출을 중지합니다.</p>
           <p>작성 중으로 되돌리기: 설문을 다시 수정할 수 있는 상태로 변경합니다.</p>
         </div>
@@ -999,6 +1003,27 @@ export default async function SurveysPage({
   const message = getSingle(query.message);
   const error = getSingle(query.error);
   const screenUrl = buildPublicUrl(`/screen/${event.event_code}`);
+  const activeSurveyStats = activeSurvey
+    ? {
+        survey_form_id: activeSurvey.id,
+        status: activeSurvey.status,
+        submitted_count: activeSurvey.response_count,
+        participant_count: participantCount,
+        submitted_rate:
+          participantCount > 0
+            ? Math.min(
+                100,
+                Math.round((activeSurvey.response_count / participantCount) * 100)
+              )
+            : 0,
+        active_started_at: activeSurvey.active_started_at,
+        active_ends_at: activeSurvey.active_ends_at,
+        closed_at: activeSurvey.closed_at,
+        server_now: activeSurvey.updated_at ?? "",
+        remaining_seconds: 0,
+        is_closed: activeSurvey.status !== "open",
+      }
+    : null;
 
   return (
     <AdminShell
@@ -1079,6 +1104,16 @@ export default async function SurveysPage({
                       질문 {activeSurvey.questions.length.toLocaleString("ko-KR")}개
                     </StatusBadge>
                   </div>
+                  {activeSurveyStats && (
+                    <div className="mt-5">
+                      <SurveyStatsClient
+                        key={activeSurvey.id}
+                        eventId={eventId}
+                        surveyFormId={activeSurvey.id}
+                        initialStats={activeSurveyStats}
+                      />
+                    </div>
+                  )}
                   <p className="mt-4 text-sm font-bold leading-6 text-slate-700">
                     응답 가능 상태(open)인 설문만 참가자 화면에 표시됩니다. 마감(closed) 또는 보관(archived)
                     상태는 새 제출을 받지 않습니다.

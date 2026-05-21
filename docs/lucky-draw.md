@@ -187,6 +187,20 @@ Log details include operational identifiers such as `event_id`, `prize_id`,
 
 Logs must not include participant ids, phone numbers, or email addresses.
 
+## Survey Respondent Draw Screen Flow
+
+When the draw source is `survey_respondents`, candidates come from
+`survey_responses` for the selected survey. The draw action still writes the
+winner first, then updates the same event `live_state` row to `draw_winner`.
+That means a screen that was showing `survey_active`, `survey_status`, or
+`survey_closed` switches to the normal lucky-draw rolling/result scene on the
+same `/screen/[eventCode]`.
+
+The existing rolling animation, canvas-confetti burst, and optional sound effect
+are unchanged for survey respondent draws. Screen payloads continue to expose
+display names only and must not include survey answers, contact fields, or
+participant ids.
+
 ## Current Limits
 
 Not implemented yet:

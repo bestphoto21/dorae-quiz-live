@@ -9,7 +9,11 @@ import {
 } from "@/lib/auth/events";
 import { buildPublicUrl } from "@/lib/site-url";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
-import type { SurveyQuestionType, SurveyStatus } from "@/lib/data/surveys";
+import {
+  getTimedSurveyEnd,
+  type SurveyQuestionType,
+  type SurveyStatus,
+} from "@/lib/data/surveys";
 
 const SURVEY_STATUSES: SurveyStatus[] = [
   "draft",
@@ -137,7 +141,9 @@ type SurveyLogAction =
   | "live_screen_set_join_qr"
   | "live_screen_set_break"
   | "live_screen_set_survey_intro"
-  | "live_screen_set_survey_status";
+  | "live_screen_set_survey_active"
+  | "live_screen_set_survey_status"
+  | "live_screen_set_survey_closed";
 
 function getFormString(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -320,7 +326,9 @@ async function getSurveyForm(eventId: string, surveyFormId: string) {
   const supabase = createAdminSupabaseClient();
   const { data, error } = await supabase
     .from("survey_forms")
-    .select("id, event_id, title, status")
+    .select(
+      "id, event_id, title, status, active_started_at, active_ends_at, closed_at"
+    )
     .eq("id", surveyFormId)
     .eq("event_id", eventId)
     .maybeSingle();
@@ -335,7 +343,15 @@ async function getSurveyForm(eventId: string, surveyFormId: string) {
   }
 
   return data as
-    | { id: string; event_id: string; title: string; status: SurveyStatus }
+    | {
+        id: string;
+        event_id: string;
+        title: string;
+        status: SurveyStatus;
+        active_started_at: string | null;
+        active_ends_at: string | null;
+        closed_at: string | null;
+      }
     | null;
 }
 
@@ -343,7 +359,9 @@ async function getSurveyScreenSnapshot(eventId: string, surveyFormId: string) {
   const supabase = createAdminSupabaseClient();
   const { data, error } = await supabase
     .from("survey_forms")
-    .select("id, event_id, title, description, status")
+    .select(
+      "id, event_id, title, description, status, active_started_at, active_ends_at, closed_at"
+    )
     .eq("id", surveyFormId)
     .eq("event_id", eventId)
     .maybeSingle();
@@ -364,6 +382,9 @@ async function getSurveyScreenSnapshot(eventId: string, surveyFormId: string) {
         title: string;
         description: string | null;
         status: SurveyStatus;
+        active_started_at: string | null;
+        active_ends_at: string | null;
+        closed_at: string | null;
       }
     | null;
 }
@@ -488,6 +509,8 @@ function revalidateSurveyPaths(eventId: string, eventCode?: string | null) {
   if (eventCode) {
     revalidatePath(`/screen/${eventCode}`);
     revalidatePath(`/api/screen/${eventCode}/state`);
+    revalidatePath(`/e/${eventCode}/play`);
+    revalidatePath(`/e/${eventCode}/survey`);
   }
 }
 
@@ -496,16 +519,22 @@ async function updateSurveyStatus({
   surveyFormId,
   status,
   adminUserId,
+  values = {},
 }: {
   eventId: string;
   surveyFormId: string;
   status: SurveyStatus;
   adminUserId: string;
+  values?: {
+    active_started_at?: string | null;
+    active_ends_at?: string | null;
+    closed_at?: string | null;
+  };
 }) {
   const supabase = createAdminSupabaseClient();
   const { error } = await supabase
     .from("survey_forms")
-    .update({ status })
+    .update({ status, ...values })
     .eq("id", surveyFormId)
     .eq("event_id", eventId);
 
@@ -570,8 +599,11 @@ async function buildSurveyScreenPayload({
     title: string;
     description: string | null;
     status: SurveyStatus;
+    active_started_at: string | null;
+    active_ends_at: string | null;
+    closed_at: string | null;
   };
-  scene: "survey_intro" | "survey_status";
+  scene: "survey_intro" | "survey_active" | "survey_status" | "survey_closed";
 }) {
   const [submittedCount, participantCount] = await Promise.all([
     getSurveyResponseCount(eventId, survey.id),
@@ -584,13 +616,20 @@ async function buildSurveyScreenPayload({
     title: survey.title,
     description: survey.description,
     status: survey.status,
+    started_at: survey.active_started_at,
+    ends_at: survey.active_ends_at,
+    closed_at: survey.closed_at,
     submitted_count: submittedCount,
     participant_count: participantCount,
     survey_url: buildPublicUrl(`/e/${eventCode}/survey/${survey.id}`),
     message:
-      scene === "survey_status"
-        ? "설문 제출 현황을 확인하고 있습니다."
-        : "모바일로 QR 입장 후 설문에 참여해주세요.",
+      scene === "survey_active"
+        ? "1분 설문이 진행 중입니다. 지금 참여해주세요."
+        : scene === "survey_closed"
+          ? "설문이 마감되었습니다. 참여해주셔서 감사합니다."
+          : scene === "survey_status"
+            ? "설문 제출 현황을 확인하고 있습니다."
+            : "모바일로 QR 입장 후 설문에 참여해주세요.",
   };
 }
 
@@ -889,9 +928,28 @@ export async function updateSurveyForm(
   }
 
   const supabase = createAdminSupabaseClient();
+  const updateValues: Record<string, unknown> = { ...validated.values };
+
+  if (validated.values.status === "open" && form.status !== "open") {
+    const startedAt = new Date();
+    updateValues.active_started_at = startedAt.toISOString();
+    updateValues.active_ends_at = getTimedSurveyEnd(startedAt).toISOString();
+    updateValues.closed_at = null;
+  }
+
+  if (validated.values.status === "closed") {
+    updateValues.closed_at = form.closed_at ?? new Date().toISOString();
+  }
+
+  if (validated.values.status === "draft") {
+    updateValues.active_started_at = null;
+    updateValues.active_ends_at = null;
+    updateValues.closed_at = null;
+  }
+
   const { error } = await supabase
     .from("survey_forms")
-    .update(validated.values)
+    .update(updateValues)
     .eq("id", surveyFormId)
     .eq("event_id", eventId);
 
@@ -938,7 +996,7 @@ export async function startSurveyForm(
 ) {
   void formData;
 
-  const { admin } = await requireSurveyManagement(eventId);
+  const { admin, event } = await requireSurveyManagement(eventId);
   const form = await getSurveyForm(eventId, surveyFormId);
 
   if (!form) {
@@ -961,11 +1019,18 @@ export async function startSurveyForm(
     });
   }
 
+  const startedAt = new Date();
+  const endsAt = getTimedSurveyEnd(startedAt);
   const error = await updateSurveyStatus({
     eventId,
     surveyFormId,
     status: "open",
     adminUserId: admin.id,
+    values: {
+      active_started_at: startedAt.toISOString(),
+      active_ends_at: endsAt.toISOString(),
+      closed_at: null,
+    },
   });
 
   if (error) {
@@ -976,6 +1041,52 @@ export async function startSurveyForm(
     });
   }
 
+  const eventCode = event.event_code?.trim();
+  const screenSurvey = await getSurveyScreenSnapshot(eventId, surveyFormId);
+
+  if (eventCode && screenSurvey) {
+    const screenError = await upsertSurveyLiveState(eventId, {
+      current_session_id: null,
+      current_question_id: null,
+      mode: "survey",
+      question_started_at: null,
+      question_ends_at: null,
+      reveal_answer: false,
+      show_results: false,
+      screen_scene: "survey_active",
+      screen_payload: await buildSurveyScreenPayload({
+        eventId,
+        eventCode,
+        survey: screenSurvey,
+        scene: "survey_active",
+      }),
+    });
+
+    if (screenError) {
+      console.error("[admin-surveys] Failed to set active survey screen.", {
+        eventId,
+        surveyFormId,
+        adminUserId: admin.id,
+        message: screenError.message,
+        code: screenError.code,
+      });
+    } else {
+      await writeOperationLog({
+        eventId,
+        adminUserId: admin.id,
+        action: "live_screen_set_survey_active",
+        detail: {
+          ...screenLogDetail({
+            eventId,
+            mode: "survey",
+            screenScene: "survey_active",
+          }),
+          survey_form_id: surveyFormId,
+        },
+      });
+    }
+  }
+
   await writeOperationLog({
     eventId,
     adminUserId: admin.id,
@@ -984,14 +1095,16 @@ export async function startSurveyForm(
       event_id: eventId,
       survey_form_id: surveyFormId,
       status: "open",
+      active_started_at: startedAt.toISOString(),
+      active_ends_at: endsAt.toISOString(),
     },
   });
 
-  revalidateSurveyPaths(eventId);
+  revalidateSurveyPaths(eventId, eventCode);
   redirectToSurveys({
     eventId,
     surveyId: surveyFormId,
-    message: "설문을 시작했습니다. 참가자가 이 설문을 제출할 수 있습니다.",
+    message: "1분 설문을 시작했습니다. 스크린에 진행 화면을 송출했습니다.",
   });
 }
 
@@ -1002,7 +1115,7 @@ export async function closeSurveyForm(
 ) {
   void formData;
 
-  const { admin } = await requireSurveyManagement(eventId);
+  const { admin, event } = await requireSurveyManagement(eventId);
   const form = await getSurveyForm(eventId, surveyFormId);
 
   if (!form) {
@@ -1017,11 +1130,15 @@ export async function closeSurveyForm(
     });
   }
 
+  const closedAt = new Date().toISOString();
   const error = await updateSurveyStatus({
     eventId,
     surveyFormId,
     status: "closed",
     adminUserId: admin.id,
+    values: {
+      closed_at: closedAt,
+    },
   });
 
   if (error) {
@@ -1032,6 +1149,52 @@ export async function closeSurveyForm(
     });
   }
 
+  const eventCode = event.event_code?.trim();
+  const screenSurvey = await getSurveyScreenSnapshot(eventId, surveyFormId);
+
+  if (eventCode && screenSurvey) {
+    const screenError = await upsertSurveyLiveState(eventId, {
+      current_session_id: null,
+      current_question_id: null,
+      mode: "survey",
+      question_started_at: null,
+      question_ends_at: null,
+      reveal_answer: false,
+      show_results: false,
+      screen_scene: "survey_closed",
+      screen_payload: await buildSurveyScreenPayload({
+        eventId,
+        eventCode,
+        survey: screenSurvey,
+        scene: "survey_closed",
+      }),
+    });
+
+    if (screenError) {
+      console.error("[admin-surveys] Failed to set closed survey screen.", {
+        eventId,
+        surveyFormId,
+        adminUserId: admin.id,
+        message: screenError.message,
+        code: screenError.code,
+      });
+    } else {
+      await writeOperationLog({
+        eventId,
+        adminUserId: admin.id,
+        action: "live_screen_set_survey_closed",
+        detail: {
+          ...screenLogDetail({
+            eventId,
+            mode: "survey",
+            screenScene: "survey_closed",
+          }),
+          survey_form_id: surveyFormId,
+        },
+      });
+    }
+  }
+
   await writeOperationLog({
     eventId,
     adminUserId: admin.id,
@@ -1040,10 +1203,11 @@ export async function closeSurveyForm(
       event_id: eventId,
       survey_form_id: surveyFormId,
       status: "closed",
+      closed_at: closedAt,
     },
   });
 
-  revalidateSurveyPaths(eventId);
+  revalidateSurveyPaths(eventId, eventCode);
   redirectToSurveys({
     eventId,
     surveyId: surveyFormId,
@@ -1078,6 +1242,11 @@ export async function reopenSurveyFormAsDraft(
     surveyFormId,
     status: "draft",
     adminUserId: admin.id,
+    values: {
+      active_started_at: null,
+      active_ends_at: null,
+      closed_at: null,
+    },
   });
 
   if (error) {
@@ -1296,17 +1465,17 @@ export async function setSurveyIntroScreenFromSurveys(
   const error = await upsertSurveyLiveState(eventId, {
     current_session_id: null,
     current_question_id: null,
-    mode: "waiting",
+    mode: "survey",
     question_started_at: null,
     question_ends_at: null,
     reveal_answer: false,
     show_results: false,
-    screen_scene: "survey_intro",
+    screen_scene: "survey_active",
     screen_payload: await buildSurveyScreenPayload({
       eventId,
       eventCode,
       survey,
-      scene: "survey_intro",
+      scene: "survey_active",
     }),
   });
 
@@ -1329,12 +1498,12 @@ export async function setSurveyIntroScreenFromSurveys(
   await writeOperationLog({
     eventId,
     adminUserId: admin.id,
-    action: "live_screen_set_survey_intro",
+    action: "live_screen_set_survey_active",
     detail: {
       ...screenLogDetail({
         eventId,
-        mode: "waiting",
-        screenScene: "survey_intro",
+        mode: "survey",
+        screenScene: "survey_active",
       }),
       survey_form_id: surveyFormId,
     },
@@ -1382,7 +1551,7 @@ export async function setSurveyStatusScreenFromSurveys(
   const error = await upsertSurveyLiveState(eventId, {
     current_session_id: null,
     current_question_id: null,
-    mode: "waiting",
+    mode: "survey",
     question_started_at: null,
     question_ends_at: null,
     reveal_answer: false,
@@ -1419,7 +1588,7 @@ export async function setSurveyStatusScreenFromSurveys(
     detail: {
       ...screenLogDetail({
         eventId,
-        mode: "waiting",
+        mode: "survey",
         screenScene: "survey_status",
       }),
       survey_form_id: surveyFormId,
