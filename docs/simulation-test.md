@@ -86,14 +86,16 @@ Use the seed output for the exact event ID. For the default event code:
 10. Close responses.
 11. Reveal the answer.
 12. Start the next question.
-13. Approve a Q&A question and send it to screen.
-14. Send the lucky draw ready screen.
-15. Press "효과음 켜기" on the screen if testing draw sound.
-16. Run a draw and confirm the countdown/rolling animation appears.
-17. Confirm the final winner screen shows a short celebration effect and optional pop sound.
-18. Confirm the final winner matches the saved draw result.
-19. Switch away from the draw scene during animation and confirm the old timer does not overwrite the new screen.
-20. Confirm operation logs were written.
+13. On the Q&A management page, use the screen controls for waiting, QR, break, and Q&A waiting.
+14. Approve a Q&A question and send it to screen.
+15. On the lucky draw page, use the screen controls for waiting, QR, break, and lucky draw ready.
+16. Press "효과음 켜기" on the screen if testing draw sound.
+17. Run a draw and confirm the countdown/rolling animation appears.
+18. Confirm the final winner screen shows a short celebration effect and optional pop sound.
+19. Use "최근 당첨 결과 다시 송출" and confirm it replays the latest saved winner without drawing a new winner.
+20. Confirm the final winner matches the saved draw result.
+21. Switch away from the draw scene during animation and confirm the old timer does not overwrite the new screen.
+22. Confirm operation logs were written.
 
 ## Must Check
 
@@ -106,6 +108,7 @@ Use the seed output for the exact event ID. For the default event code:
 - Lucky draw celebration is a front-layer burst confetti screen effect and does not expose private data.
 - Lucky draw sound is optional, screen-only, and requires the screen operator to enable audio first.
 - Live screen changes appear in about 1-2 seconds while the screen window is visible.
+- Screen transitions keep the previous scene visible while polling is pending; the screen should not flash to a blank or full reload state.
 - Korean labels are not broken.
 - Buttons and labels remain readable.
 - The brand color remains `#0a1a38`.

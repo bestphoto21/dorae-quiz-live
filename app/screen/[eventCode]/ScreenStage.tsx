@@ -299,16 +299,61 @@ function sceneLabel(scene: string | null | undefined) {
   return labels[scene ?? ""] ?? "송출 준비 중";
 }
 
+function ScreenTransitionStyles() {
+  return (
+    <style>{`
+      @keyframes doraeScreenSceneIn {
+        from {
+          opacity: 0.94;
+          transform: translate3d(0, 4px, 0);
+        }
+        to {
+          opacity: 1;
+          transform: translate3d(0, 0, 0);
+        }
+      }
+
+      .dorae-screen-scene {
+        animation: doraeScreenSceneIn 180ms ease-out both;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .dorae-screen-scene {
+          animation: none;
+        }
+      }
+    `}</style>
+  );
+}
+
+function SceneTransition({
+  sceneKey,
+  children,
+}: {
+  sceneKey: string;
+  children: ReactNode;
+}) {
+  return (
+    <div key={sceneKey} className="dorae-screen-scene flex min-h-0 flex-1">
+      {children}
+    </div>
+  );
+}
+
 function Shell({
   state,
   children,
   soundStatus,
   onToggleSound,
+  sceneKey = "loading",
+  connectionError,
 }: {
   state: ScreenState | null;
   children: ReactNode;
   soundStatus?: ScreenSoundStatus;
   onToggleSound?: () => void;
+  sceneKey?: string;
+  connectionError?: string | null;
 }) {
   const accentColor = state?.event.primary_color || "#06b6d4";
   const currentSceneLabel =
@@ -318,6 +363,7 @@ function Shell({
 
   return (
     <main className="min-h-screen bg-[#0a1a38] p-5 text-white sm:p-8">
+      <ScreenTransitionStyles />
       {onToggleSound && soundStatus && (
         <button
           type="button"
@@ -326,6 +372,11 @@ function Shell({
         >
           {soundButtonLabel(soundStatus)}
         </button>
+      )}
+      {connectionError && state && (
+        <div className="fixed bottom-4 right-4 z-[80] rounded-full border border-amber-200/40 bg-amber-400/15 px-4 py-2 text-sm font-black text-amber-100 shadow-lg backdrop-blur-sm">
+          화면 상태 확인 지연
+        </div>
       )}
       <div className="flex min-h-[calc(100vh-2.5rem)] flex-col gap-5 sm:min-h-[calc(100vh-4rem)]">
         <header className="flex flex-wrap items-center justify-between gap-4 border-b border-white/15 pb-5">
@@ -352,7 +403,7 @@ function Shell({
             </p>
           </div>
         </header>
-        {children}
+        <SceneTransition sceneKey={sceneKey}>{children}</SceneTransition>
       </div>
     </main>
   );
@@ -1421,6 +1472,8 @@ export default function ScreenStage({
         state={null}
         soundStatus={soundStatus}
         onToggleSound={handleToggleSound}
+        sceneKey="loading"
+        connectionError={error}
       >
         <section className="flex flex-1 items-center justify-center rounded-3xl bg-white p-10 text-center text-[color:#0a1a38] shadow-2xl">
           <div>
@@ -1442,6 +1495,8 @@ export default function ScreenStage({
       state={state}
       soundStatus={soundStatus}
       onToggleSound={handleToggleSound}
+      sceneKey={scene ?? "waiting"}
+      connectionError={error}
     >
       {scene === "inactive" && (
         <PlaceholderView

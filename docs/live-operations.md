@@ -94,6 +94,10 @@ Recommended flow:
 
 The screen state API re-checks `qna_questions.status = approved` before returning a Q&A question. Pending, hidden, and deleted questions must never appear on the screen.
 
+The Q&A management page also includes a "화면 제어" card. Operators can open
+the screen window and switch to waiting, QR participation, break, or Q&A waiting
+without leaving the Q&A workflow.
+
 ## Lucky Draw Flow
 
 Use "럭키드로우 준비 화면 송출" before drawing or between winners.
@@ -102,6 +106,11 @@ Actual winner selection still happens in `/admin/events/[eventId]/draw`.
 When the draw button is submitted, the server first writes the selected winner
 to `draw_winners`, then the screen plays a countdown and rolling-name
 animation before showing the saved winner.
+
+The lucky draw management page includes the same basic screen controls, plus
+"럭키드로우 준비 화면 송출" and "최근 당첨 결과 다시 송출". "추첨 실행 및 연출
+시작" creates a new winner; "최근 당첨 결과 다시 송출" only replays the latest
+saved winner on the screen.
 
 At the final "당첨!" moment, the screen also plays a short celebration effect.
 The pop, gold glow, colorful front confetti burst, and optional pop sound are
@@ -226,6 +235,9 @@ Screen and participant clients currently refresh `live_state` through polling.
 - `/e/[eventCode]/play` checks the participant state API about once every two seconds.
 - Both clients request state with `cache: "no-store"` and avoid overlapping polling requests instead of repeatedly canceling in-flight requests.
 - Clients ignore older responses when a newer `live_state.updated_at` value has already been applied, and they also compare a safe state fingerprint so scene and payload changes are applied immediately.
+- The screen keeps the previous rendered scene while the next poll is pending or
+  fails, and scene changes use only a short local transition. The screen should
+  not turn blank or look like a full page refresh during ordinary button clicks.
 - Run screen transition tests with the `/screen` window actually visible. Browsers can throttle timers in background tabs, which can make polling-based transitions feel slower than they are on the projected screen.
 - The current target is stable 1-2 second reflection for ordinary live-console transitions.
 

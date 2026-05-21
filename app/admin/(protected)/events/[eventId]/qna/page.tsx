@@ -6,10 +6,14 @@ import {
   StatusBadge,
 } from "@/components/quiz/ui";
 import {
+  canOperateLiveScreenByRole,
   canModerateQnaByRole,
+  canSetQnaScreenByRole,
   getEventScopedRole,
   requireEventAccess,
 } from "@/lib/auth/events";
+import { buildPublicUrl } from "@/lib/site-url";
+import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import {
   getQnaQuestionsForEvent,
   type QnaQuestionSummary,
@@ -17,9 +21,13 @@ import {
 } from "@/lib/data/qna";
 import {
   approveQuestion,
+  clearQnaScreenFromQna,
   deleteQuestion,
   hideQuestion,
   pinQuestion,
+  setBreakScreenFromQna,
+  setJoinQrScreenFromQna,
+  setWaitingScreenFromQna,
   showQuestionOnScreen,
   unpinQuestion,
 } from "./actions";
@@ -32,6 +40,12 @@ type QnaPageProps = {
     message?: string | string[];
     error?: string | string[];
   }>;
+};
+
+type QnaLiveState = {
+  mode: string;
+  screen_scene: string | null;
+  updated_at: string | null;
 };
 
 const STATUS_OPTIONS: Array<{ value: QnaStatus | "all"; label: string }> = [
@@ -104,6 +118,58 @@ function statusLabel(status: QnaStatus) {
   return "검토 중";
 }
 
+function sceneLabel(scene: string | null | undefined) {
+  const labels: Record<string, string> = {
+    waiting: "대기 화면",
+    break: "휴식 화면",
+    join_qr: "QR 참여 안내 화면",
+    qna: "Q&A 질문 접수 화면",
+    qna_waiting: "Q&A 질문 접수 화면",
+    qna_question: "승인 질문 송출 화면",
+    draw: "럭키드로우 준비 화면",
+    draw_winner: "당첨자 발표 화면",
+    question: "퀴즈 문제 화면",
+    closed: "응답 마감 화면",
+    result: "결과 화면",
+  };
+
+  return labels[scene ?? "waiting"] ?? "대기 화면";
+}
+
+function modeLabel(mode: string | null | undefined) {
+  const labels: Record<string, string> = {
+    waiting: "대기",
+    question: "퀴즈 진행",
+    closed: "응답 마감",
+    result: "결과 공개",
+    draw: "럭키드로우",
+    qna: "Q&A",
+  };
+
+  return labels[mode ?? "waiting"] ?? "대기";
+}
+
+async function getLiveState(eventId: string): Promise<QnaLiveState | null> {
+  const supabase = createAdminSupabaseClient();
+  const { data, error } = await supabase
+    .from("live_state")
+    .select("mode, screen_scene, updated_at")
+    .eq("event_id", eventId)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[admin-qna] Failed to load live_state.", {
+      eventId,
+      message: error.message,
+      code: error.code,
+    });
+
+    return null;
+  }
+
+  return data as QnaLiveState | null;
+}
+
 function SubmitButton({
   children,
   tone = "dark",
@@ -128,6 +194,128 @@ function SubmitButton({
     >
       {children}
     </button>
+  );
+}
+
+function ScreenControlButton({
+  action,
+  children,
+  tone = "dark",
+  disabled = false,
+}: {
+  action: (formData: FormData) => void | Promise<void>;
+  children: string;
+  tone?: "dark" | "cyan" | "amber" | "rose";
+  disabled?: boolean;
+}) {
+  const classes = {
+    dark: "border-[#0a1a38] bg-[#0a1a38] text-white hover:bg-[#10284f]",
+    cyan: "border-[#0a1a38] bg-[#0a1a38] text-white hover:bg-[#10284f]",
+    amber: "border-amber-500 bg-amber-400 text-[color:#0a1a38] hover:bg-amber-300",
+    rose: "border-rose-600 bg-rose-600 text-white hover:bg-rose-700",
+  };
+
+  return (
+    <form action={action}>
+      <button
+        type="submit"
+        disabled={disabled}
+        className={`min-h-11 w-full rounded-2xl border px-4 py-2 text-sm font-black shadow-sm transition disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-200 disabled:text-slate-700 ${classes[tone]}`}
+      >
+        {children}
+      </button>
+    </form>
+  );
+}
+
+function ScreenControlPanel({
+  eventId,
+  screenUrl,
+  liveState,
+  canOperateScreen,
+  canSetQnaScreen,
+}: {
+  eventId: string;
+  screenUrl: string;
+  liveState: QnaLiveState | null;
+  canOperateScreen: boolean;
+  canSetQnaScreen: boolean;
+}) {
+  const waitingAction = setWaitingScreenFromQna.bind(null, eventId);
+  const joinQrAction = setJoinQrScreenFromQna.bind(null, eventId);
+  const breakAction = setBreakScreenFromQna.bind(null, eventId);
+  const clearQnaAction = clearQnaScreenFromQna.bind(null, eventId);
+
+  return (
+    <AdminPanel
+      title="화면 제어"
+      description="Q&A 운영 중에도 스크린을 대기, 휴식, QR, 질문 접수 화면으로 바로 전환할 수 있습니다."
+    >
+      <div className="grid gap-4 lg:grid-cols-[1fr_16rem]">
+        <div className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+          <div>
+            <p className="text-xs font-black text-slate-700">현재 운영 모드</p>
+            <p className="mt-1 text-sm font-bold text-[color:#0a1a38]">
+              {modeLabel(liveState?.mode)}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs font-black text-slate-700">현재 송출 화면</p>
+            <p className="mt-1 text-sm font-bold text-[color:#0a1a38]">
+              {sceneLabel(liveState?.screen_scene ?? liveState?.mode)}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs font-black text-slate-700">마지막 변경</p>
+            <p className="mt-1 text-sm font-bold text-[color:#0a1a38]">
+              {formatDateTime(liveState?.updated_at ?? null)}
+            </p>
+          </div>
+          <Link
+            href={screenUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-1 inline-flex min-h-11 items-center justify-center rounded-2xl border border-[#0a1a38] bg-white px-4 py-2 text-sm font-black text-[color:#0a1a38] shadow-sm transition hover:bg-slate-100"
+          >
+            스크린 열기
+          </Link>
+        </div>
+
+        <div className="grid content-start gap-2">
+          <ScreenControlButton
+            action={waitingAction}
+            disabled={!canOperateScreen}
+          >
+            대기 화면 송출
+          </ScreenControlButton>
+          <ScreenControlButton
+            action={joinQrAction}
+            disabled={!canOperateScreen}
+          >
+            QR 참여 안내 송출
+          </ScreenControlButton>
+          <ScreenControlButton
+            action={breakAction}
+            tone="amber"
+            disabled={!canOperateScreen}
+          >
+            휴식 화면 송출
+          </ScreenControlButton>
+          <ScreenControlButton
+            action={clearQnaAction}
+            tone="cyan"
+            disabled={!canSetQnaScreen}
+          >
+            Q&A 송출 해제
+          </ScreenControlButton>
+          {!canOperateScreen && !canSetQnaScreen && (
+            <p className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-xs font-bold leading-5 text-amber-800">
+              현재 역할은 스크린 상태를 조회할 수 있지만 변경할 수 없습니다.
+            </p>
+          )}
+        </div>
+      </div>
+    </AdminPanel>
   );
 }
 
@@ -296,15 +484,21 @@ export default async function QnaPage({ params, searchParams }: QnaPageProps) {
   const { admin, event } = await requireEventAccess(eventId);
   const role = await getEventScopedRole(admin, eventId);
   const canModerate = canModerateQnaByRole(role);
+  const canOperateScreen = canOperateLiveScreenByRole(role);
+  const canSetQnaScreen = canSetQnaScreenByRole(role);
   const status = getStatus(getSingle(query.status));
   const search = getSingle(query.q)?.trim() ?? "";
   const message = getSingle(query.message);
   const error = getSingle(query.error);
-  const questions = await getQnaQuestionsForEvent({
-    eventId,
-    status,
-    search,
-  });
+  const [questions, liveState] = await Promise.all([
+    getQnaQuestionsForEvent({
+      eventId,
+      status,
+      search,
+    }),
+    getLiveState(eventId),
+  ]);
+  const screenUrl = buildPublicUrl(`/screen/${event.event_code}`);
 
   return (
     <AdminShell
@@ -338,6 +532,14 @@ export default async function QnaPage({ params, searchParams }: QnaPageProps) {
             </p>
           )}
         </AdminPanel>
+
+        <ScreenControlPanel
+          eventId={eventId}
+          screenUrl={screenUrl}
+          liveState={liveState}
+          canOperateScreen={canOperateScreen}
+          canSetQnaScreen={canSetQnaScreen}
+        />
 
         <FilterPanel eventId={eventId} currentStatus={status} search={search} />
 

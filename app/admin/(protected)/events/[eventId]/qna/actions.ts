@@ -3,10 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
+  canOperateLiveScreenByRole,
   canModerateQnaByRole,
+  canSetQnaScreenByRole,
   getEventScopedRole,
   requireEventAccess,
 } from "@/lib/auth/events";
+import { buildPublicUrl } from "@/lib/site-url";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
 type QnaLogAction =
@@ -15,7 +18,11 @@ type QnaLogAction =
   | "qna_question_deleted"
   | "qna_question_pinned"
   | "qna_question_unpinned"
-  | "qna_question_shown_on_screen";
+  | "qna_question_shown_on_screen"
+  | "live_screen_set_waiting"
+  | "live_screen_set_join_qr"
+  | "live_screen_set_qna_waiting"
+  | "live_screen_set_break";
 
 type QnaQuestionRow = {
   id: string;
@@ -73,6 +80,27 @@ async function requireQnaModeration(eventId: string) {
   return { admin, event };
 }
 
+async function requireQnaScreenOperation(
+  eventId: string,
+  scope: "general" | "qna"
+) {
+  const { admin, event } = await requireEventAccess(eventId);
+  const role = await getEventScopedRole(admin, eventId);
+  const allowed =
+    scope === "qna"
+      ? canSetQnaScreenByRole(role)
+      : canOperateLiveScreenByRole(role);
+
+  if (!allowed) {
+    redirectToQna({
+      eventId,
+      error: "현재 역할은 이 스크린 전환을 실행할 수 없습니다.",
+    });
+  }
+
+  return { admin, event };
+}
+
 async function writeOperationLog({
   eventId,
   adminUserId,
@@ -107,6 +135,243 @@ function revalidateQnaPaths(eventId: string, eventCode: string) {
   revalidatePath(`/admin/events/${eventId}/qna`);
   revalidatePath(`/screen/${eventCode}`);
   revalidatePath(`/api/screen/${eventCode}/state`);
+}
+
+async function upsertQnaLiveState(
+  eventId: string,
+  values: Record<string, unknown>
+) {
+  const supabase = createAdminSupabaseClient();
+  const { error } = await supabase.from("live_state").upsert(
+    {
+      event_id: eventId,
+      ...values,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "event_id" }
+  );
+
+  return error;
+}
+
+function screenLogDetail({
+  eventId,
+  mode,
+  screenScene,
+}: {
+  eventId: string;
+  mode: string;
+  screenScene: string;
+}) {
+  return {
+    event_id: eventId,
+    mode,
+    screen_scene: screenScene,
+    changed_at: new Date().toISOString(),
+  };
+}
+
+export async function setWaitingScreenFromQna(
+  eventId: string,
+  formData: FormData
+) {
+  void formData;
+
+  const { admin, event } = await requireQnaScreenOperation(eventId, "general");
+  const error = await upsertQnaLiveState(eventId, {
+    current_session_id: null,
+    current_question_id: null,
+    mode: "waiting",
+    question_started_at: null,
+    question_ends_at: null,
+    reveal_answer: false,
+    show_results: false,
+    screen_scene: "waiting",
+    screen_payload: {},
+  });
+
+  if (error) {
+    console.error("[admin-qna] Failed to set waiting screen.", {
+      eventId,
+      adminUserId: admin.id,
+      message: error.message,
+      code: error.code,
+    });
+
+    redirectToQna({ eventId, error: "대기 화면 송출 중 오류가 발생했습니다." });
+  }
+
+  await writeOperationLog({
+    eventId,
+    adminUserId: admin.id,
+    action: "live_screen_set_waiting",
+    detail: screenLogDetail({
+      eventId,
+      mode: "waiting",
+      screenScene: "waiting",
+    }),
+  });
+
+  revalidateQnaPaths(eventId, event.event_code);
+  redirectToQna({ eventId, message: "대기 화면을 송출했습니다." });
+}
+
+export async function setJoinQrScreenFromQna(
+  eventId: string,
+  formData: FormData
+) {
+  void formData;
+
+  const { admin, event } = await requireQnaScreenOperation(eventId, "general");
+  const eventCode = event.event_code?.trim();
+
+  if (!eventCode) {
+    redirectToQna({
+      eventId,
+      error: "행사 코드가 없어 QR 참여 안내 화면을 송출할 수 없습니다.",
+    });
+  }
+
+  const error = await upsertQnaLiveState(eventId, {
+    current_session_id: null,
+    current_question_id: null,
+    mode: "waiting",
+    question_started_at: null,
+    question_ends_at: null,
+    reveal_answer: false,
+    show_results: false,
+    screen_scene: "join_qr",
+    screen_payload: {
+      event_code: eventCode,
+      join_url: buildPublicUrl(`/e/${eventCode}/join`),
+      title: event.title,
+      message: "휴대폰 카메라로 QR을 스캔해 참여해 주세요.",
+    },
+  });
+
+  if (error) {
+    console.error("[admin-qna] Failed to set join QR screen.", {
+      eventId,
+      adminUserId: admin.id,
+      message: error.message,
+      code: error.code,
+    });
+
+    redirectToQna({
+      eventId,
+      error: "QR 참여 안내 화면 송출 중 오류가 발생했습니다.",
+    });
+  }
+
+  await writeOperationLog({
+    eventId,
+    adminUserId: admin.id,
+    action: "live_screen_set_join_qr",
+    detail: screenLogDetail({
+      eventId,
+      mode: "waiting",
+      screenScene: "join_qr",
+    }),
+  });
+
+  revalidateQnaPaths(eventId, eventCode);
+  redirectToQna({ eventId, message: "QR 참여 안내 화면을 송출했습니다." });
+}
+
+export async function setBreakScreenFromQna(
+  eventId: string,
+  formData: FormData
+) {
+  void formData;
+
+  const { admin, event } = await requireQnaScreenOperation(eventId, "general");
+  const error = await upsertQnaLiveState(eventId, {
+    current_session_id: null,
+    current_question_id: null,
+    mode: "waiting",
+    question_started_at: null,
+    question_ends_at: null,
+    reveal_answer: false,
+    show_results: false,
+    screen_scene: "break",
+    screen_payload: {
+      title: "잠시 쉬는 시간입니다",
+      message: "곧 다시 시작합니다.",
+    },
+  });
+
+  if (error) {
+    console.error("[admin-qna] Failed to set break screen.", {
+      eventId,
+      adminUserId: admin.id,
+      message: error.message,
+      code: error.code,
+    });
+
+    redirectToQna({ eventId, error: "휴식 화면 송출 중 오류가 발생했습니다." });
+  }
+
+  await writeOperationLog({
+    eventId,
+    adminUserId: admin.id,
+    action: "live_screen_set_break",
+    detail: screenLogDetail({
+      eventId,
+      mode: "waiting",
+      screenScene: "break",
+    }),
+  });
+
+  revalidateQnaPaths(eventId, event.event_code);
+  redirectToQna({ eventId, message: "휴식 화면을 송출했습니다." });
+}
+
+export async function clearQnaScreenFromQna(
+  eventId: string,
+  formData: FormData
+) {
+  void formData;
+
+  const { admin, event } = await requireQnaScreenOperation(eventId, "qna");
+  const error = await upsertQnaLiveState(eventId, {
+    current_session_id: null,
+    current_question_id: null,
+    mode: "qna",
+    question_started_at: null,
+    question_ends_at: null,
+    reveal_answer: false,
+    show_results: false,
+    screen_scene: "qna_waiting",
+    screen_payload: {},
+  });
+
+  if (error) {
+    console.error("[admin-qna] Failed to clear Q&A screen.", {
+      eventId,
+      adminUserId: admin.id,
+      message: error.message,
+      code: error.code,
+    });
+
+    redirectToQna({ eventId, error: "Q&A 송출 해제 중 오류가 발생했습니다." });
+  }
+
+  await writeOperationLog({
+    eventId,
+    adminUserId: admin.id,
+    action: "live_screen_set_qna_waiting",
+    detail: screenLogDetail({
+      eventId,
+      mode: "qna",
+      screenScene: "qna_waiting",
+    }),
+  });
+
+  revalidateQnaPaths(eventId, event.event_code);
+  redirectToQna({
+    eventId,
+    message: "현재 Q&A 송출을 해제하고 질문 접수 화면을 송출했습니다.",
+  });
 }
 
 async function getQnaQuestion(eventId: string, qnaQuestionId: string) {
@@ -351,6 +616,7 @@ export async function showQuestionOnScreen(
       reveal_answer: false,
       show_results: false,
       screen_scene: "qna_question",
+      updated_at: new Date().toISOString(),
       screen_payload: {
         qna_question_id: question.id,
         question_text: question.question_text,

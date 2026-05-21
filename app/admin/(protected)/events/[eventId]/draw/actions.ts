@@ -8,6 +8,7 @@ import {
   getEventScopedRole,
   requireEventAccess,
 } from "@/lib/auth/events";
+import { buildPublicUrl } from "@/lib/site-url";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
 type DrawSourceType =
@@ -22,7 +23,12 @@ type DrawLogAction =
   | "draw_winner_selected"
   | "draw_winner_claimed"
   | "draw_winner_cancelled"
-  | "draw_winner_redrawn";
+  | "draw_winner_redrawn"
+  | "draw_winner_replayed"
+  | "live_screen_set_waiting"
+  | "live_screen_set_join_qr"
+  | "live_screen_set_break"
+  | "live_screen_set_lucky_draw";
 
 type PrizeRow = {
   id: string;
@@ -45,6 +51,7 @@ type DrawWinnerRow = {
   source_type: DrawSourceType;
   source_question_id: string | null;
   status: string;
+  created_at: string | null;
 };
 
 const SOURCE_TYPES = new Set([
@@ -179,6 +186,243 @@ function revalidateDrawPaths(eventId: string, eventCode: string) {
   revalidatePath(`/admin/events/${eventId}/draw`);
   revalidatePath(`/screen/${eventCode}`);
   revalidatePath(`/api/screen/${eventCode}/state`);
+}
+
+async function upsertDrawLiveState(
+  eventId: string,
+  values: Record<string, unknown>
+) {
+  const supabase = createAdminSupabaseClient();
+  const { error } = await supabase.from("live_state").upsert(
+    {
+      event_id: eventId,
+      ...values,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "event_id" }
+  );
+
+  return error;
+}
+
+function screenLogDetail({
+  eventId,
+  mode,
+  screenScene,
+}: {
+  eventId: string;
+  mode: string;
+  screenScene: string;
+}) {
+  return {
+    event_id: eventId,
+    mode,
+    screen_scene: screenScene,
+    changed_at: new Date().toISOString(),
+  };
+}
+
+export async function setWaitingScreenFromDraw(
+  eventId: string,
+  formData: FormData
+) {
+  void formData;
+
+  const { admin, event } = await requireDrawOperation(eventId);
+  const error = await upsertDrawLiveState(eventId, {
+    current_session_id: null,
+    current_question_id: null,
+    mode: "waiting",
+    question_started_at: null,
+    question_ends_at: null,
+    reveal_answer: false,
+    show_results: false,
+    screen_scene: "waiting",
+    screen_payload: {},
+  });
+
+  if (error) {
+    console.error("[admin-draw] Failed to set waiting screen.", {
+      eventId,
+      adminUserId: admin.id,
+      message: error.message,
+      code: error.code,
+    });
+
+    redirectToDraw({ eventId, error: "대기 화면 송출 중 오류가 발생했습니다." });
+  }
+
+  await writeOperationLog({
+    eventId,
+    adminUserId: admin.id,
+    action: "live_screen_set_waiting",
+    detail: screenLogDetail({
+      eventId,
+      mode: "waiting",
+      screenScene: "waiting",
+    }),
+  });
+
+  revalidateDrawPaths(eventId, event.event_code);
+  redirectToDraw({ eventId, message: "대기 화면을 송출했습니다." });
+}
+
+export async function setJoinQrScreenFromDraw(
+  eventId: string,
+  formData: FormData
+) {
+  void formData;
+
+  const { admin, event } = await requireDrawOperation(eventId);
+  const eventCode = event.event_code?.trim();
+
+  if (!eventCode) {
+    redirectToDraw({
+      eventId,
+      error: "행사 코드가 없어 QR 참여 안내 화면을 송출할 수 없습니다.",
+    });
+  }
+
+  const error = await upsertDrawLiveState(eventId, {
+    current_session_id: null,
+    current_question_id: null,
+    mode: "waiting",
+    question_started_at: null,
+    question_ends_at: null,
+    reveal_answer: false,
+    show_results: false,
+    screen_scene: "join_qr",
+    screen_payload: {
+      event_code: eventCode,
+      join_url: buildPublicUrl(`/e/${eventCode}/join`),
+      title: event.title,
+      message: "휴대폰 카메라로 QR을 스캔해 참여해 주세요.",
+    },
+  });
+
+  if (error) {
+    console.error("[admin-draw] Failed to set join QR screen.", {
+      eventId,
+      adminUserId: admin.id,
+      message: error.message,
+      code: error.code,
+    });
+
+    redirectToDraw({
+      eventId,
+      error: "QR 참여 안내 화면 송출 중 오류가 발생했습니다.",
+    });
+  }
+
+  await writeOperationLog({
+    eventId,
+    adminUserId: admin.id,
+    action: "live_screen_set_join_qr",
+    detail: screenLogDetail({
+      eventId,
+      mode: "waiting",
+      screenScene: "join_qr",
+    }),
+  });
+
+  revalidateDrawPaths(eventId, eventCode);
+  redirectToDraw({ eventId, message: "QR 참여 안내 화면을 송출했습니다." });
+}
+
+export async function setBreakScreenFromDraw(
+  eventId: string,
+  formData: FormData
+) {
+  void formData;
+
+  const { admin, event } = await requireDrawOperation(eventId);
+  const error = await upsertDrawLiveState(eventId, {
+    current_session_id: null,
+    current_question_id: null,
+    mode: "waiting",
+    question_started_at: null,
+    question_ends_at: null,
+    reveal_answer: false,
+    show_results: false,
+    screen_scene: "break",
+    screen_payload: {
+      title: "잠시 쉬는 시간입니다",
+      message: "곧 다시 시작합니다.",
+    },
+  });
+
+  if (error) {
+    console.error("[admin-draw] Failed to set break screen.", {
+      eventId,
+      adminUserId: admin.id,
+      message: error.message,
+      code: error.code,
+    });
+
+    redirectToDraw({ eventId, error: "휴식 화면 송출 중 오류가 발생했습니다." });
+  }
+
+  await writeOperationLog({
+    eventId,
+    adminUserId: admin.id,
+    action: "live_screen_set_break",
+    detail: screenLogDetail({
+      eventId,
+      mode: "waiting",
+      screenScene: "break",
+    }),
+  });
+
+  revalidateDrawPaths(eventId, event.event_code);
+  redirectToDraw({ eventId, message: "휴식 화면을 송출했습니다." });
+}
+
+export async function setLuckyDrawReadyScreenFromDraw(
+  eventId: string,
+  formData: FormData
+) {
+  void formData;
+
+  const { admin, event } = await requireDrawOperation(eventId);
+  const error = await upsertDrawLiveState(eventId, {
+    current_session_id: null,
+    current_question_id: null,
+    mode: "draw",
+    question_started_at: null,
+    question_ends_at: null,
+    reveal_answer: false,
+    show_results: false,
+    screen_scene: "draw",
+    screen_payload: {},
+  });
+
+  if (error) {
+    console.error("[admin-draw] Failed to set lucky draw ready screen.", {
+      eventId,
+      adminUserId: admin.id,
+      message: error.message,
+      code: error.code,
+    });
+
+    redirectToDraw({
+      eventId,
+      error: "럭키드로우 준비 화면 송출 중 오류가 발생했습니다.",
+    });
+  }
+
+  await writeOperationLog({
+    eventId,
+    adminUserId: admin.id,
+    action: "live_screen_set_lucky_draw",
+    detail: screenLogDetail({
+      eventId,
+      mode: "draw",
+      screenScene: "draw",
+    }),
+  });
+
+  revalidateDrawPaths(eventId, event.event_code);
+  redirectToDraw({ eventId, message: "럭키드로우 준비 화면을 송출했습니다." });
 }
 
 async function getPrize(eventId: string, prizeId: string) {
@@ -472,6 +716,7 @@ async function setDrawScreenState({
   sourceType,
   candidateNames,
   createdAt,
+  drawPhase = "rolling",
 }: {
   eventId: string;
   eventCode: string;
@@ -481,6 +726,7 @@ async function setDrawScreenState({
   sourceType: DrawSourceType;
   candidateNames: string[];
   createdAt: string | null;
+  drawPhase?: "rolling" | "result";
 }) {
   const supabase = createAdminSupabaseClient();
 
@@ -497,6 +743,7 @@ async function setDrawScreenState({
       reveal_answer: false,
       show_results: false,
       screen_scene: "draw_winner",
+      updated_at: new Date().toISOString(),
       screen_payload: {
         winner_id: winnerId,
         animation_id: `${winnerId}-${Date.now()}`,
@@ -505,9 +752,12 @@ async function setDrawScreenState({
         prize_name: prizeName,
         prize_title: prizeName,
         source_type: sourceType,
-        draw_phase: "rolling",
+        draw_phase: drawPhase,
         candidate_names: candidateNames,
-        message: "두구두구... 곧 당첨자를 공개합니다.",
+        message:
+          drawPhase === "rolling"
+            ? "두구두구... 곧 당첨자를 공개합니다."
+            : "최근 당첨 결과를 다시 송출합니다.",
         duration_ms: 7000,
         countdown_seconds: 3,
         created_at: createdAt,
@@ -848,7 +1098,7 @@ async function getDrawWinner(eventId: string, winnerId: string) {
   const { data, error } = await supabase
     .from("draw_winners")
     .select(
-      "id, event_id, prize_id, participant_id, source_type, source_question_id, status"
+      "id, event_id, prize_id, participant_id, source_type, source_question_id, status, created_at"
     )
     .eq("id", winnerId)
     .eq("event_id", eventId)
@@ -864,6 +1114,109 @@ async function getDrawWinner(eventId: string, winnerId: string) {
   }
 
   return data as DrawWinnerRow | null;
+}
+
+async function getParticipantForWinner(eventId: string, participantId: string) {
+  const supabase = createAdminSupabaseClient();
+  const { data, error } = await supabase
+    .from("participants")
+    .select("id, name, display_name")
+    .eq("id", participantId)
+    .eq("event_id", eventId)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[admin-draw] Failed to load winner display participant.", {
+      eventId,
+      message: error.message,
+      code: error.code,
+    });
+  }
+
+  return data as CandidateParticipant | null;
+}
+
+async function getLatestActiveDrawWinner(eventId: string) {
+  const supabase = createAdminSupabaseClient();
+  const { data, error } = await supabase
+    .from("draw_winners")
+    .select(
+      "id, event_id, prize_id, participant_id, source_type, source_question_id, status, created_at"
+    )
+    .eq("event_id", eventId)
+    .in("status", ["pending", "claimed"])
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[admin-draw] Failed to load latest draw winner.", {
+      eventId,
+      message: error.message,
+      code: error.code,
+    });
+  }
+
+  return data as DrawWinnerRow | null;
+}
+
+export async function replayLatestWinnerOnScreen(
+  eventId: string,
+  formData: FormData
+) {
+  void formData;
+
+  const { admin, event } = await requireDrawOperation(eventId);
+  const winner = await getLatestActiveDrawWinner(eventId);
+
+  if (!winner) {
+    redirectToDraw({
+      eventId,
+      error: "다시 송출할 최근 당첨 결과가 없습니다.",
+    });
+  }
+
+  const participant = await getParticipantForWinner(eventId, winner.participant_id);
+
+  if (!participant) {
+    redirectToDraw({
+      eventId,
+      error: "당첨자 표시 이름을 확인할 수 없어 다시 송출할 수 없습니다.",
+    });
+  }
+
+  const prize = winner.prize_id ? await getPrize(eventId, winner.prize_id) : null;
+  const participantName = displayName(participant);
+  const prizeName = prize?.name ?? "경품 없음";
+
+  await setDrawScreenState({
+    eventId,
+    eventCode: event.event_code,
+    winnerId: winner.id,
+    participantDisplayName: participantName,
+    prizeName,
+    sourceType: winner.source_type,
+    candidateNames: candidateNamesForScreen([participant], participant),
+    createdAt: winner.created_at,
+    drawPhase: "result",
+  });
+
+  await writeOperationLog({
+    eventId,
+    adminUserId: admin.id,
+    action: "draw_winner_replayed",
+    detail: {
+      event_id: eventId,
+      winner_id: winner.id,
+      prize_id: winner.prize_id,
+      source_type: winner.source_type,
+      screen_scene: "draw_winner",
+      draw_phase: "result",
+      changed_at: new Date().toISOString(),
+    },
+  });
+
+  redirectToDraw({ eventId, message: "최근 당첨 결과를 다시 송출했습니다." });
 }
 
 export async function markWinnerClaimed(eventId: string, winnerId: string) {

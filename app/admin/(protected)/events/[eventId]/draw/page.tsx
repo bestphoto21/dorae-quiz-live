@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {
   AdminPanel,
   AdminShell,
@@ -16,6 +17,7 @@ import {
   type PrizeSummary,
 } from "@/lib/data/draw";
 import { getQuestionsForSession, getQuizSessionsForEvent } from "@/lib/data/quiz";
+import { buildPublicUrl } from "@/lib/site-url";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import {
   cancelWinner,
@@ -23,7 +25,12 @@ import {
   deletePrize,
   drawWinner,
   markWinnerClaimed,
+  replayLatestWinnerOnScreen,
   redrawWinner,
+  setBreakScreenFromDraw,
+  setJoinQrScreenFromDraw,
+  setLuckyDrawReadyScreenFromDraw,
+  setWaitingScreenFromDraw,
   updatePrize,
 } from "./actions";
 
@@ -74,6 +81,19 @@ function sourceLabel(sourceType: string) {
   return sourceType;
 }
 
+function modeLabel(mode: string | null | undefined) {
+  const labels: Record<string, string> = {
+    waiting: "대기",
+    question: "퀴즈 진행",
+    closed: "응답 마감",
+    result: "결과 공개",
+    draw: "럭키드로우",
+    qna: "Q&A",
+  };
+
+  return labels[mode ?? "waiting"] ?? "대기";
+}
+
 function statusTone(status: DrawWinnerSummary["status"]) {
   if (status === "claimed") {
     return "green";
@@ -109,6 +129,10 @@ function sceneLabel(scene: string | null | undefined) {
 
   if (scene === "draw") {
     return "럭키드로우 준비 화면";
+  }
+
+  if (scene === "join_qr") {
+    return "QR 참여 안내 화면";
   }
 
   if (scene === "break") {
@@ -191,6 +215,140 @@ function SubmitButton({
     >
       {children}
     </button>
+  );
+}
+
+function ScreenControlButton({
+  action,
+  children,
+  tone = "dark",
+  disabled = false,
+}: {
+  action: (formData: FormData) => void | Promise<void>;
+  children: string;
+  tone?: "dark" | "cyan" | "amber" | "rose";
+  disabled?: boolean;
+}) {
+  const classes = {
+    dark: "border-[#0a1a38] bg-[#0a1a38] text-white hover:bg-[#10284f]",
+    cyan: "border-[#0a1a38] bg-[#0a1a38] text-white hover:bg-[#10284f]",
+    amber: "border-amber-500 bg-amber-400 text-[color:#0a1a38] hover:bg-amber-300",
+    rose: "border-rose-600 bg-rose-600 text-white hover:bg-rose-700",
+  };
+
+  return (
+    <form action={action}>
+      <button
+        type="submit"
+        disabled={disabled}
+        className={`min-h-11 w-full rounded-2xl border px-4 py-2 text-sm font-black shadow-sm transition disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-200 disabled:text-slate-700 ${classes[tone]}`}
+      >
+        {children}
+      </button>
+    </form>
+  );
+}
+
+function ScreenControlPanel({
+  eventId,
+  screenUrl,
+  liveState,
+  canOperate,
+  hasLatestWinner,
+}: {
+  eventId: string;
+  screenUrl: string;
+  liveState: DrawLiveState | null;
+  canOperate: boolean;
+  hasLatestWinner: boolean;
+}) {
+  const waitingAction = setWaitingScreenFromDraw.bind(null, eventId);
+  const joinQrAction = setJoinQrScreenFromDraw.bind(null, eventId);
+  const breakAction = setBreakScreenFromDraw.bind(null, eventId);
+  const readyAction = setLuckyDrawReadyScreenFromDraw.bind(null, eventId);
+  const replayAction = replayLatestWinnerOnScreen.bind(null, eventId);
+
+  return (
+    <AdminPanel
+      title="화면 제어"
+      description="추첨 중에도 스크린을 대기, 휴식, QR, 준비, 최근 당첨 결과 화면으로 바로 전환합니다."
+    >
+      <div className="grid gap-4">
+        <div className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+          <div>
+            <p className="text-xs font-black text-slate-700">현재 운영 모드</p>
+            <p className="mt-1 text-sm font-bold text-[color:#0a1a38]">
+              {modeLabel(liveState?.mode)}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs font-black text-slate-700">현재 송출 화면</p>
+            <p className="mt-1 text-sm font-bold text-[color:#0a1a38]">
+              {sceneLabel(liveState?.screen_scene ?? liveState?.mode)}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs font-black text-slate-700">마지막 변경</p>
+            <p className="mt-1 text-sm font-bold text-[color:#0a1a38]">
+              {formatDateTime(liveState?.updated_at ?? null)}
+            </p>
+          </div>
+          <Link
+            href={screenUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-[#0a1a38] bg-white px-4 py-2 text-sm font-black text-[color:#0a1a38] shadow-sm transition hover:bg-slate-100"
+          >
+            스크린 열기
+          </Link>
+        </div>
+
+        <div className="grid gap-2">
+          <ScreenControlButton
+            action={waitingAction}
+            disabled={!canOperate}
+          >
+            대기 화면 송출
+          </ScreenControlButton>
+          <ScreenControlButton
+            action={joinQrAction}
+            disabled={!canOperate}
+          >
+            QR 참여 안내 송출
+          </ScreenControlButton>
+          <ScreenControlButton
+            action={breakAction}
+            tone="amber"
+            disabled={!canOperate}
+          >
+            휴식 화면 송출
+          </ScreenControlButton>
+          <ScreenControlButton
+            action={readyAction}
+            disabled={!canOperate}
+          >
+            럭키드로우 준비 화면 송출
+          </ScreenControlButton>
+          <ScreenControlButton
+            action={replayAction}
+            tone="cyan"
+            disabled={!canOperate || !hasLatestWinner}
+          >
+            최근 당첨 결과 다시 송출
+          </ScreenControlButton>
+          {!canOperate && (
+            <p className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-xs font-bold leading-5 text-amber-800">
+              현재 역할은 추첨 화면을 조회할 수 있지만 변경할 수 없습니다.
+            </p>
+          )}
+          {canOperate && !hasLatestWinner && (
+            <p className="rounded-2xl border border-slate-300 bg-slate-50 p-3 text-xs font-bold leading-5 text-slate-700">
+              최근 당첨 결과가 생기면 다시 송출 버튼을 사용할 수 있습니다.
+            </p>
+          )}
+        </div>
+      </div>
+    </AdminPanel>
   );
 }
 
@@ -542,6 +700,10 @@ export default async function DrawPage({ params, searchParams }: DrawPageProps) 
   );
   const message = getSingle(query.message);
   const error = getSingle(query.error);
+  const screenUrl = buildPublicUrl(`/screen/${event.event_code}`);
+  const hasLatestWinner = winners.some(
+    (winner) => winner.status === "pending" || winner.status === "claimed"
+  );
 
   return (
     <AdminShell
@@ -644,6 +806,13 @@ export default async function DrawPage({ params, searchParams }: DrawPageProps) 
 
           <aside className="grid content-start gap-5">
             <ScreenStatePanel liveState={liveState} />
+            <ScreenControlPanel
+              eventId={eventId}
+              screenUrl={screenUrl}
+              liveState={liveState}
+              canOperate={canOperate}
+              hasLatestWinner={hasLatestWinner}
+            />
             <AdminPanel
               title="운영 메모"
               description="현재 정책은 한 행사에서 한 참가자 1회 당첨입니다."
