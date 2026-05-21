@@ -128,12 +128,12 @@ When the final winner screen appears, the screen plays a short celebration effec
 
 - "당첨!" pops into place.
 - The winner card briefly glows with a soft gold highlight.
-- Champagne-toned light particles burst outward once near the winner card.
+- Colorful paper confetti bursts in front of the winner text, then falls away.
 
 This is a screen-only visual effect. It does not select, change, or re-randomize
 the winner. The final winner is still the `draw_winners` row saved by the server.
-If the operator switches to another scene during the animation, the burst
-particle effect is cleaned up with the screen component.
+If the operator switches to another scene during the animation, the front
+confetti effect is cleaned up with the screen component.
 
 ## Privacy Rules
 

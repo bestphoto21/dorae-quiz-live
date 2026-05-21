@@ -433,30 +433,39 @@ type DrawPayload = NonNullable<ScreenState["draw"]>;
 type DrawAnimationStep = "countdown" | "rolling" | "result";
 type ConfettiParticle = {
   id: number;
-  shape: "dot" | "capsule" | "spark";
+  shape: "dot" | "capsule" | "rect";
   color: string;
+  startX: number;
+  startY: number;
   width: number;
   height: number;
   opacity: number;
   delayMs: number;
   durationMs: number;
-  x: number;
-  y: number;
+  burstX: number;
+  burstY: number;
+  fallX: number;
+  fallY: number;
   rotateDeg: number;
   radius: string;
   glowPx: number;
 };
 
 const CONFETTI_COLORS = [
+  "#ec4899",
+  "#22d3ee",
+  "#facc15",
+  "#f97316",
+  "#a855f7",
+  "#38bdf8",
+  "#ef4444",
   "#facc15",
   "#f59e0b",
   "#fde68a",
-  "#fef3c7",
-  "#67e8f9",
   "#ffffff",
 ];
-const CONFETTI_COUNT = 200;
-const CELEBRATION_DURATION_MS = 3500;
+const CONFETTI_COUNT = 220;
+const CELEBRATION_DURATION_MS = 4000;
 
 function normalizeCandidateNames(
   candidateNames: string[],
@@ -503,11 +512,16 @@ function buildConfettiParticles(seed: string): ConfettiParticle[] {
   return Array.from({ length: CONFETTI_COUNT }, (_, index) => {
     const shapeSeed = seededRatio(seed, index, 2);
     const shape =
-      shapeSeed > 0.78 ? "spark" : shapeSeed > 0.46 ? "capsule" : "dot";
+      shapeSeed > 0.76 ? "dot" : shapeSeed > 0.38 ? "capsule" : "rect";
     const angle = seededRatio(seed, index, 3) * Math.PI * 2;
-    const distance = 220 + seededRatio(seed, index, 4) * 540;
-    const gravity = 50 + seededRatio(seed, index, 5) * 90;
-    const baseSize = 8 + Math.round(seededRatio(seed, index, 6) * 10);
+    const burstDistance = 170 + seededRatio(seed, index, 4) * 340;
+    const fallDistance = 620 + seededRatio(seed, index, 5) * 520;
+    const startX = 40 + seededRatio(seed, index, 6) * 20;
+    const startY = 52 + seededRatio(seed, index, 7) * 12;
+    const baseSize = 9 + Math.round(seededRatio(seed, index, 8) * 13);
+    const sideDrift = (seededRatio(seed, index, 9) - 0.5) * 180;
+    const burstX = Math.cos(angle) * burstDistance;
+    const burstY = Math.sin(angle) * burstDistance * 0.72 - 70;
 
     return {
       id: index,
@@ -516,22 +530,30 @@ function buildConfettiParticles(seed: string): ConfettiParticle[] {
         CONFETTI_COLORS[
           Math.floor(seededRatio(seed, index, 1) * CONFETTI_COLORS.length)
         ] ?? "#f59e0b",
+      startX,
+      startY,
       width:
         shape === "capsule"
-          ? 20 + Math.round(seededRatio(seed, index, 7) * 24)
-          : baseSize,
+          ? 22 + Math.round(seededRatio(seed, index, 10) * 24)
+          : shape === "rect"
+            ? 14 + Math.round(seededRatio(seed, index, 11) * 30)
+            : baseSize,
       height:
         shape === "capsule"
-          ? 6 + Math.round(seededRatio(seed, index, 8) * 5)
-          : baseSize,
-      opacity: 0.7 + seededRatio(seed, index, 9) * 0.24,
-      delayMs: Math.round(seededRatio(seed, index, 10) * 150),
-      durationMs: 2500 + Math.round(seededRatio(seed, index, 11) * 950),
-      x: Math.round(Math.cos(angle) * distance),
-      y: Math.round(Math.sin(angle) * distance + gravity),
-      rotateDeg: Math.round((seededRatio(seed, index, 12) - 0.5) * 420),
-      radius: shape === "spark" ? "2px" : "9999px",
-      glowPx: 4 + Math.round(seededRatio(seed, index, 13) * 10),
+          ? 7 + Math.round(seededRatio(seed, index, 12) * 6)
+          : shape === "rect"
+            ? 8 + Math.round(seededRatio(seed, index, 13) * 18)
+            : baseSize,
+      opacity: 0.76 + seededRatio(seed, index, 14) * 0.18,
+      delayMs: Math.round(seededRatio(seed, index, 15) * 250),
+      durationMs: 3200 + Math.round(seededRatio(seed, index, 16) * 800),
+      burstX: Math.round(burstX),
+      burstY: Math.round(burstY),
+      fallX: Math.round(burstX * 1.16 + sideDrift),
+      fallY: Math.round(fallDistance),
+      rotateDeg: Math.round((seededRatio(seed, index, 17) - 0.5) * 1160),
+      radius: shape === "dot" ? "9999px" : shape === "capsule" ? "9999px" : "3px",
+      glowPx: 2 + Math.round(seededRatio(seed, index, 18) * 7),
     };
   });
 }
@@ -542,30 +564,35 @@ function CelebrationStyles() {
       @keyframes doraeConfettiBurst {
         0% {
           opacity: 0;
-          transform: translate3d(-50%, -50%, 0) rotate(0deg) scale(0.42);
+          transform: translate3d(-50%, -50%, 0)
+            rotate(var(--rotate-start))
+            scale(0.42);
         }
-        12% {
+        8% {
           opacity: var(--particle-opacity);
-          transform: translate3d(
-              calc(-50% + var(--burst-start-x)),
-              calc(-50% + var(--burst-start-y)),
-              0
-            )
-            rotate(var(--burst-start-rotate))
-            scale(1);
         }
-        68% {
-          opacity: calc(var(--particle-opacity) * 0.72);
-        }
-        100% {
-          opacity: 0;
+        25% {
+          opacity: var(--particle-opacity);
           transform: translate3d(
               calc(-50% + var(--burst-x)),
               calc(-50% + var(--burst-y)),
               0
             )
-            rotate(var(--burst-rotate))
-            scale(0.78);
+            rotate(var(--rotate-mid))
+            scale(1);
+        }
+        72% {
+          opacity: calc(var(--particle-opacity) * 0.78);
+        }
+        100% {
+          opacity: 0;
+          transform: translate3d(
+              calc(-50% + var(--fall-x)),
+              calc(-50% + var(--fall-y)),
+              0
+            )
+            rotate(var(--rotate-end))
+            scale(0.82);
         }
       }
 
@@ -608,7 +635,7 @@ function CelebrationStyles() {
         animation-timing-function: cubic-bezier(0.13, 0.82, 0.28, 1);
         box-shadow:
           0 0 var(--particle-glow) currentColor,
-          0 0 calc(var(--particle-glow) * 1.35) rgba(250, 204, 21, 0.12);
+          0 0 calc(var(--particle-glow) * 1.2) rgba(250, 204, 21, 0.1);
       }
 
       .dorae-winner-pop {
@@ -656,14 +683,16 @@ function CelebrationOverlay({ celebrationKey }: { celebrationKey: string }) {
   return (
     <div
       aria-hidden="true"
-      className="pointer-events-none fixed inset-0 z-30 overflow-hidden"
+      className="pointer-events-none fixed inset-0 z-[60] overflow-hidden"
     >
       {particles.map((particle) => (
         <span
           key={particle.id}
-          className="dorae-confetti-particle absolute left-1/2 top-[62%]"
+          className="dorae-confetti-particle absolute"
           style={
             {
+              left: `${particle.startX}vw`,
+              top: `${particle.startY}vh`,
               width: `${particle.width}px`,
               height: `${particle.height}px`,
               backgroundColor: particle.color,
@@ -672,12 +701,13 @@ function CelebrationOverlay({ celebrationKey }: { celebrationKey: string }) {
               opacity: particle.opacity,
               animationDelay: `${particle.delayMs}ms`,
               animationDuration: `${particle.durationMs}ms`,
-              "--burst-x": `${particle.x}px`,
-              "--burst-y": `${particle.y}px`,
-              "--burst-start-x": `${Math.round(particle.x * 0.22)}px`,
-              "--burst-start-y": `${Math.round(particle.y * 0.22)}px`,
-              "--burst-rotate": `${particle.rotateDeg}deg`,
-              "--burst-start-rotate": `${Math.round(particle.rotateDeg * 0.2)}deg`,
+              "--burst-x": `${particle.burstX}px`,
+              "--burst-y": `${particle.burstY}px`,
+              "--fall-x": `${particle.fallX}px`,
+              "--fall-y": `${particle.fallY}px`,
+              "--rotate-start": `${Math.round(particle.rotateDeg * -0.16)}deg`,
+              "--rotate-mid": `${Math.round(particle.rotateDeg * 0.36)}deg`,
+              "--rotate-end": `${particle.rotateDeg}deg`,
               "--particle-opacity": particle.opacity,
               "--particle-glow": `${particle.glowPx}px`,
             } as CSSProperties
@@ -711,18 +741,18 @@ function DrawResultView({
         <p className="text-3xl font-black uppercase tracking-normal text-amber-600">
           {sourceLabel(draw.source_type)}
         </p>
-        <h2 className="dorae-winner-pop mt-6 text-7xl font-black leading-tight text-[color:#0a1a38] drop-shadow-[0_12px_28px_rgba(245,158,11,0.20)] sm:text-9xl">
+        <h2 className="dorae-winner-pop mt-6 text-7xl font-black leading-tight text-[color:#0a1a38] drop-shadow-[0_14px_30px_rgba(255,255,255,0.90)] sm:text-9xl">
           당첨!
         </h2>
         <div className="mx-auto mt-10 max-w-5xl rounded-3xl border border-amber-200 bg-amber-50 p-8">
           <p className="text-3xl font-black text-amber-700">당첨 경품</p>
-          <p className="mt-4 text-5xl font-black leading-tight text-[color:#0a1a38] sm:text-7xl">
+          <p className="mt-4 text-5xl font-black leading-tight text-[color:#0a1a38] drop-shadow-[0_8px_16px_rgba(255,255,255,0.85)] sm:text-7xl">
             {draw.prize_name}
           </p>
         </div>
         <div className="dorae-winner-glow mx-auto mt-8 max-w-5xl rounded-3xl border border-amber-200 bg-gradient-to-br from-white via-amber-50 to-cyan-50 p-8">
           <p className="text-3xl font-black text-amber-700">당첨자</p>
-          <p className="mt-4 break-words text-7xl font-black leading-tight text-cyan-950 sm:text-9xl">
+          <p className="mt-4 break-words text-7xl font-black leading-tight text-cyan-950 drop-shadow-[0_10px_20px_rgba(255,255,255,0.95)] sm:text-9xl">
             {draw.participant_display_name}
           </p>
         </div>

@@ -104,9 +104,9 @@ to `draw_winners`, then the screen plays a countdown and rolling-name
 animation before showing the saved winner.
 
 At the final "당첨!" moment, the screen also plays a short celebration effect.
-The gentle pop, gold glow, and champagne-toned burst particles are visual
-effects only. They do not affect winner selection, and they are removed if the
-operator quickly changes to another screen scene.
+The pop, gold glow, and colorful front confetti burst are visual effects only.
+They do not affect winner selection, and they are removed if the operator
+quickly changes to another screen scene.
 
 Winner screen payload must contain only presentation-safe fields such as:
 
