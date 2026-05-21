@@ -7,6 +7,7 @@ import {
   getEventScopedRole,
   requireEventAccess,
 } from "@/lib/auth/events";
+import { buildPublicUrl } from "@/lib/site-url";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import type { SurveyQuestionType, SurveyStatus } from "@/lib/data/surveys";
 
@@ -31,10 +32,18 @@ type SurveyLogAction =
   | "survey_form_updated"
   | "survey_form_archived"
   | "survey_form_deleted"
+  | "survey_form_started"
+  | "survey_form_closed"
+  | "survey_form_reopened_draft"
   | "survey_question_created"
   | "survey_question_updated"
   | "survey_question_deleted"
-  | "survey_question_reordered";
+  | "survey_question_reordered"
+  | "live_screen_set_waiting"
+  | "live_screen_set_join_qr"
+  | "live_screen_set_break"
+  | "live_screen_set_survey_intro"
+  | "live_screen_set_survey_status";
 
 function getFormString(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -236,6 +245,35 @@ async function getSurveyForm(eventId: string, surveyFormId: string) {
     | null;
 }
 
+async function getSurveyScreenSnapshot(eventId: string, surveyFormId: string) {
+  const supabase = createAdminSupabaseClient();
+  const { data, error } = await supabase
+    .from("survey_forms")
+    .select("id, event_id, title, description, status")
+    .eq("id", surveyFormId)
+    .eq("event_id", eventId)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[admin-surveys] Failed to load survey screen snapshot.", {
+      eventId,
+      surveyFormId,
+      message: error.message,
+      code: error.code,
+    });
+  }
+
+  return data as
+    | {
+        id: string;
+        event_id: string;
+        title: string;
+        description: string | null;
+        status: SurveyStatus;
+      }
+    | null;
+}
+
 async function getSurveyQuestion(
   surveyFormId: string,
   surveyQuestionId: string
@@ -289,6 +327,26 @@ async function getSurveyResponseCount(eventId: string, surveyFormId: string) {
   return count ?? 0;
 }
 
+async function getParticipantCount(eventId: string) {
+  const supabase = createAdminSupabaseClient();
+  const { count, error } = await supabase
+    .from("participants")
+    .select("id", { count: "exact", head: true })
+    .eq("event_id", eventId);
+
+  if (error) {
+    console.error("[admin-surveys] Failed to count participants for screen.", {
+      eventId,
+      message: error.message,
+      code: error.code,
+    });
+
+    return 0;
+  }
+
+  return count ?? 0;
+}
+
 async function getQuestionAnswerCount(surveyQuestionId: string) {
   const supabase = createAdminSupabaseClient();
   const { count, error } = await supabase
@@ -328,6 +386,118 @@ async function ensureCanOpenSurvey(eventId: string, surveyFormId: string) {
   }
 
   return (count ?? 0) > 0;
+}
+
+function revalidateSurveyPaths(eventId: string, eventCode?: string | null) {
+  revalidatePath(`/admin/events/${eventId}/surveys`);
+
+  if (eventCode) {
+    revalidatePath(`/screen/${eventCode}`);
+    revalidatePath(`/api/screen/${eventCode}/state`);
+  }
+}
+
+async function updateSurveyStatus({
+  eventId,
+  surveyFormId,
+  status,
+  adminUserId,
+}: {
+  eventId: string;
+  surveyFormId: string;
+  status: SurveyStatus;
+  adminUserId: string;
+}) {
+  const supabase = createAdminSupabaseClient();
+  const { error } = await supabase
+    .from("survey_forms")
+    .update({ status })
+    .eq("id", surveyFormId)
+    .eq("event_id", eventId);
+
+  if (error) {
+    console.error("[admin-surveys] Failed to update survey status.", {
+      eventId,
+      surveyFormId,
+      adminUserId,
+      status,
+      message: error.message,
+      code: error.code,
+    });
+  }
+
+  return error;
+}
+
+async function upsertSurveyLiveState(
+  eventId: string,
+  values: Record<string, unknown>
+) {
+  const supabase = createAdminSupabaseClient();
+  const { error } = await supabase.from("live_state").upsert(
+    {
+      event_id: eventId,
+      ...values,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "event_id" }
+  );
+
+  return error;
+}
+
+function screenLogDetail({
+  eventId,
+  mode,
+  screenScene,
+}: {
+  eventId: string;
+  mode: string;
+  screenScene: string;
+}) {
+  return {
+    event_id: eventId,
+    mode,
+    screen_scene: screenScene,
+    changed_at: new Date().toISOString(),
+  };
+}
+
+async function buildSurveyScreenPayload({
+  eventId,
+  eventCode,
+  survey,
+  scene,
+}: {
+  eventId: string;
+  eventCode: string;
+  survey: {
+    id: string;
+    title: string;
+    description: string | null;
+    status: SurveyStatus;
+  };
+  scene: "survey_intro" | "survey_status";
+}) {
+  const [submittedCount, participantCount] = await Promise.all([
+    getSurveyResponseCount(eventId, survey.id),
+    getParticipantCount(eventId),
+  ]);
+
+  return {
+    survey_form_id: survey.id,
+    event_code: eventCode,
+    title: survey.title,
+    description: survey.description,
+    status: survey.status,
+    submitted_count: submittedCount,
+    participant_count: participantCount,
+    survey_url: buildPublicUrl(`/e/${eventCode}/survey/${survey.id}`),
+    message:
+      scene === "survey_status"
+        ? "설문 제출 현황을 확인하고 있습니다."
+        : "모바일로 QR 입장 후 설문에 참여해주세요.",
+  };
 }
 
 async function normalizeQuestionOrder(surveyFormId: string) {
@@ -575,6 +745,509 @@ export async function updateSurveyForm(
     eventId,
     surveyId: surveyFormId,
     message: "설문 설정을 저장했습니다.",
+  });
+}
+
+export async function startSurveyForm(
+  eventId: string,
+  surveyFormId: string,
+  formData: FormData
+) {
+  void formData;
+
+  const { admin } = await requireSurveyManagement(eventId);
+  const form = await getSurveyForm(eventId, surveyFormId);
+
+  if (!form) {
+    redirectToSurveys({ eventId, error: "설문을 찾을 수 없습니다." });
+  }
+
+  if (form.status === "archived") {
+    redirectToSurveys({
+      eventId,
+      surveyId: surveyFormId,
+      error: "보관된 설문은 시작할 수 없습니다.",
+    });
+  }
+
+  if (!(await ensureCanOpenSurvey(eventId, surveyFormId))) {
+    redirectToSurveys({
+      eventId,
+      surveyId: surveyFormId,
+      error: "질문을 1개 이상 추가한 뒤 설문을 시작해주세요.",
+    });
+  }
+
+  const error = await updateSurveyStatus({
+    eventId,
+    surveyFormId,
+    status: "open",
+    adminUserId: admin.id,
+  });
+
+  if (error) {
+    redirectToSurveys({
+      eventId,
+      surveyId: surveyFormId,
+      error: "설문 시작 중 오류가 발생했습니다.",
+    });
+  }
+
+  await writeOperationLog({
+    eventId,
+    adminUserId: admin.id,
+    action: "survey_form_started",
+    detail: {
+      event_id: eventId,
+      survey_form_id: surveyFormId,
+      status: "open",
+    },
+  });
+
+  revalidateSurveyPaths(eventId);
+  redirectToSurveys({
+    eventId,
+    surveyId: surveyFormId,
+    message: "설문을 시작했습니다. 참가자가 이 설문을 제출할 수 있습니다.",
+  });
+}
+
+export async function closeSurveyForm(
+  eventId: string,
+  surveyFormId: string,
+  formData: FormData
+) {
+  void formData;
+
+  const { admin } = await requireSurveyManagement(eventId);
+  const form = await getSurveyForm(eventId, surveyFormId);
+
+  if (!form) {
+    redirectToSurveys({ eventId, error: "설문을 찾을 수 없습니다." });
+  }
+
+  if (form.status === "archived") {
+    redirectToSurveys({
+      eventId,
+      surveyId: surveyFormId,
+      error: "보관된 설문은 마감 상태로 변경할 수 없습니다.",
+    });
+  }
+
+  const error = await updateSurveyStatus({
+    eventId,
+    surveyFormId,
+    status: "closed",
+    adminUserId: admin.id,
+  });
+
+  if (error) {
+    redirectToSurveys({
+      eventId,
+      surveyId: surveyFormId,
+      error: "설문 마감 중 오류가 발생했습니다.",
+    });
+  }
+
+  await writeOperationLog({
+    eventId,
+    adminUserId: admin.id,
+    action: "survey_form_closed",
+    detail: {
+      event_id: eventId,
+      survey_form_id: surveyFormId,
+      status: "closed",
+    },
+  });
+
+  revalidateSurveyPaths(eventId);
+  redirectToSurveys({
+    eventId,
+    surveyId: surveyFormId,
+    message: "설문을 마감했습니다. 참가자 제출을 중지합니다.",
+  });
+}
+
+export async function reopenSurveyFormAsDraft(
+  eventId: string,
+  surveyFormId: string,
+  formData: FormData
+) {
+  void formData;
+
+  const { admin } = await requireSurveyManagement(eventId);
+  const form = await getSurveyForm(eventId, surveyFormId);
+
+  if (!form) {
+    redirectToSurveys({ eventId, error: "설문을 찾을 수 없습니다." });
+  }
+
+  if (form.status === "archived") {
+    redirectToSurveys({
+      eventId,
+      surveyId: surveyFormId,
+      error: "보관된 설문은 작성 중으로 되돌릴 수 없습니다.",
+    });
+  }
+
+  const error = await updateSurveyStatus({
+    eventId,
+    surveyFormId,
+    status: "draft",
+    adminUserId: admin.id,
+  });
+
+  if (error) {
+    redirectToSurveys({
+      eventId,
+      surveyId: surveyFormId,
+      error: "설문 상태 변경 중 오류가 발생했습니다.",
+    });
+  }
+
+  await writeOperationLog({
+    eventId,
+    adminUserId: admin.id,
+    action: "survey_form_reopened_draft",
+    detail: {
+      event_id: eventId,
+      survey_form_id: surveyFormId,
+      status: "draft",
+    },
+  });
+
+  revalidateSurveyPaths(eventId);
+  redirectToSurveys({
+    eventId,
+    surveyId: surveyFormId,
+    message: "설문을 작성 중 상태로 되돌렸습니다.",
+  });
+}
+
+export async function setWaitingScreenFromSurveys(
+  eventId: string,
+  formData: FormData
+) {
+  void formData;
+
+  const { admin, event } = await requireSurveyManagement(eventId);
+  const error = await upsertSurveyLiveState(eventId, {
+    current_session_id: null,
+    current_question_id: null,
+    mode: "waiting",
+    question_started_at: null,
+    question_ends_at: null,
+    reveal_answer: false,
+    show_results: false,
+    screen_scene: "waiting",
+    screen_payload: {},
+  });
+
+  if (error) {
+    console.error("[admin-surveys] Failed to set waiting screen.", {
+      eventId,
+      adminUserId: admin.id,
+      message: error.message,
+      code: error.code,
+    });
+
+    redirectToSurveys({ eventId, error: "대기 화면 송출 중 오류가 발생했습니다." });
+  }
+
+  await writeOperationLog({
+    eventId,
+    adminUserId: admin.id,
+    action: "live_screen_set_waiting",
+    detail: screenLogDetail({
+      eventId,
+      mode: "waiting",
+      screenScene: "waiting",
+    }),
+  });
+
+  revalidateSurveyPaths(eventId, event.event_code);
+  redirectToSurveys({ eventId, message: "대기 화면을 송출했습니다." });
+}
+
+export async function setBreakScreenFromSurveys(
+  eventId: string,
+  formData: FormData
+) {
+  void formData;
+
+  const { admin, event } = await requireSurveyManagement(eventId);
+  const error = await upsertSurveyLiveState(eventId, {
+    current_session_id: null,
+    current_question_id: null,
+    mode: "waiting",
+    question_started_at: null,
+    question_ends_at: null,
+    reveal_answer: false,
+    show_results: false,
+    screen_scene: "break",
+    screen_payload: {
+      title: "잠시 쉬는 시간입니다",
+      message: "곧 다시 시작합니다.",
+    },
+  });
+
+  if (error) {
+    console.error("[admin-surveys] Failed to set break screen.", {
+      eventId,
+      adminUserId: admin.id,
+      message: error.message,
+      code: error.code,
+    });
+
+    redirectToSurveys({ eventId, error: "휴식 화면 송출 중 오류가 발생했습니다." });
+  }
+
+  await writeOperationLog({
+    eventId,
+    adminUserId: admin.id,
+    action: "live_screen_set_break",
+    detail: screenLogDetail({
+      eventId,
+      mode: "waiting",
+      screenScene: "break",
+    }),
+  });
+
+  revalidateSurveyPaths(eventId, event.event_code);
+  redirectToSurveys({ eventId, message: "휴식 화면을 송출했습니다." });
+}
+
+export async function setJoinQrScreenFromSurveys(
+  eventId: string,
+  formData: FormData
+) {
+  void formData;
+
+  const { admin, event } = await requireSurveyManagement(eventId);
+  const eventCode = event.event_code?.trim();
+
+  if (!eventCode) {
+    redirectToSurveys({
+      eventId,
+      error: "행사 코드가 없어 QR 입장 안내 화면을 송출할 수 없습니다.",
+    });
+  }
+
+  const error = await upsertSurveyLiveState(eventId, {
+    current_session_id: null,
+    current_question_id: null,
+    mode: "waiting",
+    question_started_at: null,
+    question_ends_at: null,
+    reveal_answer: false,
+    show_results: false,
+    screen_scene: "join_qr",
+    screen_payload: {
+      event_code: eventCode,
+      join_url: buildPublicUrl(`/e/${eventCode}/join`),
+      title: event.title,
+      message: "휴대폰 카메라로 QR을 스캔해 참여해 주세요",
+    },
+  });
+
+  if (error) {
+    console.error("[admin-surveys] Failed to set join QR screen.", {
+      eventId,
+      adminUserId: admin.id,
+      message: error.message,
+      code: error.code,
+    });
+
+    redirectToSurveys({
+      eventId,
+      error: "QR 입장 안내 화면 송출 중 오류가 발생했습니다.",
+    });
+  }
+
+  await writeOperationLog({
+    eventId,
+    adminUserId: admin.id,
+    action: "live_screen_set_join_qr",
+    detail: screenLogDetail({
+      eventId,
+      mode: "waiting",
+      screenScene: "join_qr",
+    }),
+  });
+
+  revalidateSurveyPaths(eventId, eventCode);
+  redirectToSurveys({ eventId, message: "QR 입장 안내 화면을 송출했습니다." });
+}
+
+export async function setSurveyIntroScreenFromSurveys(
+  eventId: string,
+  surveyFormId: string,
+  formData: FormData
+) {
+  void formData;
+
+  const { admin, event } = await requireSurveyManagement(eventId);
+  const eventCode = event.event_code?.trim();
+  const survey = await getSurveyScreenSnapshot(eventId, surveyFormId);
+
+  if (!survey) {
+    redirectToSurveys({ eventId, error: "설문을 찾을 수 없습니다." });
+  }
+
+  if (!eventCode) {
+    redirectToSurveys({
+      eventId,
+      surveyId: surveyFormId,
+      error: "행사 코드가 없어 설문 안내 화면을 송출할 수 없습니다.",
+    });
+  }
+
+  if (survey.status !== "open") {
+    redirectToSurveys({
+      eventId,
+      surveyId: surveyFormId,
+      error: "설문 시작 후 송출해주세요.",
+    });
+  }
+
+  const error = await upsertSurveyLiveState(eventId, {
+    current_session_id: null,
+    current_question_id: null,
+    mode: "waiting",
+    question_started_at: null,
+    question_ends_at: null,
+    reveal_answer: false,
+    show_results: false,
+    screen_scene: "survey_intro",
+    screen_payload: await buildSurveyScreenPayload({
+      eventId,
+      eventCode,
+      survey,
+      scene: "survey_intro",
+    }),
+  });
+
+  if (error) {
+    console.error("[admin-surveys] Failed to set survey intro screen.", {
+      eventId,
+      surveyFormId,
+      adminUserId: admin.id,
+      message: error.message,
+      code: error.code,
+    });
+
+    redirectToSurveys({
+      eventId,
+      surveyId: surveyFormId,
+      error: "설문 참여 안내 송출 중 오류가 발생했습니다.",
+    });
+  }
+
+  await writeOperationLog({
+    eventId,
+    adminUserId: admin.id,
+    action: "live_screen_set_survey_intro",
+    detail: {
+      ...screenLogDetail({
+        eventId,
+        mode: "waiting",
+        screenScene: "survey_intro",
+      }),
+      survey_form_id: surveyFormId,
+    },
+  });
+
+  revalidateSurveyPaths(eventId, eventCode);
+  redirectToSurveys({
+    eventId,
+    surveyId: surveyFormId,
+    message: "설문 참여 안내 화면을 송출했습니다.",
+  });
+}
+
+export async function setSurveyStatusScreenFromSurveys(
+  eventId: string,
+  surveyFormId: string,
+  formData: FormData
+) {
+  void formData;
+
+  const { admin, event } = await requireSurveyManagement(eventId);
+  const eventCode = event.event_code?.trim();
+  const survey = await getSurveyScreenSnapshot(eventId, surveyFormId);
+
+  if (!survey) {
+    redirectToSurveys({ eventId, error: "설문을 찾을 수 없습니다." });
+  }
+
+  if (!eventCode) {
+    redirectToSurveys({
+      eventId,
+      surveyId: surveyFormId,
+      error: "행사 코드가 없어 제출 현황 화면을 송출할 수 없습니다.",
+    });
+  }
+
+  if (survey.status === "draft" || survey.status === "archived") {
+    redirectToSurveys({
+      eventId,
+      surveyId: surveyFormId,
+      error: "설문 시작 후 제출 현황을 송출해주세요.",
+    });
+  }
+
+  const error = await upsertSurveyLiveState(eventId, {
+    current_session_id: null,
+    current_question_id: null,
+    mode: "waiting",
+    question_started_at: null,
+    question_ends_at: null,
+    reveal_answer: false,
+    show_results: false,
+    screen_scene: "survey_status",
+    screen_payload: await buildSurveyScreenPayload({
+      eventId,
+      eventCode,
+      survey,
+      scene: "survey_status",
+    }),
+  });
+
+  if (error) {
+    console.error("[admin-surveys] Failed to set survey status screen.", {
+      eventId,
+      surveyFormId,
+      adminUserId: admin.id,
+      message: error.message,
+      code: error.code,
+    });
+
+    redirectToSurveys({
+      eventId,
+      surveyId: surveyFormId,
+      error: "설문 제출 현황 송출 중 오류가 발생했습니다.",
+    });
+  }
+
+  await writeOperationLog({
+    eventId,
+    adminUserId: admin.id,
+    action: "live_screen_set_survey_status",
+    detail: {
+      ...screenLogDetail({
+        eventId,
+        mode: "waiting",
+        screenScene: "survey_status",
+      }),
+      survey_form_id: surveyFormId,
+    },
+  });
+
+  revalidateSurveyPaths(eventId, eventCode);
+  redirectToSurveys({
+    eventId,
+    surveyId: surveyFormId,
+    message: "설문 제출 현황 화면을 송출했습니다.",
   });
 }
 

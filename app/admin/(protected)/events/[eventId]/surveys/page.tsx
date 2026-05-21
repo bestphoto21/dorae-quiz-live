@@ -19,15 +19,24 @@ import {
 } from "@/lib/data/surveys";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import {
+  closeSurveyForm,
   createStarterSurveys,
   createSurveyForm,
   createSurveyQuestion,
   deleteOrArchiveSurveyForm,
   deleteSurveyQuestion,
   moveSurveyQuestion,
+  reopenSurveyFormAsDraft,
+  setBreakScreenFromSurveys,
+  setJoinQrScreenFromSurveys,
+  setSurveyIntroScreenFromSurveys,
+  setSurveyStatusScreenFromSurveys,
+  setWaitingScreenFromSurveys,
+  startSurveyForm,
   updateSurveyForm,
   updateSurveyQuestion,
 } from "./actions";
+import { buildPublicUrl } from "@/lib/site-url";
 
 type SurveyPageProps = {
   params: Promise<{ eventId: string }>;
@@ -36,6 +45,12 @@ type SurveyPageProps = {
     message?: string | string[];
     error?: string | string[];
   }>;
+};
+
+type SurveyLiveState = {
+  mode: string;
+  screen_scene: string | null;
+  updated_at: string | null;
 };
 
 const QUESTION_TYPES: Array<{ value: SurveyQuestionType; label: string }> = [
@@ -81,6 +96,39 @@ function questionTypeLabel(type: SurveyQuestionType) {
   return QUESTION_TYPES.find((option) => option.value === type)?.label ?? type;
 }
 
+function screenModeLabel(mode: string | null | undefined) {
+  const labels: Record<string, string> = {
+    waiting: "대기",
+    question: "퀴즈",
+    closed: "응답 마감",
+    result: "결과 공개",
+    draw: "럭키드로우",
+    qna: "Q&A",
+  };
+
+  return labels[mode ?? ""] ?? "송출 준비";
+}
+
+function screenSceneLabel(scene: string | null | undefined) {
+  const labels: Record<string, string> = {
+    waiting: "대기 화면",
+    break: "휴식 화면",
+    join_qr: "QR 입장 안내",
+    survey_intro: "설문 참여 안내",
+    survey_status: "설문 제출 현황",
+    question: "퀴즈 진행",
+    quiz_question: "퀴즈 진행",
+    result: "결과 공개",
+    quiz_results: "결과 공개",
+    qna_waiting: "Q&A 질문 접수",
+    qna_question: "현장 질문",
+    draw: "럭키드로우 준비",
+    draw_winner: "당첨자 발표",
+  };
+
+  return labels[scene ?? ""] ?? "대기 화면";
+}
+
 async function getParticipantCount(eventId: string) {
   const supabase = createAdminSupabaseClient();
   const { count, error } = await supabase
@@ -99,6 +147,27 @@ async function getParticipantCount(eventId: string) {
   }
 
   return count ?? 0;
+}
+
+async function getLiveState(eventId: string): Promise<SurveyLiveState | null> {
+  const supabase = createAdminSupabaseClient();
+  const { data, error } = await supabase
+    .from("live_state")
+    .select("mode, screen_scene, updated_at")
+    .eq("event_id", eventId)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[admin-surveys] Failed to load live_state.", {
+      eventId,
+      message: error.message,
+      code: error.code,
+    });
+
+    return null;
+  }
+
+  return (data as SurveyLiveState | null) ?? null;
 }
 
 function SubmitButton({
@@ -383,6 +452,199 @@ function SurveySettingsPanel({
   );
 }
 
+function SurveyOperationPanel({
+  eventId,
+  survey,
+  canManage,
+}: {
+  eventId: string;
+  survey: SurveyFormSummary;
+  canManage: boolean;
+}) {
+  const startAction = startSurveyForm.bind(null, eventId, survey.id);
+  const closeAction = closeSurveyForm.bind(null, eventId, survey.id);
+  const draftAction = reopenSurveyFormAsDraft.bind(null, eventId, survey.id);
+  const hasQuestions = survey.questions.length > 0;
+
+  return (
+    <AdminPanel
+      title="설문 운영"
+      description="설문 시작과 스크린 송출은 별도 동작입니다. 먼저 설문을 시작한 뒤 필요한 화면을 송출하세요."
+    >
+      <div className="grid gap-4">
+        <div className="rounded-2xl border border-slate-300 bg-slate-50 p-4">
+          <div className="flex flex-wrap gap-2">
+            <StatusBadge tone={statusTone(survey.status)}>
+              {statusLabel(survey.status)}
+            </StatusBadge>
+            <StatusBadge tone={hasQuestions ? "green" : "amber"}>
+              질문 {survey.questions.length.toLocaleString("ko-KR")}개
+            </StatusBadge>
+          </div>
+          <p className="mt-3 text-sm font-bold leading-6 text-slate-700">
+            {survey.status === "open"
+              ? "현재 참가자에게 공개 중입니다."
+              : survey.status === "closed"
+                ? "마감된 설문입니다. 필요하면 작성 중으로 되돌려 수정하세요."
+                : survey.status === "archived"
+                  ? "보관된 설문은 운영 버튼을 사용할 수 없습니다."
+                  : "작성 중인 설문입니다. 참가자가 제출하려면 설문 시작을 눌러주세요."}
+          </p>
+        </div>
+
+        {!hasQuestions && survey.status !== "archived" && (
+          <p className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm font-bold leading-6 text-amber-950">
+            질문을 1개 이상 추가한 뒤 설문을 시작해주세요.
+          </p>
+        )}
+
+        <div className="flex flex-wrap gap-2">
+          {survey.status === "draft" && (
+            <form action={startAction}>
+              <SubmitButton disabled={!canManage || !hasQuestions}>
+                설문 시작
+              </SubmitButton>
+            </form>
+          )}
+          {survey.status === "open" && (
+            <form action={closeAction}>
+              <SubmitButton tone="amber" disabled={!canManage}>
+                설문 마감
+              </SubmitButton>
+            </form>
+          )}
+          {survey.status === "closed" && (
+            <form action={draftAction}>
+              <SubmitButton tone="outline" disabled={!canManage}>
+                작성 중으로 되돌리기
+              </SubmitButton>
+            </form>
+          )}
+        </div>
+
+        <div className="grid gap-2 text-sm font-bold leading-6 text-slate-700">
+          <p>설문 시작: 참가자가 이 설문을 제출할 수 있습니다.</p>
+          <p>설문 마감: 참가자 제출을 중지합니다.</p>
+          <p>작성 중으로 되돌리기: 설문을 다시 수정할 수 있는 상태로 변경합니다.</p>
+        </div>
+      </div>
+    </AdminPanel>
+  );
+}
+
+function ScreenControlPanel({
+  eventId,
+  eventCode,
+  screenUrl,
+  activeSurvey,
+  liveState,
+  canManage,
+}: {
+  eventId: string;
+  eventCode: string;
+  screenUrl: string;
+  activeSurvey: SurveyFormSummary | null;
+  liveState: SurveyLiveState | null;
+  canManage: boolean;
+}) {
+  const waitingAction = setWaitingScreenFromSurveys.bind(null, eventId);
+  const breakAction = setBreakScreenFromSurveys.bind(null, eventId);
+  const joinQrAction = setJoinQrScreenFromSurveys.bind(null, eventId);
+  const surveyIntroAction = activeSurvey
+    ? setSurveyIntroScreenFromSurveys.bind(null, eventId, activeSurvey.id)
+    : undefined;
+  const surveyStatusAction = activeSurvey
+    ? setSurveyStatusScreenFromSurveys.bind(null, eventId, activeSurvey.id)
+    : undefined;
+  const surveyIsOpen = activeSurvey?.status === "open";
+  const canBroadcastStatus =
+    activeSurvey?.status === "open" || activeSurvey?.status === "closed";
+
+  return (
+    <AdminPanel
+      title="화면 제어"
+      description="설문 관리 화면에서 대기, 휴식, QR, 설문 안내 화면을 바로 송출합니다."
+    >
+      <div className="grid gap-4">
+        <div className="grid gap-3 rounded-2xl border border-slate-300 bg-slate-50 p-4 text-sm font-bold text-[color:#0a1a38]">
+          <div className="flex flex-wrap gap-2">
+            <StatusBadge tone="slate">
+              현재 모드: {screenModeLabel(liveState?.mode)}
+            </StatusBadge>
+            <StatusBadge tone="cyan">
+              현재 화면: {screenSceneLabel(liveState?.screen_scene)}
+            </StatusBadge>
+          </div>
+          <p className="text-slate-700">
+            마지막 변경:{" "}
+            {liveState?.updated_at
+              ? new Date(liveState.updated_at).toLocaleString("ko-KR")
+              : "기록 없음"}
+          </p>
+          <p className="break-all text-slate-700">스크린 URL: {screenUrl}</p>
+        </div>
+
+        <Link
+          href={screenUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-[#0a1a38] bg-white px-4 py-2 text-sm font-black text-[color:#0a1a38] shadow-sm transition hover:bg-slate-100"
+        >
+          스크린 열기
+        </Link>
+
+        <div className="grid gap-2">
+          <form action={waitingAction}>
+            <SubmitButton disabled={!canManage}>대기 화면 송출</SubmitButton>
+          </form>
+          <form action={breakAction}>
+            <SubmitButton tone="amber" disabled={!canManage}>
+              휴식 화면 송출
+            </SubmitButton>
+          </form>
+          <form action={joinQrAction}>
+            <SubmitButton tone="outline" disabled={!canManage}>
+              QR 입장 안내 송출
+            </SubmitButton>
+          </form>
+          {surveyIntroAction && (
+            <form action={surveyIntroAction}>
+              <SubmitButton disabled={!canManage || !surveyIsOpen}>
+                설문 참여 안내 송출
+              </SubmitButton>
+            </form>
+          )}
+          {surveyStatusAction && (
+            <form action={surveyStatusAction}>
+              <SubmitButton
+                tone="outline"
+                disabled={!canManage || !canBroadcastStatus}
+              >
+                제출 현황 송출
+              </SubmitButton>
+            </form>
+          )}
+        </div>
+
+        {activeSurvey ? (
+          <p className="rounded-2xl border border-cyan-200 bg-cyan-50 p-4 text-sm font-bold leading-6 text-cyan-950">
+            선택 설문: {activeSurvey.title} · 제출{" "}
+            {activeSurvey.response_count.toLocaleString("ko-KR")}명. 설문 참여
+            안내는 설문 시작 후 송출해주세요.
+          </p>
+        ) : (
+          <p className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold leading-6 text-amber-950">
+            설문을 선택하면 설문 참여 안내와 제출 현황을 송출할 수 있습니다.
+          </p>
+        )}
+        <p className="text-xs font-bold leading-5 text-slate-600">
+          화면 제어는 스크린 송출만 변경합니다. 설문 시작/마감 상태는 별도 버튼으로 관리합니다. 행사 코드: {eventCode}
+        </p>
+      </div>
+    </AdminPanel>
+  );
+}
+
 function QuestionForm({
   eventId,
   survey,
@@ -615,9 +877,10 @@ export default async function SurveysPage({
   const { admin, event } = await requireEventAccess(eventId);
   const role = await getEventScopedRole(admin, eventId);
   const canManage = canManageSurveysByRole(role);
-  const [surveys, participantCount] = await Promise.all([
+  const [surveys, participantCount, liveState] = await Promise.all([
     getSurveyFormsForEvent(eventId),
     getParticipantCount(eventId),
+    getLiveState(eventId),
   ]);
   const requestedSurveyId = getSingle(query.surveyId);
   const activeSurvey =
@@ -629,6 +892,7 @@ export default async function SurveysPage({
   const createStarterAction = createStarterSurveys.bind(null, eventId);
   const message = getSingle(query.message);
   const error = getSingle(query.error);
+  const screenUrl = buildPublicUrl(`/screen/${event.event_code}`);
 
   return (
     <AdminShell
@@ -729,12 +993,27 @@ export default async function SurveysPage({
           </section>
 
           <aside className="grid content-start gap-5">
+            <ScreenControlPanel
+              eventId={eventId}
+              eventCode={event.event_code}
+              screenUrl={screenUrl}
+              activeSurvey={activeSurvey}
+              liveState={liveState}
+              canManage={canManage}
+            />
             {activeSurvey && (
-              <SurveySettingsPanel
-                eventId={eventId}
-                survey={activeSurvey}
-                canManage={canManage}
-              />
+              <>
+                <SurveyOperationPanel
+                  eventId={eventId}
+                  survey={activeSurvey}
+                  canManage={canManage}
+                />
+                <SurveySettingsPanel
+                  eventId={eventId}
+                  survey={activeSurvey}
+                  canManage={canManage}
+                />
+              </>
             )}
             <SurveyCreatePanel
               eventId={eventId}
@@ -743,11 +1022,11 @@ export default async function SurveysPage({
             />
             <AdminPanel
               title="운영 메모"
-              description="이번 1단계에서는 설문을 live_state, 스크린 송출, 럭키드로우와 연결하지 않습니다."
+              description="설문 시작/마감과 스크린 송출은 운영자가 각각 직접 제어합니다."
             >
               <div className="grid gap-3 text-sm font-bold leading-6 text-slate-700">
                 <p className="rounded-2xl border border-slate-300 bg-slate-50 p-4">
-                  설문 시작과 종료는 상태값으로만 관리합니다. 1분 타이머와 스크린 송출은 다음 단계에서 검토합니다.
+                  설문 시작은 제출 가능 상태를 여는 동작이고, 설문 참여 안내 송출은 스크린 화면만 바꾸는 동작입니다.
                 </p>
                 <p className="rounded-2xl border border-slate-300 bg-slate-50 p-4">
                   설문 답변 상세는 보호된 관리자 영역에서만 다뤄야 하며, 참가자 화면에는 다른 사람의 응답을 표시하지 않습니다.

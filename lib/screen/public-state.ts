@@ -67,6 +67,7 @@ export type PublicScreenState = {
   qna: Awaited<ReturnType<typeof buildSafeScreenPayload>>["qna"];
   notice: Awaited<ReturnType<typeof buildSafeScreenPayload>>["notice"];
   joinQr: Awaited<ReturnType<typeof buildSafeScreenPayload>>["joinQr"];
+  survey: Awaited<ReturnType<typeof buildSafeScreenPayload>>["survey"];
   stats: ReturnType<typeof emptyAnswerStats>;
 };
 
@@ -149,6 +150,7 @@ export async function getPublicScreenState(
         qna: null,
         notice: null,
         joinQr: null,
+        survey: null,
         stats: emptyAnswerStats(),
       },
     };
@@ -245,6 +247,7 @@ export async function getPublicScreenState(
       qna: safePayload.qna,
       notice: safePayload.notice,
       joinQr: safePayload.joinQr,
+      survey: safePayload.survey,
       stats,
     },
   };

@@ -44,6 +44,17 @@ export type SafeJoinQrPayload = {
   message: string | null;
 };
 
+export type SafeSurveyPayload = {
+  event_code: string | null;
+  title: string;
+  description: string | null;
+  status: "draft" | "open" | "closed" | "archived";
+  submitted_count: number;
+  participant_count: number;
+  survey_url: string;
+  message: string | null;
+};
+
 type QnaQuestionRow = {
   id: string;
   question_text: string;
@@ -84,6 +95,13 @@ type DrawWinnerSnapshot = {
   createdAt: string | null;
 };
 
+type SurveyFormRow = {
+  id: string;
+  title: string;
+  description: string | null;
+  status: "draft" | "open" | "closed" | "archived";
+};
+
 function assertServerOnly() {
   if (typeof window !== "undefined") {
     throw new Error("Screen safe-state helpers must run on the server only.");
@@ -113,6 +131,15 @@ function pickDrawPhase(value: unknown): SafeDrawPayload["draw_phase"] {
   return value === "ready" || value === "rolling" || value === "result"
     ? value
     : "result";
+}
+
+function pickSurveyStatus(value: unknown): SafeSurveyPayload["status"] {
+  return value === "draft" ||
+    value === "open" ||
+    value === "closed" ||
+    value === "archived"
+    ? value
+    : "draft";
 }
 
 function pickBoundedNumber({
@@ -256,6 +283,118 @@ export function toSafeJoinQrPayload(payload: unknown): SafeJoinQrPayload | null 
     event_code: eventCode,
     join_url: joinUrl,
     title: pickNullableString(source.title),
+    message: pickNullableString(source.message),
+  };
+}
+
+async function countRows({
+  table,
+  eventId,
+  surveyFormId,
+}: {
+  table: "participants" | "survey_responses";
+  eventId: string;
+  surveyFormId?: string;
+}) {
+  const supabase = createAdminSupabaseClient();
+  let query = supabase
+    .from(table)
+    .select("id", { count: "exact", head: true })
+    .eq("event_id", eventId);
+
+  if (surveyFormId && table === "survey_responses") {
+    query = query.eq("survey_form_id", surveyFormId);
+  }
+
+  const { count, error } = await query;
+
+  if (error) {
+    console.error("[screen-state] Failed to count survey screen rows.", {
+      eventId,
+      table,
+      message: error.message,
+      code: error.code,
+    });
+
+    return 0;
+  }
+
+  return count ?? 0;
+}
+
+export async function getSafeSurveyPayload({
+  eventId,
+  payload,
+}: {
+  eventId: string;
+  payload: unknown;
+}): Promise<SafeSurveyPayload | null> {
+  assertServerOnly();
+
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    return null;
+  }
+
+  const source = payload as Record<string, unknown>;
+  const surveyFormId = pickString(source.survey_form_id);
+  const surveyUrl = pickString(source.survey_url);
+  let survey: SurveyFormRow | null = null;
+
+  if (surveyFormId) {
+    const supabase = createAdminSupabaseClient();
+    const { data, error } = await supabase
+      .from("survey_forms")
+      .select("id, title, description, status")
+      .eq("id", surveyFormId)
+      .eq("event_id", eventId)
+      .maybeSingle();
+
+    if (error) {
+      console.error("[screen-state] Failed to load survey form for screen.", {
+        eventId,
+        message: error.message,
+        code: error.code,
+      });
+    }
+
+    survey = (data as SurveyFormRow | null) ?? null;
+  }
+
+  const title = survey?.title ?? pickNullableString(source.title);
+
+  if (!title || !surveyUrl) {
+    return null;
+  }
+
+  const [freshSubmittedCount, freshParticipantCount] = surveyFormId
+    ? await Promise.all([
+        countRows({ table: "survey_responses", eventId, surveyFormId }),
+        countRows({ table: "participants", eventId }),
+      ])
+    : [null, null];
+
+  return {
+    event_code: pickString(source.event_code),
+    title,
+    description: survey?.description ?? pickNullableString(source.description),
+    status: pickSurveyStatus(survey?.status ?? source.status),
+    submitted_count:
+      freshSubmittedCount ??
+      pickBoundedNumber({
+        value: source.submitted_count,
+        fallback: 0,
+        min: 0,
+        max: 100000,
+      }),
+    participant_count:
+      freshParticipantCount ??
+      pickBoundedNumber({
+        value: source.participant_count,
+        fallback: 0,
+        min: 0,
+        max: 100000,
+      }),
+    survey_url: surveyUrl,
     message: pickNullableString(source.message),
   };
 }
@@ -446,5 +585,9 @@ export async function buildSafeScreenPayload({
         ? await getSafeQnaPayload({ eventId, payload })
         : null,
     joinQr: scene === "join_qr" ? toSafeJoinQrPayload(payload) : null,
+    survey:
+      scene === "survey_intro" || scene === "survey_status"
+        ? await getSafeSurveyPayload({ eventId, payload })
+        : null,
   };
 }

@@ -76,6 +76,16 @@ type ScreenState = {
     title: string | null;
     message: string | null;
   } | null;
+  survey: {
+    event_code: string | null;
+    title: string;
+    description: string | null;
+    status: "draft" | "open" | "closed" | "archived";
+    submitted_count: number;
+    participant_count: number;
+    survey_url: string;
+    message: string | null;
+  } | null;
   stats: {
     total_answers: number;
     option_counts: Record<"1" | "2" | "3" | "4", number>;
@@ -253,6 +263,11 @@ function screenStateFingerprint(state: ScreenState) {
     notice_title: state.notice?.title ?? null,
     notice_message: state.notice?.message ?? null,
     join_url: state.joinQr?.join_url ?? null,
+    survey_title: state.survey?.title ?? null,
+    survey_status: state.survey?.status ?? null,
+    survey_url: state.survey?.survey_url ?? null,
+    survey_submitted_count: state.survey?.submitted_count ?? null,
+    survey_participant_count: state.survey?.participant_count ?? null,
     stats_total_answers: state.stats.total_answers,
     stats_option_counts: state.stats.option_counts,
     stats_correct_answers: state.stats.correct_answers ?? null,
@@ -290,6 +305,8 @@ function sceneLabel(scene: string | null | undefined) {
     qna_question: "현장 질문",
     draw: "럭키드로우 준비",
     join_qr: "QR 참여 안내",
+    survey_intro: "설문 참여 안내",
+    survey_status: "설문 제출 현황",
     lucky_draw_ready: "럭키드로우 준비",
     draw_winner: "당첨자 발표",
     lucky_draw_winner: "당첨자 발표",
@@ -1116,6 +1133,89 @@ function JoinQrView({ state }: { state: ScreenState }) {
   );
 }
 
+function surveyStatusLabel(status: NonNullable<ScreenState["survey"]>["status"]) {
+  const labels = {
+    draft: "작성 중",
+    open: "참여 가능",
+    closed: "마감",
+    archived: "보관",
+  };
+
+  return labels[status];
+}
+
+function SurveyView({ state }: { state: ScreenState }) {
+  const survey = state.survey;
+  const surveyUrl = survey?.survey_url || `/e/${state.event.event_code}/survey`;
+  const title = survey?.title || "설문 참여 안내";
+  const description =
+    survey?.description || "모바일로 QR 입장 후 설문에 참여해주세요.";
+  const submittedCount = survey?.submitted_count ?? 0;
+  const participantCount = survey?.participant_count ?? 0;
+  const progress =
+    participantCount > 0
+      ? Math.min(100, Math.round((submittedCount / participantCount) * 100))
+      : 0;
+  const isStatusScene =
+    normalizeScene(state.liveState.screen_scene ?? state.liveState.mode) ===
+    "survey_status";
+
+  return (
+    <section className="grid flex-1 gap-6 lg:grid-cols-[1fr_34rem] lg:items-center">
+      <div className="flex flex-col justify-center rounded-3xl bg-white p-8 text-[color:#0a1a38] shadow-2xl sm:p-12">
+        <p className="text-3xl font-black text-cyan-800">
+          {isStatusScene ? "설문 제출 현황" : "지금 설문조사에 참여해주세요"}
+        </p>
+        <h2 className="mt-6 text-6xl font-black leading-tight sm:text-8xl">
+          {title}
+        </h2>
+        <p className="mt-6 text-3xl font-bold leading-tight text-slate-700">
+          {description}
+        </p>
+        <div className="mt-8 grid gap-4 rounded-3xl border border-slate-200 bg-slate-50 p-6">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="text-xl font-black text-slate-600">제출 현황</p>
+              <p className="mt-2 text-5xl font-black text-[color:#0a1a38]">
+                제출 {submittedCount.toLocaleString("ko-KR")}명 / 입장{" "}
+                {participantCount.toLocaleString("ko-KR")}명
+              </p>
+            </div>
+            {survey && (
+              <p className="rounded-full bg-[#0a1a38] px-5 py-3 text-2xl font-black text-white">
+                {surveyStatusLabel(survey.status)}
+              </p>
+            )}
+          </div>
+          <div className="h-5 overflow-hidden rounded-full bg-slate-200">
+            <div
+              className="h-full rounded-full bg-cyan-500 transition-all duration-500"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+        </div>
+        <p className="mt-8 break-all rounded-3xl border border-slate-200 bg-white p-6 text-3xl font-black text-[color:#0a1a38] shadow-sm">
+          {surveyUrl}
+        </p>
+        <p className="mt-5 text-2xl font-black leading-tight text-cyan-800">
+          설문 답변 내용과 개인정보는 스크린에 표시되지 않습니다.
+        </p>
+      </div>
+
+      <aside className="rounded-3xl border border-white/20 bg-white p-6 shadow-2xl">
+        <QrCode
+          value={surveyUrl}
+          title="설문 참여 QR"
+          className="mx-auto h-auto w-full max-w-[30rem]"
+        />
+        <p className="mt-5 text-center text-2xl font-black text-[color:#0a1a38]">
+          모바일로 스캔 후 설문 참여
+        </p>
+      </aside>
+    </section>
+  );
+}
+
 function PlaceholderView({
   state,
   title,
@@ -1419,6 +1519,9 @@ export default function ScreenStage({
       )}
       {scene === "waiting" && <WaitingView state={state} />}
       {scene === "join_qr" && <JoinQrView state={state} />}
+      {(scene === "survey_intro" || scene === "survey_status") && (
+        <SurveyView state={state} />
+      )}
       {scene === "break" && <BreakView state={state} />}
       {scene === "question" && (
         <QuestionView state={state} secondsLeft={secondsLeft} />
@@ -1440,6 +1543,8 @@ export default function ScreenStage({
         "inactive",
         "waiting",
         "join_qr",
+        "survey_intro",
+        "survey_status",
         "break",
         "question",
         "closed",

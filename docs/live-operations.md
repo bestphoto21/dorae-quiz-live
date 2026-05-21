@@ -110,8 +110,18 @@ Surveys use the same event QR entry and participant session as quiz and Q&A:
 4. A participant can submit each survey once.
 5. Admins can confirm submission counts on the survey management page.
 
-The first MVP intentionally does not connect surveys to `live_state`, screen
-projection, one-minute timers, or lucky draw sources. Keep survey answer details
+Survey management includes field-operation controls:
+
+- "설문 시작" opens participant submission for the selected survey.
+- "설문 마감" closes participant submission.
+- "작성 중으로 되돌리기" moves a closed survey back to draft.
+- The survey page can also send waiting, break, QR entry, survey guide, and
+  survey submission-status screens without leaving the survey workflow.
+
+Survey start/close and survey screen projection are separate operations. The
+first controls `survey_forms.status`; the second only changes `live_state` for
+the screen. One-minute timers, automatic survey transitions, and survey
+respondent lucky-draw sources are still future work. Keep survey answer details
 inside protected admin flows only.
 
 ## Lucky Draw Flow
@@ -163,6 +173,20 @@ mode = waiting
 screen_scene = break
 ```
 
+## Survey Screen
+
+Survey guide and submission-status screens are represented without a schema
+change as:
+
+```text
+mode = waiting
+screen_scene = survey_intro | survey_status
+```
+
+The survey management page can send these screens directly. Operators should
+start the survey first, then send the survey guide or status screen when the
+audience should participate.
+
 ## Screen Payload Privacy
 
 The screen API must never return raw `live_state.screen_payload`.
@@ -200,6 +224,17 @@ Allowed fields are selected per scene.
 
 - `title`
 - `message`
+
+### `survey_intro` / `survey_status`
+
+- survey title
+- survey description
+- survey status
+- submitted count
+- participant count
+- survey URL
+- event code
+- screen message
 
 ### Quiz Question
 
@@ -239,6 +274,8 @@ Examples:
 - `live_screen_set_break`
 - `live_screen_set_quiz`
 - `live_screen_set_lucky_draw`
+- `live_screen_set_survey_intro`
+- `live_screen_set_survey_status`
 
 Do not log question text, phone numbers, email addresses, secrets, or raw screen payload.
 
@@ -270,10 +307,12 @@ If the event needs more immediate transitions later, introduce Supabase Realtime
 8. Test Q&A waiting screen.
 9. Test approved question screen output.
 10. Confirm unapproved questions do not appear on screen.
-11. Press "효과음 켜기" on the screen if sound will be used.
-12. Test lucky draw ready screen, rolling animation, celebration effect, optional sound, and winner output.
-13. Check that `phone` and `phone_normalized` are not visible on screen.
-14. Confirm `npm.cmd run build` passes.
+11. Open the survey management page, start one survey, and send the survey guide screen.
+12. Submit one survey response and confirm the survey status screen count updates through polling.
+13. Press "효과음 켜기" on the screen if sound will be used.
+14. Test lucky draw ready screen, rolling animation, celebration effect, optional sound, and winner output.
+15. Check that `phone` and `phone_normalized` are not visible on screen.
+16. Confirm `npm.cmd run build` passes.
 
 ## Incident Checklist
 

@@ -15,12 +15,12 @@ Included in this step:
 - Participant survey list and submission pages
 - One submission per participant per survey
 - Submission counts per survey
+- Admin start, close, and draft-return controls
+- Survey guide and submission-status screen projection controls
 
 Not included in this step:
 
 - One-minute survey timer
-- `live_state` survey start or close integration
-- Screen projection for surveys
 - Survey-response-based lucky draw
 
 ## Database
@@ -51,8 +51,27 @@ Recommended setup:
 3. Select a survey tab.
 4. Edit title, description, status, and sort order.
 5. Add questions.
-6. Change the survey status to `open` when it is ready.
+6. Press "설문 시작" when it is ready.
 7. Watch the per-survey submission count.
+
+Operational buttons:
+
+- "설문 시작": changes `survey_forms.status` to `open`. It is blocked until the survey has at least one question.
+- "설문 마감": changes status to `closed` and stops new participant submissions.
+- "작성 중으로 되돌리기": changes status back to `draft` so the operator can edit again.
+
+Screen controls on the same page:
+
+- "스크린 열기"
+- "대기 화면 송출"
+- "휴식 화면 송출"
+- "QR 입장 안내 송출"
+- "설문 참여 안내 송출"
+- "제출 현황 송출"
+
+Starting a survey and showing it on the screen are separate operations. The start
+button controls participant submission availability. The screen buttons only
+change what `/screen/[eventCode]` displays.
 
 Survey statuses:
 
@@ -106,12 +125,12 @@ Detailed answer review and export are not part of this MVP.
 - Participant ids are resolved from the signed participant session cookie on the server.
 - `survey_answers.answer_value` is answer content and should be handled in protected admin areas only.
 - Operation logs for survey submission store event id, survey form id, and survey response id only.
+- Survey screen payloads show only title, description, status, counts, and a survey URL. They must not include participant ids, contact fields, answer values, or raw screen payload.
 
 ## Future Step
 
 Potential next phase:
 
 - Survey timer
-- Live console survey open/close controls
-- Screen projection of survey progress or prompts
+- One-minute survey timer and automatic close
 - Lucky draw source based on survey respondents
