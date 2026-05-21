@@ -89,9 +89,10 @@ Use the seed output for the exact event ID. For the default event code:
 13. Approve a Q&A question and send it to screen.
 14. Send the lucky draw ready screen.
 15. Run a draw and confirm the countdown/rolling animation appears.
-16. Confirm the final winner matches the saved draw result.
-17. Switch away from the draw scene during animation and confirm the old timer does not overwrite the new screen.
-18. Confirm operation logs were written.
+16. Confirm the final winner screen shows a short celebration effect.
+17. Confirm the final winner matches the saved draw result.
+18. Switch away from the draw scene during animation and confirm the old timer does not overwrite the new screen.
+19. Confirm operation logs were written.
 
 ## Must Check
 
@@ -101,6 +102,7 @@ Use the seed output for the exact event ID. For the default event code:
 - Pending Q&A questions do not appear on the screen.
 - The QR connects to `/e/[eventCode]/join`.
 - Lucky draw rolling names contain display names only, and the final winner is the saved DB winner.
+- Lucky draw celebration is a screen-only effect and does not expose private data.
 - Live screen changes appear in about 1-2 seconds while the screen window is visible.
 - Korean labels are not broken.
 - Buttons and labels remain readable.

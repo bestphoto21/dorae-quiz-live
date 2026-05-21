@@ -103,6 +103,11 @@ When the draw button is submitted, the server first writes the selected winner
 to `draw_winners`, then the screen plays a countdown and rolling-name
 animation before showing the saved winner.
 
+At the final "당첨!" moment, the screen also plays a short celebration effect.
+The pop, glow, and confetti are visual effects only. They do not affect winner
+selection, and they are removed if the operator quickly changes to another
+screen scene.
+
 Winner screen payload must contain only presentation-safe fields such as:
 
 - winner id or draw result id
@@ -232,7 +237,7 @@ If the event needs more immediate transitions later, introduce Supabase Realtime
 8. Test Q&A waiting screen.
 9. Test approved question screen output.
 10. Confirm unapproved questions do not appear on screen.
-11. Test lucky draw ready screen, rolling animation, and winner output.
+11. Test lucky draw ready screen, rolling animation, celebration effect, and winner output.
 12. Check that `phone` and `phone_normalized` are not visible on screen.
 13. Confirm `npm.cmd run build` passes.
 

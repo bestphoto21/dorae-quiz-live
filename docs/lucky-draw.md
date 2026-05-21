@@ -122,6 +122,19 @@ The rolling animation is presentation only. The selected winner is inserted into
 `draw_winners` before the screen starts the animation, and the final result uses
 that saved winner.
 
+## Celebration Effect
+
+When the final winner screen appears, the screen plays a short celebration effect:
+
+- "당첨!" pops into place.
+- The winner card briefly glows.
+- Lightweight confetti falls for about 3 seconds.
+
+This is a screen-only visual effect. It does not select, change, or re-randomize
+the winner. The final winner is still the `draw_winners` row saved by the server.
+If the operator switches to another scene during the animation, the celebration
+is cleaned up with the screen component.
+
 ## Privacy Rules
 
 Never put these fields in `screen_payload`:

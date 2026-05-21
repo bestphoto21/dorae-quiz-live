@@ -1,7 +1,14 @@
 "use client";
 
 import { QrCode } from "@/components/quiz/QrCode";
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 
 type ScreenMode = "waiting" | "question" | "closed" | "result" | "draw" | "qna";
 
@@ -424,38 +431,238 @@ function normalizeScene(scene: string | null | undefined) {
 
 type DrawPayload = NonNullable<ScreenState["draw"]>;
 type DrawAnimationStep = "countdown" | "rolling" | "result";
+type ConfettiParticle = {
+  id: number;
+  color: string;
+  left: number;
+  width: number;
+  height: number;
+  delayMs: number;
+  durationMs: number;
+  driftPx: number;
+  rotateDeg: number;
+  radius: string;
+};
 
-function drawCandidateNames(draw: DrawPayload) {
+const CONFETTI_COLORS = [
+  "#0a1a38",
+  "#f59e0b",
+  "#facc15",
+  "#22d3ee",
+  "#38bdf8",
+  "#ffffff",
+];
+const CONFETTI_COUNT = 96;
+const CELEBRATION_DURATION_MS = 3200;
+
+function normalizeCandidateNames(
+  candidateNames: string[],
+  participantDisplayName: string
+) {
   const names = Array.from(
     new Set(
-      [...(draw.candidate_names ?? []), draw.participant_display_name]
+      [...candidateNames, participantDisplayName]
         .map((name) => name.trim())
         .filter(Boolean)
     )
   );
 
-  return names.length > 0 ? names : [draw.participant_display_name];
+  return names.length > 0 ? names : [participantDisplayName];
 }
 
-function drawAnimationKey(draw: DrawPayload) {
+function drawAnimationKey(draw: DrawPayload, stateUpdatedAt?: string | null) {
   return [
     draw.animation_id,
     draw.winner_id,
+    draw.participant_display_name,
+    draw.prize_name,
     draw.created_at,
+    stateUpdatedAt,
     draw.duration_ms,
     draw.countdown_seconds,
     draw.candidate_names.join("|"),
   ].join(":");
 }
 
-function DrawResultView({ draw }: { draw: DrawPayload }) {
+function seededRatio(seed: string, index: number, salt: number) {
+  let hash = 2166136261;
+  const input = `${seed}:${index}:${salt}`;
+
+  for (let i = 0; i < input.length; i += 1) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+
+  return (hash >>> 0) / 4294967295;
+}
+
+function buildConfettiParticles(seed: string): ConfettiParticle[] {
+  return Array.from({ length: CONFETTI_COUNT }, (_, index) => {
+    const size = 10 + Math.round(seededRatio(seed, index, 2) * 14);
+
+    return {
+      id: index,
+      color:
+        CONFETTI_COLORS[
+          Math.floor(seededRatio(seed, index, 1) * CONFETTI_COLORS.length)
+        ] ?? "#f59e0b",
+      left: Math.round(seededRatio(seed, index, 3) * 100),
+      width: size,
+      height: Math.max(6, Math.round(size * (0.55 + seededRatio(seed, index, 4)))),
+      delayMs: Math.round(seededRatio(seed, index, 5) * 650),
+      durationMs: 2100 + Math.round(seededRatio(seed, index, 6) * 900),
+      driftPx: Math.round((seededRatio(seed, index, 7) - 0.5) * 760),
+      rotateDeg: Math.round((seededRatio(seed, index, 8) - 0.5) * 1240),
+      radius: seededRatio(seed, index, 9) > 0.78 ? "9999px" : "3px",
+    };
+  });
+}
+
+function CelebrationStyles() {
   return (
-    <section className="flex flex-1 items-center justify-center rounded-3xl bg-white p-8 text-center text-[color:#0a1a38] shadow-2xl sm:p-12">
-      <div className="w-full">
+    <style>{`
+      @keyframes doraeConfettiFall {
+        0% {
+          opacity: 0;
+          transform: translate3d(0, -16vh, 0) rotate(0deg);
+        }
+        12%,
+        78% {
+          opacity: 0.96;
+        }
+        100% {
+          opacity: 0;
+          transform: translate3d(var(--confetti-drift), 112vh, 0)
+            rotate(var(--confetti-rotate));
+        }
+      }
+
+      @keyframes doraeWinnerPop {
+        0% {
+          transform: scale(0.86);
+          opacity: 0.72;
+        }
+        45% {
+          transform: scale(1.12);
+          opacity: 1;
+        }
+        100% {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+
+      @keyframes doraeWinnerGlow {
+        0% {
+          box-shadow: 0 0 0 rgba(34, 211, 238, 0);
+          transform: scale(0.985);
+        }
+        35% {
+          box-shadow:
+            0 0 0 10px rgba(34, 211, 238, 0.28),
+            0 0 54px rgba(245, 158, 11, 0.38),
+            0 28px 72px rgba(10, 26, 56, 0.2);
+          transform: scale(1.018);
+        }
+        100% {
+          box-shadow: 0 0 0 rgba(34, 211, 238, 0);
+          transform: scale(1);
+        }
+      }
+
+      .dorae-confetti-particle {
+        animation-name: doraeConfettiFall;
+        animation-fill-mode: both;
+        animation-timing-function: cubic-bezier(0.17, 0.67, 0.32, 1);
+        filter: drop-shadow(0 8px 14px rgba(10, 26, 56, 0.26));
+      }
+
+      .dorae-winner-pop {
+        animation: doraeWinnerPop 920ms cubic-bezier(0.18, 0.84, 0.32, 1) both;
+      }
+
+      .dorae-winner-glow {
+        animation: doraeWinnerGlow 2400ms ease-out both;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .dorae-confetti-particle {
+          display: none;
+        }
+
+        .dorae-winner-pop,
+        .dorae-winner-glow {
+          animation: none;
+        }
+      }
+    `}</style>
+  );
+}
+
+function CelebrationOverlay({ celebrationKey }: { celebrationKey: string }) {
+  const [visible, setVisible] = useState(true);
+  const particles = useMemo(
+    () => buildConfettiParticles(celebrationKey),
+    [celebrationKey]
+  );
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(
+      () => setVisible(false),
+      CELEBRATION_DURATION_MS
+    );
+
+    return () => window.clearTimeout(timeoutId);
+  }, [celebrationKey]);
+
+  if (!visible) {
+    return null;
+  }
+
+  return (
+    <div
+      aria-hidden="true"
+      className="pointer-events-none fixed inset-0 z-40 overflow-hidden"
+    >
+      {particles.map((particle) => (
+        <span
+          key={particle.id}
+          className="dorae-confetti-particle absolute top-[-16vh] opacity-95"
+          style={
+            {
+              left: `${particle.left}%`,
+              width: `${particle.width}px`,
+              height: `${particle.height}px`,
+              backgroundColor: particle.color,
+              borderRadius: particle.radius,
+              animationDelay: `${particle.delayMs}ms`,
+              animationDuration: `${particle.durationMs}ms`,
+              "--confetti-drift": `${particle.driftPx}px`,
+              "--confetti-rotate": `${particle.rotateDeg}deg`,
+            } as CSSProperties
+          }
+        />
+      ))}
+    </div>
+  );
+}
+
+function DrawResultView({
+  draw,
+  celebrationKey,
+}: {
+  draw: DrawPayload;
+  celebrationKey: string;
+}) {
+  return (
+    <section className="relative isolate flex flex-1 items-center justify-center overflow-visible rounded-3xl bg-white p-8 text-center text-[color:#0a1a38] shadow-2xl sm:p-12">
+      <CelebrationStyles />
+      <CelebrationOverlay key={celebrationKey} celebrationKey={celebrationKey} />
+      <div className="relative z-50 w-full">
         <p className="text-3xl font-black uppercase tracking-normal text-amber-600">
           {sourceLabel(draw.source_type)}
         </p>
-        <h2 className="mt-6 text-7xl font-black leading-tight text-[color:#0a1a38] sm:text-9xl">
+        <h2 className="dorae-winner-pop mt-6 text-7xl font-black leading-tight text-[color:#0a1a38] drop-shadow-[0_16px_34px_rgba(245,158,11,0.26)] sm:text-9xl">
           당첨!
         </h2>
         <div className="mx-auto mt-10 max-w-5xl rounded-3xl border border-amber-200 bg-amber-50 p-8">
@@ -464,7 +671,7 @@ function DrawResultView({ draw }: { draw: DrawPayload }) {
             {draw.prize_name}
           </p>
         </div>
-        <div className="mx-auto mt-8 max-w-5xl rounded-3xl border border-cyan-200 bg-cyan-50 p-8">
+        <div className="dorae-winner-glow mx-auto mt-8 max-w-5xl rounded-3xl border border-cyan-200 bg-cyan-50 p-8">
           <p className="text-3xl font-black text-cyan-700">당첨자</p>
           <p className="mt-4 break-words text-7xl font-black leading-tight text-cyan-950 sm:text-9xl">
             {draw.participant_display_name}
@@ -475,8 +682,22 @@ function DrawResultView({ draw }: { draw: DrawPayload }) {
   );
 }
 
-function RollingDrawView({ draw }: { draw: DrawPayload }) {
-  const candidates = useMemo(() => drawCandidateNames(draw), [draw]);
+function RollingDrawView({
+  draw,
+  animationKey,
+}: {
+  draw: DrawPayload;
+  animationKey: string;
+}) {
+  const candidateNamesKey = draw.candidate_names.join("\u0001");
+  const candidates = useMemo(
+    () =>
+      normalizeCandidateNames(
+        candidateNamesKey ? candidateNamesKey.split("\u0001") : [],
+        draw.participant_display_name
+      ),
+    [candidateNamesKey, draw.participant_display_name]
+  );
   const [step, setStep] = useState<DrawAnimationStep>("countdown");
   const [countdown, setCountdown] = useState(draw.countdown_seconds);
   const [rollingName, setRollingName] = useState(
@@ -550,6 +771,7 @@ function RollingDrawView({ draw }: { draw: DrawPayload }) {
       timers.forEach((timer) => window.clearTimeout(timer));
     };
   }, [
+    animationKey,
     candidates,
     draw.countdown_seconds,
     draw.duration_ms,
@@ -557,7 +779,7 @@ function RollingDrawView({ draw }: { draw: DrawPayload }) {
   ]);
 
   if (step === "result") {
-    return <DrawResultView draw={draw} />;
+    return <DrawResultView draw={draw} celebrationKey={animationKey} />;
   }
 
   return (
@@ -606,11 +828,25 @@ function DrawWinnerView({ state }: { state: ScreenState }) {
     return <DrawPreparingView state={state} />;
   }
 
+  const animationKey = drawAnimationKey(draw, state.state_updated_at);
+
   if (draw.draw_phase === "rolling") {
-    return <RollingDrawView key={drawAnimationKey(draw)} draw={draw} />;
+    return (
+      <RollingDrawView
+        key={animationKey}
+        draw={draw}
+        animationKey={animationKey}
+      />
+    );
   }
 
-  return <DrawResultView draw={draw} />;
+  return (
+    <DrawResultView
+      key={animationKey}
+      draw={draw}
+      celebrationKey={animationKey}
+    />
+  );
 }
 
 function DrawPreparingView({ state }: { state: ScreenState }) {
