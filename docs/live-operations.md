@@ -45,6 +45,7 @@ Operators should always check the current output panel before pressing a screen-
 - `draw_winner`
 - `qna_waiting`
 - `qna_question`
+- `join_qr`
 - `break`
 
 The database does not currently allow `mode = break`, so the break screen is represented as:
@@ -190,6 +191,16 @@ Examples:
 - `live_screen_set_lucky_draw`
 
 Do not log question text, phone numbers, email addresses, secrets, or raw screen payload.
+
+## State Refresh
+
+Screen and participant clients currently refresh `live_state` through polling.
+
+- `/screen/[eventCode]` checks the safe screen state API about once per second.
+- `/e/[eventCode]/play` checks the participant state API about once every two seconds.
+- Both clients request state with `cache: "no-store"` and ignore older responses when a newer `live_state.updated_at` value has already been applied.
+
+If the event needs more immediate transitions later, introduce Supabase Realtime or Broadcast only as a change signal. Clients should still re-fetch the state API and render the server-built safe payload instead of trusting broadcast payloads directly.
 
 ## Rehearsal Checklist
 

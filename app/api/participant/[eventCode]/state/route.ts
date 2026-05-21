@@ -10,6 +10,9 @@ type ParticipantStateRouteProps = {
   params: Promise<{ eventCode: string }>;
 };
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 type ParticipantEvent = {
   id: string;
   event_code: string;
@@ -36,6 +39,7 @@ type ParticipantLiveState = {
   question_ends_at: string | null;
   reveal_answer: boolean;
   show_results: boolean;
+  updated_at: string | null;
 };
 
 type ParticipantQuestionRow = {
@@ -63,12 +67,16 @@ type ParticipantQnaQuestionRow = {
   created_at: string | null;
 };
 
+const NO_STORE_HEADERS = {
+  "Cache-Control": "private, no-store, no-cache, max-age=0, must-revalidate",
+  Expires: "0",
+  Pragma: "no-cache",
+};
+
 function jsonResponse(body: unknown, status = 200) {
   return NextResponse.json(body, {
     status,
-    headers: {
-      "Cache-Control": "no-store",
-    },
+    headers: NO_STORE_HEADERS,
   });
 }
 
@@ -82,6 +90,7 @@ function defaultLiveState(): ParticipantLiveState {
     question_ends_at: null,
     reveal_answer: false,
     show_results: false,
+    updated_at: null,
   };
 }
 
@@ -208,7 +217,15 @@ export async function GET(
       participant: {
         display_name: participant.display_name?.trim() || participant.name,
       },
-      liveState: defaultLiveState(),
+      state_updated_at: null,
+      liveState: {
+        mode: "waiting",
+        screen_scene: "waiting",
+        question_started_at: null,
+        question_ends_at: null,
+        reveal_answer: false,
+        show_results: false,
+      },
       question: null,
       answer: null,
       qnaQuestions,
@@ -220,7 +237,7 @@ export async function GET(
   const { data: liveStateData, error: liveStateError } = await supabase
     .from("live_state")
     .select(
-      "mode, screen_scene, current_session_id, current_question_id, question_started_at, question_ends_at, reveal_answer, show_results"
+      "mode, screen_scene, current_session_id, current_question_id, question_started_at, question_ends_at, reveal_answer, show_results, updated_at"
     )
     .eq("event_id", participantEvent.id)
     .maybeSingle();
@@ -325,6 +342,7 @@ export async function GET(
     participant: {
       display_name: participant.display_name?.trim() || participant.name,
     },
+    state_updated_at: liveState.updated_at,
     liveState: {
       mode: liveState.mode,
       screen_scene: liveState.screen_scene,

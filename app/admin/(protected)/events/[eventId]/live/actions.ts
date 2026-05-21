@@ -188,6 +188,7 @@ async function upsertLiveState(
     {
       event_id: eventId,
       ...values,
+      updated_at: new Date().toISOString(),
     },
     { onConflict: "event_id" }
   );

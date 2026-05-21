@@ -1,7 +1,7 @@
 "use client";
 
 import { QrCode } from "@/components/quiz/QrCode";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 type ScreenMode = "waiting" | "question" | "closed" | "result" | "draw" | "qna";
 
@@ -16,6 +16,7 @@ type ScreenState = {
     logo_url: string | null;
     screen_notice: string | null;
   };
+  state_updated_at: string | null;
   liveState: {
     mode: ScreenMode;
     screen_scene: string | null;
@@ -78,6 +79,28 @@ function getSecondsLeft(questionEndsAt: string | null, now: number) {
   }
 
   return Math.max(0, Math.ceil((new Date(questionEndsAt).getTime() - now) / 1000));
+}
+
+function isOlderState(
+  nextUpdatedAt: string | null | undefined,
+  currentUpdatedAt: string | null
+) {
+  if (!nextUpdatedAt || !currentUpdatedAt) {
+    return false;
+  }
+
+  const nextTime = Date.parse(nextUpdatedAt);
+  const currentTime = Date.parse(currentUpdatedAt);
+
+  if (Number.isNaN(nextTime) || Number.isNaN(currentTime)) {
+    return false;
+  }
+
+  return nextTime < currentTime;
+}
+
+function isAbortError(error: unknown) {
+  return error instanceof Error && error.name === "AbortError";
 }
 
 function optionEntries(question: NonNullable<ScreenState["question"]>) {
@@ -571,15 +594,26 @@ export default function ScreenStage({
   const [state, setState] = useState<ScreenState | null>(initialState);
   const [error, setError] = useState<string | null>(null);
   const [now, setNow] = useState<number | null>(null);
+  const latestStateUpdatedAtRef = useRef<string | null>(
+    initialState?.state_updated_at ?? null
+  );
+  const requestSeqRef = useRef(0);
+  const activeRequestRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     let active = true;
 
     async function fetchState() {
+      activeRequestRef.current?.abort();
+      const controller = new AbortController();
+      activeRequestRef.current = controller;
+      const requestSeq = requestSeqRef.current + 1;
+      requestSeqRef.current = requestSeq;
+
       try {
         const response = await fetch(
           `/api/screen/${encodeURIComponent(eventCode)}/state`,
-          { cache: "no-store" }
+          { cache: "no-store", signal: controller.signal }
         );
 
         if (!response.ok) {
@@ -588,22 +622,40 @@ export default function ScreenStage({
 
         const nextState = (await response.json()) as ScreenState;
 
-        if (active) {
+        if (
+          active &&
+          requestSeq === requestSeqRef.current &&
+          !isOlderState(
+            nextState.state_updated_at,
+            latestStateUpdatedAtRef.current
+          )
+        ) {
+          latestStateUpdatedAtRef.current =
+            nextState.state_updated_at ?? latestStateUpdatedAtRef.current;
           setState(nextState);
           setError(null);
         }
-      } catch {
+      } catch (error) {
+        if (isAbortError(error)) {
+          return;
+        }
+
         if (active) {
           setError("송출 상태를 불러오지 못했습니다.");
+        }
+      } finally {
+        if (activeRequestRef.current === controller) {
+          activeRequestRef.current = null;
         }
       }
     }
 
     fetchState();
-    const pollingId = window.setInterval(fetchState, 2000);
+    const pollingId = window.setInterval(fetchState, 1000);
 
     return () => {
       active = false;
+      activeRequestRef.current?.abort();
       window.clearInterval(pollingId);
     };
   }, [eventCode]);

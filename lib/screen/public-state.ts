@@ -26,6 +26,7 @@ type ScreenLiveState = {
   question_ends_at: string | null;
   reveal_answer: boolean;
   show_results: boolean;
+  updated_at: string | null;
 };
 
 type ScreenQuestionRow = {
@@ -42,6 +43,7 @@ type ScreenQuestionRow = {
 
 export type PublicScreenState = {
   event: ReturnType<typeof toPublicEvent>;
+  state_updated_at: string | null;
   liveState: {
     mode: ScreenLiveState["mode"];
     screen_scene: string | null;
@@ -94,6 +96,7 @@ function defaultLiveState(): Omit<ScreenLiveState, "current_question_id"> {
     question_ends_at: null,
     reveal_answer: false,
     show_results: false,
+    updated_at: null,
   };
 }
 
@@ -132,9 +135,14 @@ export async function getPublicScreenState(
       status: 200,
       body: {
         event: toPublicEvent(screenEvent),
+        state_updated_at: null,
         liveState: {
-          ...defaultLiveState(),
+          mode: "waiting",
           screen_scene: "inactive",
+          question_started_at: null,
+          question_ends_at: null,
+          reveal_answer: false,
+          show_results: false,
         },
         question: null,
         draw: null,
@@ -149,7 +157,7 @@ export async function getPublicScreenState(
   const { data: liveStateData, error: liveStateError } = await supabase
     .from("live_state")
     .select(
-      "mode, screen_scene, screen_payload, current_question_id, question_started_at, question_ends_at, reveal_answer, show_results"
+      "mode, screen_scene, screen_payload, current_question_id, question_started_at, question_ends_at, reveal_answer, show_results, updated_at"
     )
     .eq("event_id", screenEvent.id)
     .maybeSingle();
@@ -223,6 +231,7 @@ export async function getPublicScreenState(
     status: 200,
     body: {
       event: toPublicEvent(screenEvent),
+      state_updated_at: liveState.updated_at,
       liveState: {
         mode: liveState.mode,
         screen_scene: liveState.screen_scene,

@@ -4,6 +4,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type FormEvent,
   type ReactNode,
@@ -26,6 +27,7 @@ type ParticipantState = {
   participant: {
     display_name: string;
   };
+  state_updated_at: string | null;
   liveState: {
     mode: ParticipantMode;
     screen_scene: string | null;
@@ -75,6 +77,28 @@ function getSecondsLeft(questionEndsAt: string | null, now: number | null) {
   }
 
   return Math.max(0, Math.ceil((new Date(questionEndsAt).getTime() - now) / 1000));
+}
+
+function isOlderState(
+  nextUpdatedAt: string | null | undefined,
+  currentUpdatedAt: string | null
+) {
+  if (!nextUpdatedAt || !currentUpdatedAt) {
+    return false;
+  }
+
+  const nextTime = Date.parse(nextUpdatedAt);
+  const currentTime = Date.parse(currentUpdatedAt);
+
+  if (Number.isNaN(nextTime) || Number.isNaN(currentTime)) {
+    return false;
+  }
+
+  return nextTime < currentTime;
+}
+
+function isAbortError(error: unknown) {
+  return error instanceof Error && error.name === "AbortError";
 }
 
 function optionEntries(question: NonNullable<ParticipantState["question"]>) {
@@ -437,11 +461,14 @@ export default function PlayClient({ eventCode, eventTitle }: PlayClientProps) {
   const [qnaMessage, setQnaMessage] = useState<string | null>(null);
   const [qnaError, setQnaError] = useState<string | null>(null);
   const [now, setNow] = useState<number | null>(null);
+  const latestStateUpdatedAtRef = useRef<string | null>(null);
+  const requestSeqRef = useRef(0);
+  const activeRequestRef = useRef<AbortController | null>(null);
 
-  const loadState = useCallback(async () => {
+  const loadState = useCallback(async (signal?: AbortSignal) => {
     const response = await fetch(
       `/api/participant/${encodeURIComponent(eventCode)}/state`,
-      { cache: "no-store" }
+      { cache: "no-store", signal }
     );
 
     if (!response.ok) {
@@ -451,25 +478,59 @@ export default function PlayClient({ eventCode, eventTitle }: PlayClientProps) {
     return (await response.json()) as ParticipantState;
   }, [eventCode]);
 
-  const refreshState = useCallback(async () => {
-    const nextState = await loadState();
+  const applyLoadedState = useCallback((nextState: ParticipantState) => {
+    if (
+      isOlderState(
+        nextState.state_updated_at,
+        latestStateUpdatedAtRef.current
+      )
+    ) {
+      return;
+    }
 
+    latestStateUpdatedAtRef.current =
+      nextState.state_updated_at ?? latestStateUpdatedAtRef.current;
     setState(nextState);
     setError(null);
-  }, [loadState]);
+  }, []);
+
+  const refreshState = useCallback(async () => {
+    activeRequestRef.current?.abort();
+    const controller = new AbortController();
+    activeRequestRef.current = controller;
+    const requestSeq = requestSeqRef.current + 1;
+    requestSeqRef.current = requestSeq;
+
+    try {
+      const nextState = await loadState(controller.signal);
+
+      if (requestSeq === requestSeqRef.current) {
+        applyLoadedState(nextState);
+      }
+    } catch (error) {
+      if (!isAbortError(error)) {
+        throw error;
+      }
+    } finally {
+      if (activeRequestRef.current === controller) {
+        activeRequestRef.current = null;
+      }
+    }
+  }, [applyLoadedState, loadState]);
 
   useEffect(() => {
     let active = true;
 
     async function refreshIfActive() {
       try {
-        const nextState = await loadState();
-
         if (active) {
-          setState(nextState);
-          setError(null);
+          await refreshState();
         }
-      } catch {
+      } catch (error) {
+        if (isAbortError(error)) {
+          return;
+        }
+
         if (active) {
           setError("현재 퀴즈 상태를 불러오지 못했습니다.");
         }
@@ -481,9 +542,10 @@ export default function PlayClient({ eventCode, eventTitle }: PlayClientProps) {
 
     return () => {
       active = false;
+      activeRequestRef.current?.abort();
       window.clearInterval(pollingId);
     };
-  }, [loadState]);
+  }, [refreshState]);
 
   useEffect(() => {
     const tickId = window.setInterval(() => setNow(Date.now()), 1000);
