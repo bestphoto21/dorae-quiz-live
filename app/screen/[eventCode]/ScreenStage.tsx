@@ -7,7 +7,6 @@ import {
   useMemo,
   useRef,
   useState,
-  type CSSProperties,
   type ReactNode,
 } from "react";
 
@@ -604,41 +603,15 @@ function normalizeScene(scene: string | null | undefined) {
 
 type DrawPayload = NonNullable<ScreenState["draw"]>;
 type DrawAnimationStep = "countdown" | "rolling" | "result";
-type ConfettiParticle = {
-  id: number;
-  shape: "dot" | "capsule" | "rect";
-  color: string;
-  startX: number;
-  startY: number;
-  width: number;
-  height: number;
-  opacity: number;
-  delayMs: number;
-  durationMs: number;
-  burstX: number;
-  burstY: number;
-  fallX: number;
-  fallY: number;
-  rotateDeg: number;
-  radius: string;
-  glowPx: number;
-};
-
-const CONFETTI_COLORS = [
-  "#ec4899",
-  "#22d3ee",
-  "#facc15",
-  "#f97316",
-  "#a855f7",
-  "#38bdf8",
-  "#ef4444",
-  "#facc15",
-  "#f59e0b",
-  "#fde68a",
+const LUCKY_DRAW_CONFETTI_COLORS = [
+  "#ff2d75",
+  "#00c8ff",
+  "#ffe600",
+  "#ff7a00",
+  "#9b5cff",
+  "#ff2b2b",
   "#ffffff",
 ];
-const CONFETTI_COUNT = 220;
-const CELEBRATION_DURATION_MS = 4000;
 
 function normalizeCandidateNames(
   candidateNames: string[],
@@ -669,106 +642,9 @@ function drawAnimationKey(draw: DrawPayload, stateUpdatedAt?: string | null) {
   ].join(":");
 }
 
-function seededRatio(seed: string, index: number, salt: number) {
-  let hash = 2166136261;
-  const input = `${seed}:${index}:${salt}`;
-
-  for (let i = 0; i < input.length; i += 1) {
-    hash ^= input.charCodeAt(i);
-    hash = Math.imul(hash, 16777619);
-  }
-
-  return (hash >>> 0) / 4294967295;
-}
-
-function buildConfettiParticles(seed: string): ConfettiParticle[] {
-  return Array.from({ length: CONFETTI_COUNT }, (_, index) => {
-    const shapeSeed = seededRatio(seed, index, 2);
-    const shape =
-      shapeSeed > 0.76 ? "dot" : shapeSeed > 0.38 ? "capsule" : "rect";
-    const angle = seededRatio(seed, index, 3) * Math.PI * 2;
-    const burstDistance = 170 + seededRatio(seed, index, 4) * 340;
-    const fallDistance = 620 + seededRatio(seed, index, 5) * 520;
-    const startX = 40 + seededRatio(seed, index, 6) * 20;
-    const startY = 52 + seededRatio(seed, index, 7) * 12;
-    const baseSize = 9 + Math.round(seededRatio(seed, index, 8) * 13);
-    const sideDrift = (seededRatio(seed, index, 9) - 0.5) * 180;
-    const burstX = Math.cos(angle) * burstDistance;
-    const burstY = Math.sin(angle) * burstDistance * 0.72 - 70;
-
-    return {
-      id: index,
-      shape,
-      color:
-        CONFETTI_COLORS[
-          Math.floor(seededRatio(seed, index, 1) * CONFETTI_COLORS.length)
-        ] ?? "#f59e0b",
-      startX,
-      startY,
-      width:
-        shape === "capsule"
-          ? 22 + Math.round(seededRatio(seed, index, 10) * 24)
-          : shape === "rect"
-            ? 14 + Math.round(seededRatio(seed, index, 11) * 30)
-            : baseSize,
-      height:
-        shape === "capsule"
-          ? 7 + Math.round(seededRatio(seed, index, 12) * 6)
-          : shape === "rect"
-            ? 8 + Math.round(seededRatio(seed, index, 13) * 18)
-            : baseSize,
-      opacity: 0.76 + seededRatio(seed, index, 14) * 0.18,
-      delayMs: Math.round(seededRatio(seed, index, 15) * 250),
-      durationMs: 3200 + Math.round(seededRatio(seed, index, 16) * 800),
-      burstX: Math.round(burstX),
-      burstY: Math.round(burstY),
-      fallX: Math.round(burstX * 1.16 + sideDrift),
-      fallY: Math.round(fallDistance),
-      rotateDeg: Math.round((seededRatio(seed, index, 17) - 0.5) * 1160),
-      radius: shape === "dot" ? "9999px" : shape === "capsule" ? "9999px" : "3px",
-      glowPx: 2 + Math.round(seededRatio(seed, index, 18) * 7),
-    };
-  });
-}
-
 function CelebrationStyles() {
   return (
     <style>{`
-      @keyframes doraeConfettiBurst {
-        0% {
-          opacity: 0;
-          transform: translate3d(-50%, -50%, 0)
-            rotate(var(--rotate-start))
-            scale(0.42);
-        }
-        8% {
-          opacity: var(--particle-opacity);
-        }
-        25% {
-          opacity: var(--particle-opacity);
-          transform: translate3d(
-              calc(-50% + var(--burst-x)),
-              calc(-50% + var(--burst-y)),
-              0
-            )
-            rotate(var(--rotate-mid))
-            scale(1);
-        }
-        72% {
-          opacity: calc(var(--particle-opacity) * 0.78);
-        }
-        100% {
-          opacity: 0;
-          transform: translate3d(
-              calc(-50% + var(--fall-x)),
-              calc(-50% + var(--fall-y)),
-              0
-            )
-            rotate(var(--rotate-end))
-            scale(0.82);
-        }
-      }
-
       @keyframes doraeWinnerPop {
         0% {
           transform: scale(0.96);
@@ -802,15 +678,6 @@ function CelebrationStyles() {
         }
       }
 
-      .dorae-confetti-particle {
-        animation-name: doraeConfettiBurst;
-        animation-fill-mode: both;
-        animation-timing-function: cubic-bezier(0.13, 0.82, 0.28, 1);
-        box-shadow:
-          0 0 var(--particle-glow) currentColor,
-          0 0 calc(var(--particle-glow) * 1.2) rgba(250, 204, 21, 0.1);
-      }
-
       .dorae-winner-pop {
         animation: doraeWinnerPop 980ms cubic-bezier(0.18, 0.84, 0.32, 1) both;
       }
@@ -820,10 +687,6 @@ function CelebrationStyles() {
       }
 
       @media (prefers-reduced-motion: reduce) {
-        .dorae-confetti-particle {
-          display: none;
-        }
-
         .dorae-winner-pop,
         .dorae-winner-glow {
           animation: none;
@@ -833,62 +696,48 @@ function CelebrationStyles() {
   );
 }
 
-function CelebrationOverlay({ celebrationKey }: { celebrationKey: string }) {
-  const [visible, setVisible] = useState(true);
-  const particles = useMemo(
-    () => buildConfettiParticles(celebrationKey),
-    [celebrationKey]
-  );
+function shouldReduceMotion() {
+  return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+}
 
-  useEffect(() => {
-    const timeoutId = window.setTimeout(
-      () => setVisible(false),
-      CELEBRATION_DURATION_MS
-    );
-
-    return () => window.clearTimeout(timeoutId);
-  }, [celebrationKey]);
-
-  if (!visible) {
-    return null;
+async function playLuckyDrawConfettiBurst() {
+  if (typeof window === "undefined" || shouldReduceMotion()) {
+    return;
   }
 
-  return (
-    <div
-      aria-hidden="true"
-      className="pointer-events-none fixed inset-0 z-[60] overflow-hidden"
-    >
-      {particles.map((particle) => (
-        <span
-          key={particle.id}
-          className="dorae-confetti-particle absolute"
-          style={
-            {
-              left: `${particle.startX}vw`,
-              top: `${particle.startY}vh`,
-              width: `${particle.width}px`,
-              height: `${particle.height}px`,
-              backgroundColor: particle.color,
-              color: particle.color,
-              borderRadius: particle.radius,
-              opacity: particle.opacity,
-              animationDelay: `${particle.delayMs}ms`,
-              animationDuration: `${particle.durationMs}ms`,
-              "--burst-x": `${particle.burstX}px`,
-              "--burst-y": `${particle.burstY}px`,
-              "--fall-x": `${particle.fallX}px`,
-              "--fall-y": `${particle.fallY}px`,
-              "--rotate-start": `${Math.round(particle.rotateDeg * -0.16)}deg`,
-              "--rotate-mid": `${Math.round(particle.rotateDeg * 0.36)}deg`,
-              "--rotate-end": `${particle.rotateDeg}deg`,
-              "--particle-opacity": particle.opacity,
-              "--particle-glow": `${particle.glowPx}px`,
-            } as CSSProperties
-          }
-        />
-      ))}
-    </div>
-  );
+  try {
+    const { default: confetti } = await import("canvas-confetti");
+
+    await confetti({
+      particleCount: 220,
+      spread: 112,
+      startVelocity: 62,
+      scalar: 1.55,
+      ticks: 120,
+      gravity: 0.95,
+      decay: 0.92,
+      origin: { x: 0.5, y: 0.58 },
+      colors: LUCKY_DRAW_CONFETTI_COLORS,
+      zIndex: 9999,
+    });
+
+    window.setTimeout(() => {
+      void confetti({
+        particleCount: 90,
+        spread: 85,
+        startVelocity: 48,
+        scalar: 1.25,
+        ticks: 100,
+        gravity: 1,
+        decay: 0.92,
+        origin: { x: 0.5, y: 0.56 },
+        colors: LUCKY_DRAW_CONFETTI_COLORS,
+        zIndex: 9999,
+      });
+    }, 120);
+  } catch {
+    // Confetti failure must never block the winner screen.
+  }
 }
 
 function DrawResultView({
@@ -907,7 +756,6 @@ function DrawResultView({
   return (
     <section className="relative isolate flex flex-1 items-center justify-center overflow-visible rounded-3xl bg-white p-8 text-center text-[color:#0a1a38] shadow-2xl sm:p-12">
       <CelebrationStyles />
-      <CelebrationOverlay key={celebrationKey} celebrationKey={celebrationKey} />
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 z-10 rounded-3xl"
@@ -1356,6 +1204,7 @@ export default function ScreenStage({
     }
 
     playedSoundKeysRef.current.add(celebrationKey);
+    void playLuckyDrawConfettiBurst();
 
     if (soundStatusRef.current !== "on") {
       return;

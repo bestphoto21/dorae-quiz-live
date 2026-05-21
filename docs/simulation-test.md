@@ -105,7 +105,7 @@ Use the seed output for the exact event ID. For the default event code:
 - Pending Q&A questions do not appear on the screen.
 - The QR connects to `/e/[eventCode]/join`.
 - Lucky draw rolling names contain display names only, and the final winner is the saved DB winner.
-- Lucky draw celebration is a front-layer burst confetti screen effect and does not expose private data.
+- Lucky draw celebration is a canvas-confetti central burst screen effect and does not expose private data.
 - Lucky draw sound is optional, screen-only, and requires the screen operator to enable audio first.
 - Live screen changes appear in about 1-2 seconds while the screen window is visible.
 - Screen transitions keep the previous scene visible while polling is pending; the screen should not flash to a blank or full reload state.

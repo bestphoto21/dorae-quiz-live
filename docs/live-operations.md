@@ -113,9 +113,8 @@ The lucky draw management page includes the same basic screen controls, plus
 saved winner on the screen.
 
 At the final "당첨!" moment, the screen also plays a short celebration effect.
-The pop, gold glow, colorful front confetti burst, and optional pop sound are
-presentation effects only. They do not affect winner selection, and they are
-removed if the operator quickly changes to another screen scene.
+The pop, gold glow, canvas-confetti central burst, and optional pop sound are
+presentation effects only. They do not affect winner selection.
 
 Screen audio is off by default. Press "효과음 켜기" on `/screen/[eventCode]`
 once before the draw to unlock browser audio. If the screen PC is connected to
