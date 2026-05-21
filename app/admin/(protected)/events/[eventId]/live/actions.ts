@@ -199,7 +199,6 @@ async function upsertLiveState(
 function revalidateLivePaths(eventId: string, eventCode: string) {
   revalidatePath(`/admin/events/${eventId}/live`);
   revalidatePath(`/screen/${eventCode}`);
-  revalidatePath(`/api/screen/${eventCode}/state`);
 }
 
 function screenLogDetail({

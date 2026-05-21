@@ -73,6 +73,8 @@ type ScreenStageProps = {
   initialState?: ScreenState | null;
 };
 
+const SCREEN_POLL_DELAY_MS = 400;
+
 function getSecondsLeft(questionEndsAt: string | null, now: number) {
   if (!questionEndsAt) {
     return null;
@@ -619,12 +621,25 @@ export default function ScreenStage({
   );
   const requestSeqRef = useRef(0);
   const inFlightRef = useRef(false);
+  const pollTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     let active = true;
 
+    function scheduleNextPoll() {
+      if (!active) {
+        return;
+      }
+
+      pollTimeoutRef.current = window.setTimeout(
+        fetchState,
+        SCREEN_POLL_DELAY_MS
+      );
+    }
+
     async function fetchState() {
       if (inFlightRef.current) {
+        scheduleNextPoll();
         return;
       }
 
@@ -668,16 +683,18 @@ export default function ScreenStage({
         }
       } finally {
         inFlightRef.current = false;
+        scheduleNextPoll();
       }
     }
 
     fetchState();
-    const pollingId = window.setInterval(fetchState, 1000);
 
     return () => {
       active = false;
       inFlightRef.current = false;
-      window.clearInterval(pollingId);
+      if (pollTimeoutRef.current !== null) {
+        window.clearTimeout(pollTimeoutRef.current);
+      }
     };
   }, [eventCode]);
 

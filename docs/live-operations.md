@@ -196,9 +196,9 @@ Do not log question text, phone numbers, email addresses, secrets, or raw screen
 
 Screen and participant clients currently refresh `live_state` through polling.
 
-- `/screen/[eventCode]` checks the safe screen state API about once per second.
+- `/screen/[eventCode]` checks the safe screen state API aggressively for projection use, scheduling the next request about 400ms after the previous request finishes.
 - `/e/[eventCode]/play` checks the participant state API about once every two seconds.
-- Both clients request state with `cache: "no-store"` and skip overlapping polling requests instead of repeatedly canceling in-flight requests.
+- Both clients request state with `cache: "no-store"` and avoid overlapping polling requests instead of repeatedly canceling in-flight requests.
 - Clients ignore older responses when a newer `live_state.updated_at` value has already been applied, and they also compare a safe state fingerprint so scene and payload changes are applied immediately.
 - Run screen transition tests with the `/screen` window actually visible. Browsers can throttle timers in background tabs, which can make polling-based transitions feel slower than they are on the projected screen.
 - The current target is stable 1-2 second reflection for ordinary live-console transitions.
