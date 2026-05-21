@@ -67,9 +67,11 @@ Use the seed output for the exact event ID. For the default event code:
 - Question management: `/admin/events/[eventId]/questions`
 - Q&A management: `/admin/events/[eventId]/qna`
 - Lucky draw management: `/admin/events/[eventId]/draw`
+- Survey management: `/admin/events/[eventId]/surveys`
 - Operation logs: `/admin/events/[eventId]/logs`
 - Participant join: `/e/sim-202606/join`
 - Participant play: `/e/sim-202606/play`
+- Participant surveys: `/e/sim-202606/survey`
 - Screen: `/screen/sim-202606`
 
 ## Rehearsal Flow
@@ -86,16 +88,21 @@ Use the seed output for the exact event ID. For the default event code:
 10. Close responses.
 11. Reveal the answer.
 12. Start the next question.
-13. On the Q&A management page, use the screen controls for waiting, QR, break, and Q&A waiting.
-14. Approve a Q&A question and send it to screen.
-15. On the lucky draw page, use the screen controls for waiting, QR, break, and lucky draw ready.
-16. Press "효과음 켜기" on the screen if testing draw sound.
-17. Run a draw and confirm the countdown/rolling animation appears.
-18. Confirm the final winner screen shows a short celebration effect and optional pop sound.
-19. Use "최근 당첨 결과 다시 송출" and confirm it replays the latest saved winner without drawing a new winner.
-20. Confirm the final winner matches the saved draw result.
-21. Switch away from the draw scene during animation and confirm the old timer does not overwrite the new screen.
-22. Confirm operation logs were written.
+13. Open survey management and create the starter four surveys if needed.
+14. Add questions to one survey and set it to `open`.
+15. Open `/e/sim-202606/survey`, submit the survey once, and confirm duplicate submission is blocked.
+16. Confirm the admin survey page increments the survey submission count.
+17. Set the survey to `closed` and confirm it is no longer submittable.
+18. On the Q&A management page, use the screen controls for waiting, QR, break, and Q&A waiting.
+19. Approve a Q&A question and send it to screen.
+20. On the lucky draw page, use the screen controls for waiting, QR, break, and lucky draw ready.
+21. Press "효과음 켜기" on the screen if testing draw sound.
+22. Run a draw and confirm the countdown/rolling animation appears.
+23. Confirm the final winner screen shows a short celebration effect and optional pop sound.
+24. Use "최근 당첨 결과 다시 송출" and confirm it replays the latest saved winner without drawing a new winner.
+25. Confirm the final winner matches the saved draw result.
+26. Switch away from the draw scene during animation and confirm the old timer does not overwrite the new screen.
+27. Confirm operation logs were written.
 
 ## Must Check
 
@@ -107,6 +114,8 @@ Use the seed output for the exact event ID. For the default event code:
 - Lucky draw rolling names contain display names only, and the final winner is the saved DB winner.
 - Lucky draw celebration is a canvas-confetti central burst screen effect and does not expose private data.
 - Lucky draw sound is optional, screen-only, and requires the screen operator to enable audio first.
+- Survey submissions require participant registration and one participant can submit each survey only once.
+- Survey answer details are not shown on participant screens or screen projection.
 - Live screen changes appear in about 1-2 seconds while the screen window is visible.
 - Screen transitions keep the previous scene visible while polling is pending; the screen should not flash to a blank or full reload state.
 - Korean labels are not broken.

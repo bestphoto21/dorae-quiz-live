@@ -219,6 +219,10 @@ export async function canEditEventQuestions(
   return canEditEventQuestionsByRole(role);
 }
 
+export function canManageSurveysByRole(role: EventAccessRole | null) {
+  return role === "super_admin" || role === "event_admin" || role === "operator";
+}
+
 export function canOperateLiveByRole(role: EventAccessRole | null) {
   // Live control is broader than question editing because screen operators need
   // to run the stage display. Q&A moderators can inspect event pages, but they

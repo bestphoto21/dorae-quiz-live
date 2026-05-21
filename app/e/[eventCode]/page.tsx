@@ -108,6 +108,11 @@ export default async function EventPage({ params }: EventPageProps) {
             참여 화면으로 이동
           </PrimaryLink>
         )}
+        {hasValidSession && (
+          <PrimaryLink href={`/e/${event.event_code}/survey`} variant="outline">
+            설문 참여하기
+          </PrimaryLink>
+        )}
       </AudienceHero>
 
       <div className="grid gap-4 sm:grid-cols-3">

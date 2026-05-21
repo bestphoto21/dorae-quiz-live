@@ -282,6 +282,11 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
               description="문항과 선택지를 준비하고 정답 정보를 관리하는 화면입니다."
             />
             <OperatorLink
+              href={`/admin/events/${eventId}/surveys`}
+              title="설문 관리"
+              description="행사별 설문을 만들고 참가자 제출 인원을 확인합니다."
+            />
+            <OperatorLink
               href={`/admin/events/${eventId}/live`}
               title="라이브 진행"
               description="문제 시작, 정답 공개, 결과 송출을 운영하는 화면입니다."

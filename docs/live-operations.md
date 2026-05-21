@@ -98,6 +98,22 @@ The Q&A management page also includes a "화면 제어" card. Operators can open
 the screen window and switch to waiting, QR participation, break, or Q&A waiting
 without leaving the Q&A workflow.
 
+## Survey Flow
+
+Survey MVP management is available at `/admin/events/[eventId]/surveys`.
+
+Surveys use the same event QR entry and participant session as quiz and Q&A:
+
+1. Participant registers at `/e/[eventCode]/join`.
+2. Participant opens `/e/[eventCode]/survey`.
+3. Only `open` surveys are shown.
+4. A participant can submit each survey once.
+5. Admins can confirm submission counts on the survey management page.
+
+The first MVP intentionally does not connect surveys to `live_state`, screen
+projection, one-minute timers, or lucky draw sources. Keep survey answer details
+inside protected admin flows only.
+
 ## Lucky Draw Flow
 
 Use "럭키드로우 준비 화면 송출" before drawing or between winners.

@@ -17,6 +17,7 @@ export default async function AdminEventLayout({
     { href: `/admin/events/${eventId}`, label: "개요" },
     { href: `/admin/events/${eventId}/settings`, label: "설정" },
     { href: `/admin/events/${eventId}/questions`, label: "문제" },
+    { href: `/admin/events/${eventId}/surveys`, label: "설문" },
     { href: `/admin/events/${eventId}/live`, label: "라이브" },
     { href: `/admin/events/${eventId}/draw`, label: "추첨" },
     { href: `/admin/events/${eventId}/qna`, label: "Q&A" },

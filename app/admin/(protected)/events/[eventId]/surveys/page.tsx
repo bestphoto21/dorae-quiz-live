@@ -1,0 +1,762 @@
+import Link from "next/link";
+import {
+  AdminPanel,
+  AdminShell,
+  EmptyState,
+  StatusBadge,
+} from "@/components/quiz/ui";
+import {
+  canManageSurveysByRole,
+  getEventScopedRole,
+  requireEventAccess,
+} from "@/lib/auth/events";
+import {
+  getSurveyFormsForEvent,
+  type SurveyFormSummary,
+  type SurveyQuestionRecord,
+  type SurveyQuestionType,
+  type SurveyStatus,
+} from "@/lib/data/surveys";
+import { createAdminSupabaseClient } from "@/lib/supabase/admin";
+import {
+  createStarterSurveys,
+  createSurveyForm,
+  createSurveyQuestion,
+  deleteOrArchiveSurveyForm,
+  deleteSurveyQuestion,
+  moveSurveyQuestion,
+  updateSurveyForm,
+  updateSurveyQuestion,
+} from "./actions";
+
+type SurveyPageProps = {
+  params: Promise<{ eventId: string }>;
+  searchParams: Promise<{
+    surveyId?: string | string[];
+    message?: string | string[];
+    error?: string | string[];
+  }>;
+};
+
+const QUESTION_TYPES: Array<{ value: SurveyQuestionType; label: string }> = [
+  { value: "short_text", label: "단답형" },
+  { value: "long_text", label: "장문형" },
+  { value: "single_choice", label: "객관식 단일 선택" },
+  { value: "multiple_choice", label: "객관식 복수 선택" },
+  { value: "rating", label: "1~5 만족도" },
+];
+
+const STATUS_OPTIONS: Array<{ value: SurveyStatus; label: string }> = [
+  { value: "draft", label: "작성 중" },
+  { value: "open", label: "응답 가능" },
+  { value: "closed", label: "마감" },
+  { value: "archived", label: "보관" },
+];
+
+function getSingle(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function statusLabel(status: SurveyStatus) {
+  return STATUS_OPTIONS.find((option) => option.value === status)?.label ?? status;
+}
+
+function statusTone(status: SurveyStatus) {
+  if (status === "open") {
+    return "green";
+  }
+
+  if (status === "closed") {
+    return "amber";
+  }
+
+  if (status === "archived") {
+    return "rose";
+  }
+
+  return "slate";
+}
+
+function questionTypeLabel(type: SurveyQuestionType) {
+  return QUESTION_TYPES.find((option) => option.value === type)?.label ?? type;
+}
+
+async function getParticipantCount(eventId: string) {
+  const supabase = createAdminSupabaseClient();
+  const { count, error } = await supabase
+    .from("participants")
+    .select("id", { count: "exact", head: true })
+    .eq("event_id", eventId);
+
+  if (error) {
+    console.error("[admin-surveys] Failed to count participants.", {
+      eventId,
+      message: error.message,
+      code: error.code,
+    });
+
+    return 0;
+  }
+
+  return count ?? 0;
+}
+
+function SubmitButton({
+  children,
+  tone = "dark",
+  disabled = false,
+}: {
+  children: string;
+  tone?: "dark" | "amber" | "rose" | "outline";
+  disabled?: boolean;
+}) {
+  const classes = {
+    dark: "border-[#0a1a38] bg-[#0a1a38] text-white hover:bg-[#10284f]",
+    amber:
+      "border-amber-500 bg-amber-400 text-[color:#0a1a38] hover:bg-amber-300",
+    rose: "border-rose-600 bg-rose-600 text-white hover:bg-rose-700",
+    outline:
+      "border-[#0a1a38] bg-white text-[color:#0a1a38] hover:bg-slate-100",
+  };
+
+  return (
+    <button
+      type="submit"
+      disabled={disabled}
+      className={`min-h-11 rounded-2xl border px-4 py-2 text-sm font-black shadow-sm transition disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-200 disabled:text-slate-700 ${classes[tone]}`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function FieldLabel({ children }: { children: string }) {
+  return <label className="text-sm font-black text-[color:#0a1a38]">{children}</label>;
+}
+
+function TextInput({
+  name,
+  defaultValue,
+  placeholder,
+  type = "text",
+  required = false,
+}: {
+  name: string;
+  defaultValue?: string | number | null;
+  placeholder?: string;
+  type?: string;
+  required?: boolean;
+}) {
+  return (
+    <input
+      name={name}
+      type={type}
+      required={required}
+      defaultValue={defaultValue ?? ""}
+      placeholder={placeholder}
+      className="min-h-11 w-full rounded-2xl border border-slate-400 bg-white px-4 py-2 text-sm font-bold text-[color:#0a1a38] shadow-sm outline-none placeholder:text-slate-500 focus:border-[#0a1a38]"
+    />
+  );
+}
+
+function TextArea({
+  name,
+  defaultValue,
+  placeholder,
+  rows = 4,
+}: {
+  name: string;
+  defaultValue?: string | null;
+  placeholder?: string;
+  rows?: number;
+}) {
+  return (
+    <textarea
+      name={name}
+      rows={rows}
+      defaultValue={defaultValue ?? ""}
+      placeholder={placeholder}
+      className="w-full resize-y rounded-2xl border border-slate-400 bg-white px-4 py-3 text-sm font-bold leading-6 text-[color:#0a1a38] shadow-sm outline-none placeholder:text-slate-500 focus:border-[#0a1a38]"
+    />
+  );
+}
+
+function SurveyTabs({
+  eventId,
+  surveys,
+  activeSurveyId,
+  participantCount,
+}: {
+  eventId: string;
+  surveys: SurveyFormSummary[];
+  activeSurveyId: string | null;
+  participantCount: number;
+}) {
+  return (
+    <AdminPanel
+      title="설문 목록"
+      description="설문별 상태와 제출 인원을 확인하고, 필요한 설문을 선택해 질문을 관리합니다."
+    >
+      <div className="flex gap-2 overflow-x-auto pb-1">
+        {surveys.map((survey, index) => {
+          const active = survey.id === activeSurveyId;
+
+          return (
+            <Link
+              key={survey.id}
+              href={`/admin/events/${eventId}/surveys?surveyId=${survey.id}`}
+              className={`min-w-44 shrink-0 rounded-2xl border p-4 shadow-sm transition ${
+                active
+                  ? "border-[#0a1a38] bg-[#0a1a38] text-white"
+                  : "border-slate-300 bg-white text-[color:#0a1a38] hover:border-[#0a1a38]"
+              }`}
+            >
+              <p className="text-sm font-black">설문 {index + 1}</p>
+              <p className="mt-1 line-clamp-1 text-base font-black">
+                {survey.title}
+              </p>
+              <p
+                className={`mt-2 text-xs font-bold ${
+                  active ? "text-white/85" : "text-slate-700"
+                }`}
+              >
+                제출 {survey.response_count.toLocaleString("ko-KR")}명 / 입장{" "}
+                {participantCount.toLocaleString("ko-KR")}명
+              </p>
+            </Link>
+          );
+        })}
+        <a
+          href="#create-survey"
+          className="flex min-w-40 shrink-0 items-center justify-center rounded-2xl border border-dashed border-[#0a1a38] bg-white p-4 text-sm font-black text-[color:#0a1a38] shadow-sm hover:bg-slate-50"
+        >
+          + 설문 추가
+        </a>
+      </div>
+    </AdminPanel>
+  );
+}
+
+function SurveyCreatePanel({
+  eventId,
+  nextOrder,
+  canManage,
+}: {
+  eventId: string;
+  nextOrder: number;
+  canManage: boolean;
+}) {
+  const action = createSurveyForm.bind(null, eventId);
+
+  return (
+    <AdminPanel
+      title="설문 추가"
+      description="새 설문은 작성 중 상태로 만든 뒤 질문을 추가하고 응답 가능 상태로 전환하세요."
+    >
+      <form id="create-survey" action={action} className="grid gap-4">
+        <div className="grid gap-4 lg:grid-cols-[1fr_12rem_8rem]">
+          <div>
+            <FieldLabel>설문 제목</FieldLabel>
+            <div className="mt-2">
+              <TextInput name="title" placeholder="예: 행사 만족도 설문" required />
+            </div>
+          </div>
+          <div>
+            <FieldLabel>상태</FieldLabel>
+            <select
+              name="status"
+              defaultValue="draft"
+              className="mt-2 min-h-11 w-full rounded-2xl border border-slate-400 bg-white px-4 py-2 text-sm font-bold text-[color:#0a1a38] shadow-sm"
+            >
+              {STATUS_OPTIONS.filter((option) => option.value !== "open").map(
+                (option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                )
+              )}
+            </select>
+          </div>
+          <div>
+            <FieldLabel>순서</FieldLabel>
+            <div className="mt-2">
+              <TextInput name="sort_order" type="number" defaultValue={nextOrder} />
+            </div>
+          </div>
+        </div>
+        <div>
+          <FieldLabel>설명</FieldLabel>
+          <div className="mt-2">
+            <TextArea name="description" placeholder="참가자에게 보일 짧은 안내" />
+          </div>
+        </div>
+        <SubmitButton disabled={!canManage}>설문 추가</SubmitButton>
+      </form>
+    </AdminPanel>
+  );
+}
+
+function SurveySettingsPanel({
+  eventId,
+  survey,
+  canManage,
+}: {
+  eventId: string;
+  survey: SurveyFormSummary;
+  canManage: boolean;
+}) {
+  const updateAction = updateSurveyForm.bind(null, eventId, survey.id);
+  const deleteAction = deleteOrArchiveSurveyForm.bind(null, eventId, survey.id);
+  const hasQuestions = survey.questions.length > 0;
+
+  return (
+    <AdminPanel
+      title="설문 설정"
+      description="응답 가능 상태로 열면 참가자 설문 목록에 표시됩니다. 질문이 없는 설문은 열 수 없습니다."
+    >
+      <form action={updateAction} className="grid gap-4">
+        <div className="grid gap-4 lg:grid-cols-[1fr_12rem_8rem]">
+          <div>
+            <FieldLabel>설문 제목</FieldLabel>
+            <div className="mt-2">
+              <TextInput name="title" defaultValue={survey.title} required />
+            </div>
+          </div>
+          <div>
+            <FieldLabel>상태</FieldLabel>
+            <select
+              name="status"
+              defaultValue={survey.status}
+              className="mt-2 min-h-11 w-full rounded-2xl border border-slate-400 bg-white px-4 py-2 text-sm font-bold text-[color:#0a1a38] shadow-sm"
+            >
+              {STATUS_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <FieldLabel>순서</FieldLabel>
+            <div className="mt-2">
+              <TextInput
+                name="sort_order"
+                type="number"
+                defaultValue={survey.sort_order}
+              />
+            </div>
+          </div>
+        </div>
+        <div>
+          <FieldLabel>설명</FieldLabel>
+          <div className="mt-2">
+            <TextArea name="description" defaultValue={survey.description} />
+          </div>
+        </div>
+        {!hasQuestions && (
+          <p className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm font-bold leading-6 text-amber-950">
+            질문을 1개 이상 추가해야 응답 가능 상태로 열 수 있습니다.
+          </p>
+        )}
+        <div className="flex flex-wrap gap-2">
+          <SubmitButton disabled={!canManage}>설문 설정 저장</SubmitButton>
+        </div>
+      </form>
+
+      <form action={deleteAction} className="mt-5 rounded-2xl border border-rose-200 bg-rose-50 p-4">
+        <label className="flex items-start gap-3 text-sm font-bold leading-6 text-rose-950">
+          <input
+            type="checkbox"
+            name="confirm_delete"
+            value="yes"
+            className="mt-1 size-4"
+          />
+          응답이 없으면 설문을 삭제하고, 응답이 있으면 보관 상태로 전환합니다.
+        </label>
+        <div className="mt-3">
+          <SubmitButton tone="rose" disabled={!canManage}>
+            설문 삭제 또는 보관
+          </SubmitButton>
+        </div>
+      </form>
+    </AdminPanel>
+  );
+}
+
+function QuestionForm({
+  eventId,
+  survey,
+  question,
+  canManage,
+}: {
+  eventId: string;
+  survey: SurveyFormSummary;
+  question?: SurveyQuestionRecord;
+  canManage: boolean;
+}) {
+  const action = question
+    ? updateSurveyQuestion.bind(null, eventId, survey.id, question.id)
+    : createSurveyQuestion.bind(null, eventId, survey.id);
+  const defaultType = question?.question_type ?? "short_text";
+  const defaultOrder = question?.sort_order ?? survey.questions.length + 1;
+
+  return (
+    <form action={action} className="grid gap-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="grid gap-4 lg:grid-cols-[1fr_14rem_8rem]">
+        <div>
+          <FieldLabel>질문</FieldLabel>
+          <div className="mt-2">
+            <TextInput
+              name="question_text"
+              defaultValue={question?.question_text}
+              placeholder="질문 내용을 입력하세요"
+              required
+            />
+          </div>
+        </div>
+        <div>
+          <FieldLabel>질문 타입</FieldLabel>
+          <select
+            name="question_type"
+            defaultValue={defaultType}
+            className="mt-2 min-h-11 w-full rounded-2xl border border-slate-400 bg-white px-4 py-2 text-sm font-bold text-[color:#0a1a38] shadow-sm"
+          >
+            {QUESTION_TYPES.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <FieldLabel>순서</FieldLabel>
+          <div className="mt-2">
+            <TextInput name="sort_order" type="number" defaultValue={defaultOrder} />
+          </div>
+        </div>
+      </div>
+      <div>
+        <FieldLabel>객관식 선택지</FieldLabel>
+        <div className="mt-2">
+          <TextArea
+            name="options"
+            rows={3}
+            defaultValue={question?.options.join("\n") ?? ""}
+            placeholder={"객관식일 때만 사용합니다.\n예: 매우 만족\n만족\n보통"}
+          />
+        </div>
+        <p className="mt-2 text-xs font-bold leading-5 text-slate-700">
+          단답형, 장문형, 만족도 질문은 선택지를 비워도 됩니다.
+        </p>
+      </div>
+      <label className="flex items-center gap-3 text-sm font-bold text-[color:#0a1a38]">
+        <input
+          type="checkbox"
+          name="is_required"
+          defaultChecked={question?.is_required ?? true}
+          className="size-4"
+        />
+        필수 질문
+      </label>
+      <div className="flex flex-wrap gap-2">
+        <SubmitButton disabled={!canManage}>
+          {question ? "질문 저장" : "질문 추가"}
+        </SubmitButton>
+      </div>
+    </form>
+  );
+}
+
+function QuestionCard({
+  eventId,
+  survey,
+  question,
+  canManage,
+}: {
+  eventId: string;
+  survey: SurveyFormSummary;
+  question: SurveyQuestionRecord;
+  canManage: boolean;
+}) {
+  const deleteAction = deleteSurveyQuestion.bind(
+    null,
+    eventId,
+    survey.id,
+    question.id
+  );
+  const moveUpAction = moveSurveyQuestion.bind(
+    null,
+    eventId,
+    survey.id,
+    question.id,
+    "up"
+  );
+  const moveDownAction = moveSurveyQuestion.bind(
+    null,
+    eventId,
+    survey.id,
+    question.id,
+    "down"
+  );
+
+  return (
+    <article className="grid gap-4 rounded-3xl border border-slate-200 bg-slate-50 p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-black text-slate-700">
+            #{question.sort_order} · {questionTypeLabel(question.question_type)}
+          </p>
+          <h3 className="mt-2 text-xl font-black leading-7 text-[color:#0a1a38]">
+            {question.question_text}
+          </h3>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <StatusBadge tone={question.is_required ? "cyan" : "slate"}>
+            {question.is_required ? "필수" : "선택"}
+          </StatusBadge>
+          {question.options.length > 0 && (
+            <StatusBadge tone="amber">선택지 {question.options.length}개</StatusBadge>
+          )}
+        </div>
+      </div>
+
+      {question.options.length > 0 && (
+        <div className="grid gap-2 rounded-2xl border border-slate-300 bg-white p-4">
+          {question.options.map((option) => (
+            <p key={option} className="text-sm font-bold text-[color:#0a1a38]">
+              {option}
+            </p>
+          ))}
+        </div>
+      )}
+
+      <QuestionForm
+        eventId={eventId}
+        survey={survey}
+        question={question}
+        canManage={canManage}
+      />
+
+      <div className="flex flex-wrap gap-2">
+        <form action={moveUpAction}>
+          <SubmitButton tone="outline" disabled={!canManage}>
+            위로
+          </SubmitButton>
+        </form>
+        <form action={moveDownAction}>
+          <SubmitButton tone="outline" disabled={!canManage}>
+            아래로
+          </SubmitButton>
+        </form>
+        <form action={deleteAction} className="flex flex-wrap items-center gap-3">
+          <label className="flex items-center gap-2 text-sm font-bold text-rose-900">
+            <input
+              type="checkbox"
+              name="confirm_delete"
+              value="yes"
+              className="size-4"
+            />
+            삭제 확인
+          </label>
+          <SubmitButton tone="rose" disabled={!canManage}>
+            질문 삭제
+          </SubmitButton>
+        </form>
+      </div>
+    </article>
+  );
+}
+
+function QuestionManagePanel({
+  eventId,
+  survey,
+  canManage,
+}: {
+  eventId: string;
+  survey: SurveyFormSummary;
+  canManage: boolean;
+}) {
+  return (
+    <AdminPanel
+      title="질문 관리"
+      description="객관식 선택지는 줄바꿈으로 입력합니다. 응답이 있는 질문은 삭제할 수 없습니다."
+    >
+      <div className="grid gap-5">
+        <QuestionForm eventId={eventId} survey={survey} canManage={canManage} />
+        {survey.questions.length > 0 ? (
+          <div className="grid gap-4">
+            {survey.questions.map((question) => (
+              <QuestionCard
+                key={question.id}
+                eventId={eventId}
+                survey={survey}
+                question={question}
+                canManage={canManage}
+              />
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            title="아직 질문이 없습니다."
+            description="질문을 추가한 뒤 설문을 응답 가능 상태로 전환하세요."
+          />
+        )}
+      </div>
+    </AdminPanel>
+  );
+}
+
+export default async function SurveysPage({
+  params,
+  searchParams,
+}: SurveyPageProps) {
+  const { eventId } = await params;
+  const query = await searchParams;
+  const { admin, event } = await requireEventAccess(eventId);
+  const role = await getEventScopedRole(admin, eventId);
+  const canManage = canManageSurveysByRole(role);
+  const [surveys, participantCount] = await Promise.all([
+    getSurveyFormsForEvent(eventId),
+    getParticipantCount(eventId),
+  ]);
+  const requestedSurveyId = getSingle(query.surveyId);
+  const activeSurvey =
+    surveys.find((survey) => survey.id === requestedSurveyId) ?? surveys[0] ?? null;
+  const totalResponses = surveys.reduce(
+    (sum, survey) => sum + survey.response_count,
+    0
+  );
+  const createStarterAction = createStarterSurveys.bind(null, eventId);
+  const message = getSingle(query.message);
+  const error = getSingle(query.error);
+
+  return (
+    <AdminShell
+      title="설문 관리"
+      description="행사별 설문을 만들고, QR로 입장한 참가자가 제출한 설문별 응답 인원을 확인합니다."
+    >
+      <div className="grid gap-5">
+        <AdminPanel title={event.title} description={`행사 코드: ${event.event_code}`}>
+          <div className="flex flex-wrap gap-2">
+            <StatusBadge tone={canManage ? "green" : "amber"}>
+              {canManage ? "설문 편집 가능" : "조회 전용"}
+            </StatusBadge>
+            <StatusBadge tone="slate">
+              설문 {surveys.length.toLocaleString("ko-KR")}개
+            </StatusBadge>
+            <StatusBadge tone="cyan">
+              전체 제출 {totalResponses.toLocaleString("ko-KR")}건
+            </StatusBadge>
+            <StatusBadge tone="slate">
+              입장 {participantCount.toLocaleString("ko-KR")}명
+            </StatusBadge>
+          </div>
+          <p className="mt-4 rounded-2xl border border-cyan-200 bg-cyan-50 p-4 text-sm font-bold leading-6 text-cyan-950">
+            참가자는 QR 입장 후 /e/{event.event_code}/survey에서 응답 가능 상태의 설문을 제출할 수 있습니다.
+            한 참가자는 같은 설문에 한 번만 제출할 수 있습니다.
+          </p>
+          {!canManage && (
+            <p className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold leading-6 text-amber-900">
+              현재 역할은 설문을 볼 수 있지만 만들거나 수정할 수 없습니다.
+            </p>
+          )}
+          {message && (
+            <p className="mt-4 rounded-2xl border border-emerald-300 bg-emerald-50 p-4 text-sm font-bold text-emerald-900">
+              {message}
+            </p>
+          )}
+          {error && (
+            <p className="mt-4 rounded-2xl border border-rose-300 bg-rose-50 p-4 text-sm font-bold text-rose-900">
+              {error}
+            </p>
+          )}
+        </AdminPanel>
+
+        {surveys.length === 0 ? (
+          <AdminPanel
+            title="기본 설문 4개 만들기"
+            description="아직 설문이 없습니다. 설문 1~4를 작성 중 상태로 만든 뒤 필요한 질문을 추가하세요."
+          >
+            <form action={createStarterAction}>
+              <SubmitButton disabled={!canManage}>기본 설문 4개 만들기</SubmitButton>
+            </form>
+          </AdminPanel>
+        ) : (
+          <SurveyTabs
+            eventId={eventId}
+            surveys={surveys}
+            activeSurveyId={activeSurvey?.id ?? null}
+            participantCount={participantCount}
+          />
+        )}
+
+        <div className="grid gap-5 xl:grid-cols-[1fr_24rem]">
+          <section className="grid content-start gap-5">
+            {activeSurvey ? (
+              <>
+                <AdminPanel
+                  title={activeSurvey.title}
+                  description={activeSurvey.description ?? "설문 설명이 없습니다."}
+                >
+                  <div className="flex flex-wrap gap-2">
+                    <StatusBadge tone={statusTone(activeSurvey.status)}>
+                      {statusLabel(activeSurvey.status)}
+                    </StatusBadge>
+                    <StatusBadge tone="cyan">
+                      제출 {activeSurvey.response_count.toLocaleString("ko-KR")}명
+                    </StatusBadge>
+                    <StatusBadge tone="slate">
+                      질문 {activeSurvey.questions.length.toLocaleString("ko-KR")}개
+                    </StatusBadge>
+                  </div>
+                  <p className="mt-4 text-sm font-bold leading-6 text-slate-700">
+                    응답 가능 상태(open)인 설문만 참가자 화면에 표시됩니다. 마감(closed) 또는 보관(archived)
+                    상태는 새 제출을 받지 않습니다.
+                  </p>
+                </AdminPanel>
+                <QuestionManagePanel
+                  eventId={eventId}
+                  survey={activeSurvey}
+                  canManage={canManage}
+                />
+              </>
+            ) : (
+              <EmptyState
+                title="선택된 설문이 없습니다."
+                description="기본 설문 4개를 만들거나 새 설문을 추가하세요."
+              />
+            )}
+          </section>
+
+          <aside className="grid content-start gap-5">
+            {activeSurvey && (
+              <SurveySettingsPanel
+                eventId={eventId}
+                survey={activeSurvey}
+                canManage={canManage}
+              />
+            )}
+            <SurveyCreatePanel
+              eventId={eventId}
+              nextOrder={surveys.length + 1}
+              canManage={canManage}
+            />
+            <AdminPanel
+              title="운영 메모"
+              description="이번 1단계에서는 설문을 live_state, 스크린 송출, 럭키드로우와 연결하지 않습니다."
+            >
+              <div className="grid gap-3 text-sm font-bold leading-6 text-slate-700">
+                <p className="rounded-2xl border border-slate-300 bg-slate-50 p-4">
+                  설문 시작과 종료는 상태값으로만 관리합니다. 1분 타이머와 스크린 송출은 다음 단계에서 검토합니다.
+                </p>
+                <p className="rounded-2xl border border-slate-300 bg-slate-50 p-4">
+                  설문 답변 상세는 보호된 관리자 영역에서만 다뤄야 하며, 참가자 화면에는 다른 사람의 응답을 표시하지 않습니다.
+                </p>
+              </div>
+            </AdminPanel>
+          </aside>
+        </div>
+      </div>
+    </AdminShell>
+  );
+}

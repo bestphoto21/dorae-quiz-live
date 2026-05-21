@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { AudienceHero, MobileCard } from "@/components/quiz/ui";
 import { readParticipantSessionCookie } from "@/lib/participants/session";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
@@ -63,6 +64,27 @@ async function getParticipant(participantId: string, eventId: string) {
   return data as PlayParticipant | null;
 }
 
+async function getOpenSurveyCount(eventId: string) {
+  const supabase = createAdminSupabaseClient();
+  const { count, error } = await supabase
+    .from("survey_forms")
+    .select("id", { count: "exact", head: true })
+    .eq("event_id", eventId)
+    .eq("status", "open");
+
+  if (error) {
+    console.error("[participant-play] Failed to count open surveys.", {
+      eventId,
+      message: error.message,
+      code: error.code,
+    });
+
+    return 0;
+  }
+
+  return count ?? 0;
+}
+
 export default async function PlayPage({ params }: PlayPageProps) {
   const { eventCode } = await params;
   const normalizedEventCode = eventCode.trim().toLowerCase();
@@ -98,6 +120,7 @@ export default async function PlayPage({ params }: PlayPageProps) {
 
   const displayName = participant.display_name?.trim() || participant.name;
   const clearAction = clearParticipantSessionAction.bind(null, event.event_code);
+  const openSurveyCount = await getOpenSurveyCount(event.id);
 
   return (
     <div className="grid gap-5">
@@ -121,6 +144,28 @@ export default async function PlayPage({ params }: PlayPageProps) {
           </form>
         </div>
       </MobileCard>
+
+      {openSurveyCount > 0 && (
+        <MobileCard>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-black text-slate-700">진행 중인 설문</p>
+              <h2 className="mt-2 text-2xl font-black text-[color:#0a1a38]">
+                참여 가능한 설문 {openSurveyCount.toLocaleString("ko-KR")}개
+              </h2>
+              <p className="mt-2 text-sm font-bold leading-6 text-slate-700">
+                설문은 한 번 제출하면 다시 제출할 수 없습니다.
+              </p>
+            </div>
+            <Link
+              href={`/e/${event.event_code}/survey`}
+              className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-[#0a1a38] bg-[#0a1a38] px-5 py-3 text-sm font-black text-white shadow-sm transition hover:bg-[#10284f]"
+            >
+              진행 중인 설문 참여하기
+            </Link>
+          </div>
+        </MobileCard>
+      )}
 
       <PlayClient eventCode={event.event_code} eventTitle={event.title} />
     </div>
