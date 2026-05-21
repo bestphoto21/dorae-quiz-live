@@ -71,16 +71,19 @@ function createParticle(options) {
   const {
     origin,
     colors,
+    angle,
     spread,
     startVelocity,
     scalar,
     ticks,
     gravity,
     decay,
+    drift,
   } = options;
   const startX = window.innerWidth * origin.x;
   const startY = window.innerHeight * origin.y;
-  const angle = -Math.PI / 2 + ((Math.random() - 0.5) * spread * Math.PI) / 180;
+  const baseAngle = -((angle * Math.PI) / 180);
+  const particleAngle = baseAngle + ((Math.random() - 0.5) * spread * Math.PI) / 180;
   const velocity = startVelocity * randomBetween(0.62, 1.12);
   const shape = Math.random();
   const baseSize = randomBetween(5, 12) * scalar;
@@ -88,8 +91,9 @@ function createParticle(options) {
   return {
     x: startX,
     y: startY,
-    velocityX: Math.cos(angle) * velocity,
-    velocityY: Math.sin(angle) * velocity,
+    velocityX: Math.cos(particleAngle) * velocity,
+    velocityY: Math.sin(particleAngle) * velocity,
+    drift: drift * randomBetween(0.72, 1.28),
     wobble: Math.random() * Math.PI * 2,
     wobbleSpeed: randomBetween(0.08, 0.2),
     tilt: randomBetween(-Math.PI, Math.PI),
@@ -142,7 +146,7 @@ function updateParticle(particle) {
   particle.velocityX *= particle.decay;
   particle.velocityY *= particle.decay;
   particle.velocityY += particle.gravity;
-  particle.x += particle.velocityX;
+  particle.x += particle.velocityX + particle.drift;
   particle.y += particle.velocityY;
   particle.wobble += particle.wobbleSpeed;
   particle.tilt += particle.tiltSpeed;
@@ -174,12 +178,14 @@ export default function confetti(options = {}) {
 
   const normalized = {
     particleCount: Math.max(0, Math.round(options.particleCount ?? 50)),
+    angle: options.angle ?? 90,
     spread: options.spread ?? 45,
     startVelocity: options.startVelocity ?? 45,
     scalar: options.scalar ?? 1,
     ticks: Math.max(1, Math.round(options.ticks ?? 200)),
     gravity: options.gravity ?? 1,
     decay: options.decay ?? 0.9,
+    drift: options.drift ?? 0,
     origin: {
       x: options.origin?.x ?? 0.5,
       y: options.origin?.y ?? 0.5,

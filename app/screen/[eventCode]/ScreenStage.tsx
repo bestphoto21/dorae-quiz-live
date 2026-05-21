@@ -613,6 +613,10 @@ const LUCKY_DRAW_CONFETTI_COLORS = [
   "#ffffff",
 ];
 
+type ConfettiFn = typeof import("canvas-confetti").default;
+type ConfettiOptions = Parameters<ConfettiFn>[0];
+type ScheduleConfettiTimeout = (callback: () => void, delay: number) => void;
+
 function normalizeCandidateNames(
   candidateNames: string[],
   participantDisplayName: string
@@ -700,7 +704,37 @@ function shouldReduceMotion() {
   return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 }
 
-async function playLuckyDrawConfettiBurst() {
+function randomBetween(min: number, max: number) {
+  return min + Math.random() * (max - min);
+}
+
+function randomInt(min: number, max: number) {
+  return Math.round(randomBetween(min, max));
+}
+
+function buildLuckyDrawMicroBurst(): ConfettiOptions {
+  return {
+    particleCount: randomInt(18, 42),
+    angle: randomBetween(74, 106),
+    spread: randomBetween(55, 110),
+    startVelocity: randomBetween(28, 60),
+    scalar: randomBetween(0.9, 1.5),
+    ticks: randomInt(80, 130),
+    gravity: randomBetween(0.85, 1.2),
+    decay: randomBetween(0.89, 0.94),
+    drift: randomBetween(-0.7, 0.7),
+    origin: {
+      x: randomBetween(0.44, 0.56),
+      y: randomBetween(0.5, 0.62),
+    },
+    colors: LUCKY_DRAW_CONFETTI_COLORS,
+    zIndex: 9999,
+  };
+}
+
+async function playLuckyDrawConfettiBurst(
+  scheduleTimeout: ScheduleConfettiTimeout
+) {
   if (typeof window === "undefined" || shouldReduceMotion()) {
     return;
   }
@@ -709,7 +743,7 @@ async function playLuckyDrawConfettiBurst() {
     const { default: confetti } = await import("canvas-confetti");
 
     await confetti({
-      particleCount: 220,
+      particleCount: 170,
       spread: 112,
       startVelocity: 62,
       scalar: 1.55,
@@ -721,20 +755,14 @@ async function playLuckyDrawConfettiBurst() {
       zIndex: 9999,
     });
 
-    window.setTimeout(() => {
-      void confetti({
-        particleCount: 90,
-        spread: 85,
-        startVelocity: 48,
-        scalar: 1.25,
-        ticks: 100,
-        gravity: 1,
-        decay: 0.92,
-        origin: { x: 0.5, y: 0.56 },
-        colors: LUCKY_DRAW_CONFETTI_COLORS,
-        zIndex: 9999,
-      });
-    }, 120);
+    Array.from({ length: 5 }).forEach((_, index) => {
+      const delay = randomBetween(120, 500) + index * randomBetween(8, 28);
+      const options = buildLuckyDrawMicroBurst();
+
+      scheduleTimeout(() => {
+        void confetti(options);
+      }, delay);
+    });
   } catch {
     // Confetti failure must never block the winner screen.
   }
@@ -1159,6 +1187,7 @@ export default function ScreenStage({
   const audioContextRef = useRef<AudioContext | null>(null);
   const soundStatusRef = useRef<ScreenSoundStatus>("off");
   const playedSoundKeysRef = useRef<Set<string>>(new Set());
+  const confettiTimeoutsRef = useRef<number[]>([]);
 
   useEffect(() => {
     soundStatusRef.current = soundStatus;
@@ -1169,6 +1198,33 @@ export default function ScreenStage({
       void audioContextRef.current?.close().catch(() => undefined);
     };
   }, []);
+
+  const clearConfettiTimeouts = useCallback(() => {
+    confettiTimeoutsRef.current.forEach((timeoutId) => {
+      window.clearTimeout(timeoutId);
+    });
+    confettiTimeoutsRef.current = [];
+  }, []);
+
+  const scheduleConfettiTimeout = useCallback<ScheduleConfettiTimeout>(
+    (callback, delay) => {
+      const timeoutId = window.setTimeout(() => {
+        confettiTimeoutsRef.current = confettiTimeoutsRef.current.filter(
+          (storedTimeoutId) => storedTimeoutId !== timeoutId
+        );
+        callback();
+      }, delay);
+
+      confettiTimeoutsRef.current.push(timeoutId);
+    },
+    []
+  );
+
+  useEffect(() => {
+    return () => {
+      clearConfettiTimeouts();
+    };
+  }, [clearConfettiTimeouts]);
 
   const handleToggleSound = useCallback(async () => {
     if (soundStatusRef.current === "on") {
@@ -1204,7 +1260,8 @@ export default function ScreenStage({
     }
 
     playedSoundKeysRef.current.add(celebrationKey);
-    void playLuckyDrawConfettiBurst();
+    clearConfettiTimeouts();
+    void playLuckyDrawConfettiBurst(scheduleConfettiTimeout);
 
     if (soundStatusRef.current !== "on") {
       return;
@@ -1221,7 +1278,13 @@ export default function ScreenStage({
     } catch {
       // Audio failure must never block the screen celebration.
     }
-  }, []);
+  }, [clearConfettiTimeouts, scheduleConfettiTimeout]);
+
+  useEffect(() => {
+    if (normalizeScene(state?.liveState.screen_scene) !== "draw_winner") {
+      clearConfettiTimeouts();
+    }
+  }, [clearConfettiTimeouts, state?.liveState.screen_scene]);
 
   useEffect(() => {
     let active = true;
