@@ -23,8 +23,13 @@ export type DrawWinnerRecord = {
   event_id: string;
   prize_id: string | null;
   participant_id: string;
-  source_type: "all_participants" | "correct_answers" | "question_correct_answers";
+  source_type:
+    | "all_participants"
+    | "correct_answers"
+    | "question_correct_answers"
+    | "survey_respondents";
   source_question_id: string | null;
+  survey_form_id: string | null;
   status: DrawWinnerStatus;
   created_at: string | null;
   claimed_at: string | null;
@@ -118,7 +123,7 @@ export async function getDrawWinnersForEvent(
   const { data: winners, error } = await supabase
     .from("draw_winners")
     .select(
-      "id, event_id, prize_id, participant_id, source_type, source_question_id, status, created_at, claimed_at"
+      "id, event_id, prize_id, participant_id, source_type, source_question_id, survey_form_id, status, created_at, claimed_at"
     )
     .eq("event_id", eventId)
     .order("created_at", { ascending: false });

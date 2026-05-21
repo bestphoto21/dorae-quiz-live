@@ -26,6 +26,99 @@ const QUESTION_TYPES: SurveyQuestionType[] = [
   "rating",
 ];
 
+const DEFAULT_SURVEY_QUESTIONS: Array<{
+  question_text: string;
+  question_type: SurveyQuestionType;
+  options: string[];
+  is_required: boolean;
+  sort_order: number;
+}> = [
+  {
+    question_text: "오늘 행사 전반에 얼마나 만족하셨나요?",
+    question_type: "rating",
+    options: [],
+    is_required: true,
+    sort_order: 1,
+  },
+  {
+    question_text: "프로그램 구성은 만족스러웠나요?",
+    question_type: "rating",
+    options: [],
+    is_required: true,
+    sort_order: 2,
+  },
+  {
+    question_text: "행사 진행과 운영은 원활했나요?",
+    question_type: "rating",
+    options: [],
+    is_required: true,
+    sort_order: 3,
+  },
+  {
+    question_text: "가장 유익했던 프로그램은 무엇인가요?",
+    question_type: "single_choice",
+    options: [
+      "개회/인사말",
+      "전문가 강연",
+      "토론/질의응답",
+      "네트워킹",
+      "현장 이벤트",
+      "기타",
+    ],
+    is_required: true,
+    sort_order: 4,
+  },
+  {
+    question_text: "행사 안내와 접수 과정은 편리했나요?",
+    question_type: "rating",
+    options: [],
+    is_required: true,
+    sort_order: 5,
+  },
+  {
+    question_text: "다음에도 유사한 행사에 참여할 의향이 있으신가요?",
+    question_type: "single_choice",
+    options: ["매우 그렇다", "그렇다", "보통이다", "아니다", "전혀 아니다"],
+    is_required: true,
+    sort_order: 6,
+  },
+  {
+    question_text: "다음 행사에서 다루었으면 하는 주제는 무엇인가요?",
+    question_type: "multiple_choice",
+    options: [
+      "정책/제도",
+      "현장 사례",
+      "기술/디지털",
+      "교육/체험",
+      "네트워킹",
+      "기타",
+    ],
+    is_required: false,
+    sort_order: 7,
+  },
+  {
+    question_text: "오늘 행사에서 가장 좋았던 점을 적어주세요.",
+    question_type: "long_text",
+    options: [],
+    is_required: false,
+    sort_order: 8,
+  },
+  {
+    question_text: "개선되었으면 하는 점이 있다면 적어주세요.",
+    question_type: "long_text",
+    options: [],
+    is_required: false,
+    sort_order: 9,
+  },
+  {
+    question_text: "설문 제출자를 대상으로 한 경품 추첨 참여에 동의하시나요?",
+    question_type: "single_choice",
+    options: ["동의합니다", "동의하지 않습니다"],
+    is_required: true,
+    sort_order: 10,
+  },
+];
+
 type SurveyLogAction =
   | "survey_starter_forms_created"
   | "survey_form_created"
@@ -35,6 +128,7 @@ type SurveyLogAction =
   | "survey_form_started"
   | "survey_form_closed"
   | "survey_form_reopened_draft"
+  | "survey_default_questions_created"
   | "survey_question_created"
   | "survey_question_updated"
   | "survey_question_deleted"
@@ -673,6 +767,95 @@ export async function createSurveyForm(eventId: string, formData: FormData) {
     eventId,
     surveyId: data.id,
     message: "설문을 추가했습니다.",
+  });
+}
+
+export async function createDefaultSurveyQuestions(
+  eventId: string,
+  surveyFormId: string,
+  formData: FormData
+) {
+  void formData;
+
+  const { admin } = await requireSurveyManagement(eventId);
+  const form = await getSurveyForm(eventId, surveyFormId);
+
+  if (!form) {
+    redirectToSurveys({ eventId, error: "설문을 찾을 수 없습니다." });
+  }
+
+  const supabase = createAdminSupabaseClient();
+  const { count, error: countError } = await supabase
+    .from("survey_questions")
+    .select("id", { count: "exact", head: true })
+    .eq("survey_form_id", surveyFormId);
+
+  if (countError) {
+    console.error("[admin-surveys] Failed to count questions before defaults.", {
+      eventId,
+      surveyFormId,
+      adminUserId: admin.id,
+      message: countError.message,
+      code: countError.code,
+    });
+
+    redirectToSurveys({
+      eventId,
+      surveyId: surveyFormId,
+      error: "기본 질문 추가 전 현재 질문 수를 확인하지 못했습니다.",
+    });
+  }
+
+  if ((count ?? 0) > 0) {
+    redirectToSurveys({
+      eventId,
+      surveyId: surveyFormId,
+      error: "질문이 없는 설문에서만 기본 질문 10개를 추가할 수 있습니다.",
+    });
+  }
+
+  const { data, error } = await supabase
+    .from("survey_questions")
+    .insert(
+      DEFAULT_SURVEY_QUESTIONS.map((question) => ({
+        survey_form_id: surveyFormId,
+        ...question,
+      }))
+    )
+    .select("id");
+
+  if (error || !data) {
+    console.error("[admin-surveys] Failed to create default survey questions.", {
+      eventId,
+      surveyFormId,
+      adminUserId: admin.id,
+      message: error?.message,
+      code: error?.code,
+    });
+
+    redirectToSurveys({
+      eventId,
+      surveyId: surveyFormId,
+      error: "기본 질문 추가 중 오류가 발생했습니다.",
+    });
+  }
+
+  await writeOperationLog({
+    eventId,
+    adminUserId: admin.id,
+    action: "survey_default_questions_created",
+    detail: {
+      event_id: eventId,
+      survey_form_id: surveyFormId,
+      question_count: data.length,
+    },
+  });
+
+  revalidatePath(`/admin/events/${eventId}/surveys`);
+  redirectToSurveys({
+    eventId,
+    surveyId: surveyFormId,
+    message: "기본 질문 10개를 추가했습니다.",
   });
 }
 

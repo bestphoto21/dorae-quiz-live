@@ -120,9 +120,10 @@ Survey management includes field-operation controls:
 
 Survey start/close and survey screen projection are separate operations. The
 first controls `survey_forms.status`; the second only changes `live_state` for
-the screen. One-minute timers, automatic survey transitions, and survey
-respondent lucky-draw sources are still future work. Keep survey answer details
-inside protected admin flows only.
+the screen. The survey page can create a default 10-question feedback set for an
+empty survey, and participants see immediate selection feedback plus a pending
+submit state. One-minute timers and automatic survey transitions are still
+future work. Keep survey answer details inside protected admin flows only.
 
 ## Lucky Draw Flow
 
@@ -132,6 +133,12 @@ Actual winner selection still happens in `/admin/events/[eventId]/draw`.
 When the draw button is submitted, the server first writes the selected winner
 to `draw_winners`, then the screen plays a countdown and rolling-name
 animation before showing the saved winner.
+
+The draw page can select candidates from all participants, quiz correct-answer
+pools, or survey respondents. For survey respondent draws, choose
+`설문 제출자`, select a survey with responses, and run the draw. The candidate
+pool comes from `survey_responses` for the selected form. Individual survey
+answers and participant contact fields are never sent to the screen.
 
 The lucky draw management page includes the same basic screen controls, plus
 "럭키드로우 준비 화면 송출" and "최근 당첨 결과 다시 송출". "추첨 실행 및 연출

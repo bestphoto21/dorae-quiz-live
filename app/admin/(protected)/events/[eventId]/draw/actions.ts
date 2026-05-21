@@ -14,7 +14,8 @@ import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 type DrawSourceType =
   | "all_participants"
   | "correct_answers"
-  | "question_correct_answers";
+  | "question_correct_answers"
+  | "survey_respondents";
 
 type DrawLogAction =
   | "prize_created"
@@ -50,6 +51,7 @@ type DrawWinnerRow = {
   participant_id: string;
   source_type: DrawSourceType;
   source_question_id: string | null;
+  survey_form_id: string | null;
   status: string;
   created_at: string | null;
 };
@@ -58,6 +60,7 @@ const SOURCE_TYPES = new Set([
   "all_participants",
   "correct_answers",
   "question_correct_answers",
+  "survey_respondents",
 ]);
 
 function getFormString(formData: FormData, key: string) {
@@ -561,6 +564,28 @@ async function validateQuestionForEvent(eventId: string, questionId: string) {
   return validateSessionForEvent(eventId, question.session_id);
 }
 
+async function validateSurveyFormForEvent(eventId: string, surveyFormId: string) {
+  const supabase = createAdminSupabaseClient();
+  const { data, error } = await supabase
+    .from("survey_forms")
+    .select("id")
+    .eq("id", surveyFormId)
+    .eq("event_id", eventId)
+    .in("status", ["open", "closed"])
+    .maybeSingle();
+
+  if (error) {
+    console.error("[admin-draw] Failed to validate survey form.", {
+      eventId,
+      surveyFormId,
+      message: error.message,
+      code: error.code,
+    });
+  }
+
+  return Boolean(data);
+}
+
 async function getQuestionIdsForSession(sessionId: string) {
   const supabase = createAdminSupabaseClient();
   const { data, error } = await supabase
@@ -586,12 +611,14 @@ async function getParticipantPool({
   sourceType,
   sourceSessionId,
   sourceQuestionId,
+  surveyFormId,
   excludeAlreadyWon,
 }: {
   eventId: string;
   sourceType: DrawSourceType;
   sourceSessionId: string | null;
   sourceQuestionId: string | null;
+  surveyFormId: string | null;
   excludeAlreadyWon: boolean;
 }) {
   const supabase = createAdminSupabaseClient();
@@ -669,6 +696,39 @@ async function getParticipantPool({
 
     participantIds = Array.from(
       new Set((data ?? []).map((answer) => answer.participant_id))
+    );
+  }
+
+  if (sourceType === "survey_respondents") {
+    if (!surveyFormId) {
+      return [];
+    }
+
+    const hasSurvey = await validateSurveyFormForEvent(eventId, surveyFormId);
+
+    if (!hasSurvey) {
+      return [];
+    }
+
+    const { data, error } = await supabase
+      .from("survey_responses")
+      .select("participant_id")
+      .eq("event_id", eventId)
+      .eq("survey_form_id", surveyFormId);
+
+    if (error) {
+      console.error("[admin-draw] Failed to load survey respondent pool.", {
+        eventId,
+        surveyFormId,
+        message: error.message,
+        code: error.code,
+      });
+
+      return [];
+    }
+
+    participantIds = Array.from(
+      new Set((data ?? []).map((response) => response.participant_id))
     );
   }
 
@@ -786,6 +846,7 @@ async function insertDrawWinner({
   sourceType,
   sourceSessionId,
   sourceQuestionId,
+  surveyFormId,
   participant,
   candidateNames,
   logAction = "draw_winner_selected",
@@ -797,6 +858,7 @@ async function insertDrawWinner({
   sourceType: DrawSourceType;
   sourceSessionId: string | null;
   sourceQuestionId: string | null;
+  surveyFormId: string | null;
   participant: CandidateParticipant;
   candidateNames: string[];
   logAction?: Extract<DrawLogAction, "draw_winner_selected" | "draw_winner_redrawn">;
@@ -811,6 +873,7 @@ async function insertDrawWinner({
       source_type: sourceType,
       source_question_id:
         sourceType === "question_correct_answers" ? sourceQuestionId : null,
+      survey_form_id: sourceType === "survey_respondents" ? surveyFormId : null,
       status: "pending",
     })
     .select("id, created_at")
@@ -850,6 +913,7 @@ async function insertDrawWinner({
       source_type: sourceType,
       source_session_id: sourceSessionId,
       source_question_id: sourceQuestionId,
+      survey_form_id: surveyFormId,
       winner_id: data.id,
       screen_scene: "draw_winner",
       draw_phase: "rolling",
@@ -1039,6 +1103,7 @@ export async function drawWinner(eventId: string, formData: FormData) {
   const sourceType = getSourceType(getFormString(formData, "source_type"));
   const sourceSessionId = getOptionalFormString(formData, "source_session_id");
   const sourceQuestionId = getOptionalFormString(formData, "source_question_id");
+  const surveyFormId = getOptionalFormString(formData, "survey_form_id");
   const excludeAlreadyWon = formData.get("exclude_already_won") === "on";
 
   if (!prizeId || !sourceType) {
@@ -1047,6 +1112,10 @@ export async function drawWinner(eventId: string, formData: FormData) {
 
   if (sourceType === "question_correct_answers" && !sourceQuestionId) {
     redirectToDraw({ eventId, error: "특정 문제 정답자 추첨은 문제 선택이 필요합니다." });
+  }
+
+  if (sourceType === "survey_respondents" && !surveyFormId) {
+    redirectToDraw({ eventId, error: "설문 제출자 추첨은 설문 선택이 필요합니다." });
   }
 
   const prize = await getPrize(eventId, prizeId);
@@ -1066,6 +1135,7 @@ export async function drawWinner(eventId: string, formData: FormData) {
     sourceType,
     sourceSessionId,
     sourceQuestionId,
+    surveyFormId,
     excludeAlreadyWon,
   });
 
@@ -1083,6 +1153,7 @@ export async function drawWinner(eventId: string, formData: FormData) {
     sourceType,
     sourceSessionId,
     sourceQuestionId,
+    surveyFormId,
     participant: selectedParticipant,
     candidateNames: candidateNamesForScreen(pool, selectedParticipant),
   });
@@ -1098,7 +1169,7 @@ async function getDrawWinner(eventId: string, winnerId: string) {
   const { data, error } = await supabase
     .from("draw_winners")
     .select(
-      "id, event_id, prize_id, participant_id, source_type, source_question_id, status, created_at"
+      "id, event_id, prize_id, participant_id, source_type, source_question_id, survey_form_id, status, created_at"
     )
     .eq("id", winnerId)
     .eq("event_id", eventId)
@@ -1141,7 +1212,7 @@ async function getLatestActiveDrawWinner(eventId: string) {
   const { data, error } = await supabase
     .from("draw_winners")
     .select(
-      "id, event_id, prize_id, participant_id, source_type, source_question_id, status, created_at"
+      "id, event_id, prize_id, participant_id, source_type, source_question_id, survey_form_id, status, created_at"
     )
     .eq("event_id", eventId)
     .in("status", ["pending", "claimed"])
@@ -1210,6 +1281,7 @@ export async function replayLatestWinnerOnScreen(
       winner_id: winner.id,
       prize_id: winner.prize_id,
       source_type: winner.source_type,
+      survey_form_id: winner.survey_form_id,
       screen_scene: "draw_winner",
       draw_phase: "result",
       changed_at: new Date().toISOString(),
@@ -1332,6 +1404,7 @@ export async function redrawWinner(eventId: string, winnerId: string) {
     sourceType: winner.source_type,
     sourceSessionId: null,
     sourceQuestionId: winner.source_question_id,
+    surveyFormId: winner.survey_form_id,
     excludeAlreadyWon: true,
   });
 
@@ -1372,6 +1445,7 @@ export async function redrawWinner(eventId: string, winnerId: string) {
       prize_id: winner.prize_id,
       source_type: winner.source_type,
       source_question_id: winner.source_question_id,
+      survey_form_id: winner.survey_form_id,
       status: "redrawn",
     },
   });
@@ -1384,6 +1458,7 @@ export async function redrawWinner(eventId: string, winnerId: string) {
     sourceType: winner.source_type,
     sourceSessionId: null,
     sourceQuestionId: winner.source_question_id,
+    surveyFormId: winner.survey_form_id,
     participant: selectedParticipant,
     candidateNames: candidateNamesForScreen(pool, selectedParticipant),
     logAction: "draw_winner_selected",

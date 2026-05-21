@@ -17,6 +17,10 @@ import {
   type PrizeSummary,
 } from "@/lib/data/draw";
 import { getQuestionsForSession, getQuizSessionsForEvent } from "@/lib/data/quiz";
+import {
+  getSurveyRespondentDrawOptions,
+  type SurveyRespondentDrawOption,
+} from "@/lib/data/surveys";
 import { buildPublicUrl } from "@/lib/site-url";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import {
@@ -33,6 +37,7 @@ import {
   setWaitingScreenFromDraw,
   updatePrize,
 } from "./actions";
+import { DrawSubmitButton } from "./DrawSubmitButton";
 
 type DrawPageProps = {
   params: Promise<{ eventId: string }>;
@@ -76,6 +81,10 @@ function sourceLabel(sourceType: string) {
 
   if (sourceType === "question_correct_answers") {
     return "특정 문제 정답자";
+  }
+
+  if (sourceType === "survey_respondents") {
+    return "설문 제출자";
   }
 
   return sourceType;
@@ -461,6 +470,7 @@ function DrawForm({
   prizes,
   sessions,
   questionGroups,
+  surveyOptions,
   canOperate,
 }: {
   eventId: string;
@@ -470,6 +480,7 @@ function DrawForm({
     sessionTitle: string;
     questions: Awaited<ReturnType<typeof getQuestionsForSession>>;
   }>;
+  surveyOptions: SurveyRespondentDrawOption[];
   canOperate: boolean;
 }) {
   const action = drawWinner.bind(null, eventId);
@@ -504,6 +515,7 @@ function DrawForm({
             <option value="all_participants">전체 참가자</option>
             <option value="correct_answers">정답자 전체</option>
             <option value="question_correct_answers">특정 문제 정답자</option>
+            <option value="survey_respondents">설문 제출자</option>
           </select>
         </div>
 
@@ -546,6 +558,32 @@ function DrawForm({
             특정 문제 정답자 추첨에서는 문제 선택이 필수입니다.
           </p>
         </div>
+
+        <div className="lg:col-span-2">
+          <FieldLabel>설문 선택</FieldLabel>
+          <select
+            name="survey_form_id"
+            className="mt-2 min-h-11 w-full rounded-2xl border border-slate-400 bg-white px-4 py-2 text-sm font-bold text-[color:#0a1a38] shadow-sm"
+            defaultValue=""
+          >
+            <option value="">설문 제출자 추첨 때 선택</option>
+            {surveyOptions.map((survey) => (
+              <option key={survey.id} value={survey.id}>
+                {survey.title} · 제출 {survey.response_count.toLocaleString("ko-KR")}명
+                · {survey.status === "open" ? "진행 중" : "마감"}
+              </option>
+            ))}
+          </select>
+          <p className="mt-2 text-xs font-bold leading-5 text-slate-700">
+            추첨 대상을 설문 제출자로 선택하면 해당 설문 제출자만 후보가 됩니다.
+            응답 내용, 연락처, 이메일은 추첨 화면에 표시하지 않습니다.
+          </p>
+          {surveyOptions.length === 0 && (
+            <p className="mt-2 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-xs font-bold leading-5 text-amber-900">
+              제출자가 있는 진행 중 또는 마감 설문이 아직 없습니다.
+            </p>
+          )}
+        </div>
       </div>
 
       <label className="flex items-start gap-3 rounded-2xl border border-slate-300 bg-slate-50 p-4 text-sm font-bold leading-6 text-[color:#0a1a38]">
@@ -559,9 +597,10 @@ function DrawForm({
       </label>
 
       <div>
-        <SubmitButton tone="amber" disabled={!canOperate || drawablePrizes.length === 0}>
-          추첨 실행 및 연출 시작
-        </SubmitButton>
+        <DrawSubmitButton disabled={!canOperate || drawablePrizes.length === 0} />
+        <p className="mt-2 text-xs font-bold leading-5 text-slate-700">
+          추첨 대상이 설문 제출자인 경우 “설문 제출자 중 추첨 실행”으로 처리됩니다.
+        </p>
       </div>
     </form>
   );
@@ -686,11 +725,12 @@ export default async function DrawPage({ params, searchParams }: DrawPageProps) 
   const { admin, event } = await requireEventAccess(eventId);
   const role = await getEventScopedRole(admin, eventId);
   const canOperate = canOperateDrawByRole(role);
-  const [prizes, winners, sessions, liveState] = await Promise.all([
+  const [prizes, winners, sessions, liveState, surveyOptions] = await Promise.all([
     getPrizesForEvent(eventId),
     getDrawWinnersForEvent(eventId),
     getQuizSessionsForEvent(eventId),
     getLiveState(eventId),
+    getSurveyRespondentDrawOptions(eventId),
   ]);
   const questionGroups = await Promise.all(
     sessions.map(async (session) => ({
@@ -708,7 +748,7 @@ export default async function DrawPage({ params, searchParams }: DrawPageProps) 
   return (
     <AdminShell
       title="럭키드로우"
-      description="경품을 등록하고 전체 참가자 또는 정답자 중에서 당첨자를 추첨합니다. 당첨 결과는 저장된 뒤 스크린에 발표됩니다."
+      description="경품을 등록하고 전체 참가자, 정답자, 설문 제출자 중에서 당첨자를 추첨합니다. 당첨 결과는 저장된 뒤 스크린에 발표됩니다."
     >
       <div className="grid gap-5">
         <AdminPanel title={event.title} description={`행사 코드: ${event.event_code}`}>
@@ -776,6 +816,7 @@ export default async function DrawPage({ params, searchParams }: DrawPageProps) 
                 prizes={prizes}
                 sessions={sessions}
                 questionGroups={questionGroups}
+                surveyOptions={surveyOptions}
                 canOperate={canOperate}
               />
             </AdminPanel>

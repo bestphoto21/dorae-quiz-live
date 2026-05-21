@@ -18,18 +18,22 @@ Included in this step:
 - Admin start, close, and draft-return controls
 - Survey guide and submission-status screen projection controls
 - Immediate selected styling for participant choice and rating inputs
+- Pending submit feedback for participant and admin survey actions
+- Default event feedback question set creation
 - Protected admin response review with submitter names and answer details
+- Lucky draw source based on survey respondents
 
 Not included in this step:
 
 - One-minute survey timer
-- Survey-response-based lucky draw
+- Survey timer and automatic close
 
 ## Database
 
 Migration:
 
 - `supabase/migrations/004_survey_mvp_schema.sql`
+- `supabase/migrations/005_survey_respondent_draw_source.sql`
 
 Tables:
 
@@ -119,6 +123,11 @@ Choice, multi-choice, and rating questions visually update as soon as a
 participant selects an option. The form still submits through the existing
 server action and keeps the same answer storage format.
 
+When a participant presses submit, the button switches to "제출 중..." and is
+disabled until the server action finishes. This prevents accidental double
+clicks while the database unique constraint still enforces one submission per
+participant per survey.
+
 ## Submission Counts
 
 The admin survey page displays:
@@ -128,7 +137,36 @@ The admin survey page displays:
 - Per-survey submission count
 - Participant entry count for comparison
 
-Detailed answer review and export are not part of this MVP.
+The protected admin page shows the latest response details for the selected
+survey only, so events with many surveys do not load every survey answer on the
+first render. CSV export is still a future feature.
+
+## Default Question Set
+
+When a selected survey has no questions, admins can press "기본 질문 10개 추가".
+The action creates these questions with sort order 1-10:
+
+1. Overall event satisfaction: rating, required
+2. Program composition satisfaction: rating, required
+3. Event operation smoothness: rating, required
+4. Most useful program: single choice, required
+5. Guidance and registration convenience: rating, required
+6. Willingness to join a similar event again: single choice, required
+7. Desired future topics: multiple choice, optional
+8. Best part of the event: long text, optional
+9. Suggested improvements: long text, optional
+10. Consent to prize drawing for survey submitters: single choice, required
+
+The tenth question is an operator-facing consent prompt. In this step, the draw
+candidate pool is all participants who submitted the selected survey. Filtering
+to only "동의합니다" answers is a future refinement.
+
+## Survey Respondent Lucky Draw
+
+The lucky draw page can use "설문 제출자" as a draw source. The admin selects a
+survey with at least one response, then the server builds the candidate pool
+from `survey_responses` for that form. Phone numbers, email addresses, raw
+answers, and participant IDs are not shown on screen.
 
 ## Security Notes
 
@@ -143,7 +181,6 @@ Detailed answer review and export are not part of this MVP.
 
 Potential next phase:
 
-- Survey timer
 - One-minute survey timer and automatic close
 - CSV export for survey responses
-- Lucky draw source based on survey respondents
+- Consent-answer-only lucky draw filtering

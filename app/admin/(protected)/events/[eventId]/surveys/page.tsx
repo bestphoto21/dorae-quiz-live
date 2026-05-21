@@ -22,6 +22,7 @@ import {
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import {
   closeSurveyForm,
+  createDefaultSurveyQuestions,
   createStarterSurveys,
   createSurveyForm,
   createSurveyQuestion,
@@ -39,6 +40,7 @@ import {
   updateSurveyQuestion,
 } from "./actions";
 import { buildPublicUrl } from "@/lib/site-url";
+import { SurveyActionButton } from "./SurveyActionButton";
 
 type SurveyPageProps = {
   params: Promise<{ eventId: string }>;
@@ -176,28 +178,21 @@ function SubmitButton({
   children,
   tone = "dark",
   disabled = false,
+  pendingLabel,
 }: {
   children: string;
   tone?: "dark" | "amber" | "rose" | "outline";
   disabled?: boolean;
+  pendingLabel?: string;
 }) {
-  const classes = {
-    dark: "border-[#0a1a38] bg-[#0a1a38] text-white hover:bg-[#10284f]",
-    amber:
-      "border-amber-500 bg-amber-400 text-[color:#0a1a38] hover:bg-amber-300",
-    rose: "border-rose-600 bg-rose-600 text-white hover:bg-rose-700",
-    outline:
-      "border-[#0a1a38] bg-white text-[color:#0a1a38] hover:bg-slate-100",
-  };
-
   return (
-    <button
-      type="submit"
+    <SurveyActionButton
+      tone={tone}
       disabled={disabled}
-      className={`min-h-11 rounded-2xl border px-4 py-2 text-sm font-black shadow-sm transition disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-200 disabled:text-slate-700 ${classes[tone]}`}
+      pendingLabel={pendingLabel}
     >
       {children}
-    </button>
+    </SurveyActionButton>
   );
 }
 
@@ -840,12 +835,42 @@ function QuestionManagePanel({
   survey: SurveyFormSummary;
   canManage: boolean;
 }) {
+  const defaultQuestionsAction = createDefaultSurveyQuestions.bind(
+    null,
+    eventId,
+    survey.id
+  );
+
   return (
     <AdminPanel
       title="질문 관리"
       description="객관식 선택지는 줄바꿈으로 입력합니다. 응답이 있는 질문은 삭제할 수 없습니다."
     >
       <div className="grid gap-5">
+        {survey.questions.length === 0 && (
+          <form
+            action={defaultQuestionsAction}
+            className="rounded-3xl border border-cyan-200 bg-cyan-50 p-5"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <h3 className="text-lg font-black text-cyan-950">
+                  기본 질문 10개 추가
+                </h3>
+                <p className="mt-2 text-sm font-bold leading-6 text-cyan-900">
+                  행사 만족도, 프로그램 구성, 재참여 의향, 개선 의견, 경품 추첨
+                  동의 문항을 한 번에 추가합니다.
+                </p>
+              </div>
+              <SubmitButton
+                disabled={!canManage}
+                pendingLabel="기본 질문 추가 중..."
+              >
+                기본 질문 10개 추가
+              </SubmitButton>
+            </div>
+          </form>
+        )}
         <QuestionForm eventId={eventId} survey={survey} canManage={canManage} />
         {survey.questions.length > 0 ? (
           <div className="grid gap-4">
@@ -960,10 +985,11 @@ export default async function SurveysPage({
     surveys.find((survey) => survey.id === requestedSurveyId) ?? surveys[0] ?? null;
   const responseReviews =
     activeSurvey && canManage
-      ? await getSurveyResponseReviews({
-          eventId,
-          surveyFormId: activeSurvey.id,
-        })
+        ? await getSurveyResponseReviews({
+            eventId,
+            surveyFormId: activeSurvey.id,
+            limit: 50,
+          })
       : [];
   const totalResponses = surveys.reduce(
     (sum, survey) => sum + survey.response_count,

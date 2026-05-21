@@ -61,6 +61,13 @@ export type SurveyResponseReview = {
   answers: SurveyResponseReviewAnswer[];
 };
 
+export type SurveyRespondentDrawOption = {
+  id: string;
+  title: string;
+  status: Extract<SurveyStatus, "open" | "closed">;
+  response_count: number;
+};
+
 function assertServerOnly() {
   if (typeof window !== "undefined") {
     throw new Error(
@@ -443,4 +450,65 @@ export async function getSurveyResponseReviews({
       }),
     };
   });
+}
+
+export async function getSurveyRespondentDrawOptions(
+  eventId: string
+): Promise<SurveyRespondentDrawOption[]> {
+  assertServerOnly();
+
+  const supabase = createAdminSupabaseClient();
+  const [{ data: forms, error: formsError }, { data: responses, error: responsesError }] =
+    await Promise.all([
+      supabase
+        .from("survey_forms")
+        .select("id, title, status, sort_order, created_at")
+        .eq("event_id", eventId)
+        .in("status", ["open", "closed"])
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: true }),
+      supabase
+        .from("survey_responses")
+        .select("id, survey_form_id")
+        .eq("event_id", eventId),
+    ]);
+
+  if (formsError) {
+    console.error("[survey-data] Failed to load survey draw forms.", {
+      eventId,
+      message: formsError.message,
+      code: formsError.code,
+    });
+
+    return [];
+  }
+
+  if (responsesError) {
+    console.error("[survey-data] Failed to load survey draw response counts.", {
+      eventId,
+      message: responsesError.message,
+      code: responsesError.code,
+    });
+  }
+
+  const responseCounts = new Map<string, number>();
+  (responses ?? []).forEach((response) => {
+    responseCounts.set(
+      response.survey_form_id,
+      (responseCounts.get(response.survey_form_id) ?? 0) + 1
+    );
+  });
+
+  return ((forms ?? []) as Array<{
+    id: string;
+    title: string;
+    status: SurveyStatus;
+  }>)
+    .map((form) => ({
+      id: form.id,
+      title: form.title,
+      status: form.status as Extract<SurveyStatus, "open" | "closed">,
+      response_count: responseCounts.get(form.id) ?? 0,
+    }))
+    .filter((form) => form.response_count > 0);
 }

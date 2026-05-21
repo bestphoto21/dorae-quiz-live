@@ -8,6 +8,7 @@ import {
 import { readParticipantSessionCookie } from "@/lib/participants/session";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { submitSurveyResponse } from "../actions";
+import { SurveySubmitButton } from "./SurveySubmitButton";
 
 type SurveyDetailPageProps = {
   params: Promise<{ eventCode: string; surveyFormId: string }>;
@@ -159,6 +160,7 @@ function QuestionInput({ question }: { question: SurveyQuestionRecord }) {
       <input
         name={name}
         type="text"
+        required={question.is_required}
         placeholder="답변을 입력해 주세요"
         className="mt-3 min-h-12 w-full rounded-2xl border border-slate-400 bg-white px-4 py-3 text-base font-bold text-[color:#0a1a38] shadow-sm outline-none placeholder:text-slate-500 focus:border-[#0a1a38]"
       />
@@ -170,6 +172,7 @@ function QuestionInput({ question }: { question: SurveyQuestionRecord }) {
       <textarea
         name={name}
         rows={5}
+        required={question.is_required}
         placeholder="답변을 입력해 주세요"
         className="mt-3 w-full resize-y rounded-2xl border border-slate-400 bg-white px-4 py-3 text-base font-bold leading-7 text-[color:#0a1a38] shadow-sm outline-none placeholder:text-slate-500 focus:border-[#0a1a38]"
       />
@@ -184,7 +187,13 @@ function QuestionInput({ question }: { question: SurveyQuestionRecord }) {
             key={option}
             className="block cursor-pointer"
           >
-            <input type="radio" name={name} value={option} className="peer sr-only" />
+            <input
+              type="radio"
+              name={name}
+              value={option}
+              required={question.is_required}
+              className="peer sr-only"
+            />
             <span className="flex min-h-12 items-center rounded-2xl border border-slate-300 bg-white p-4 text-base font-black text-[color:#0a1a38] shadow-sm transition peer-checked:border-[#0a1a38] peer-checked:bg-[#0a1a38] peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-cyan-300">
               {option}
             </span>
@@ -224,7 +233,13 @@ function QuestionInput({ question }: { question: SurveyQuestionRecord }) {
           key={score}
           className="block cursor-pointer"
         >
-          <input type="radio" name={name} value={score} className="peer sr-only" />
+          <input
+            type="radio"
+            name={name}
+            value={score}
+            required={question.is_required}
+            className="peer sr-only"
+          />
           <span className="flex min-h-14 items-center justify-center rounded-2xl border border-slate-300 bg-white text-xl font-black text-[color:#0a1a38] shadow-sm transition peer-checked:border-[#0a1a38] peer-checked:bg-[#0a1a38] peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-cyan-300">
             {score}
           </span>
@@ -368,12 +383,7 @@ export default async function SurveyDetailPage({
             {questions.map((question) => (
               <SurveyQuestionCard key={question.id} question={question} />
             ))}
-            <button
-              type="submit"
-              className="min-h-14 rounded-2xl border border-[#0a1a38] bg-[#0a1a38] px-5 py-3 text-lg font-black text-white shadow-sm transition hover:bg-[#10284f]"
-            >
-              설문 제출
-            </button>
+            <SurveySubmitButton />
           </form>
         ) : (
           <div className="rounded-2xl border border-amber-300 bg-amber-50 p-5 text-sm font-bold leading-6 text-amber-950">

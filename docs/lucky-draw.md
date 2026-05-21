@@ -33,7 +33,7 @@ prizes.quantity - count(draw_winners where status in pending, claimed)
 
 ## Source Types
 
-`draw_winners.source_type` uses the existing allowed values.
+`draw_winners.source_type` uses these allowed values.
 
 ### `all_participants`
 
@@ -50,6 +50,19 @@ The admin page also allows an optional session filter. When a session is selecte
 The pool is participants who answered one selected question correctly.
 
 This source requires `source_question_id`.
+
+### `survey_respondents`
+
+The pool is participants who submitted one selected survey form.
+
+This source requires `survey_form_id`. The draw page lists open or closed
+surveys with at least one response and shows the response count beside each
+survey title. Individual answers, phone numbers, email addresses, and
+participant IDs are not displayed on the draw screen.
+
+The current implementation treats every response in `survey_responses` for the
+selected survey as a candidate. Filtering only participants who answered
+"동의합니다" to the consent question can be added in a later step.
 
 ## Random Selection
 
@@ -168,7 +181,9 @@ The draw flow writes these actions:
 - `draw_winner_cancelled`
 - `draw_winner_redrawn`
 
-Log details include operational identifiers such as `event_id`, `prize_id`, `source_type`, `source_question_id`, `screen_scene`, `draw_phase`, and `winner_id`.
+Log details include operational identifiers such as `event_id`, `prize_id`,
+`source_type`, `source_question_id`, `survey_form_id`, `screen_scene`,
+`draw_phase`, and `winner_id`.
 
 Logs must not include participant ids, phone numbers, or email addresses.
 
@@ -182,3 +197,4 @@ Not implemented yet:
 - duplicate winner allow option
 - weighted draw rules
 - Q&A integration
+- consent-answer-only survey respondent filtering

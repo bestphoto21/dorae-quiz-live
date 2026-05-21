@@ -287,6 +287,10 @@ function sourceLabel(sourceType: string) {
     return "특정 문제 정답자 추첨";
   }
 
+  if (sourceType === "survey_respondents") {
+    return "설문 제출자 추첨";
+  }
+
   return "추첨";
 }
 
