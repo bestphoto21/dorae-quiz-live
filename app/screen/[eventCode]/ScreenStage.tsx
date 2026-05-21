@@ -350,7 +350,10 @@ function SceneTransition({
   children: ReactNode;
 }) {
   return (
-    <div key={sceneKey} className="dorae-screen-scene flex min-h-0 flex-1">
+    <div
+      data-scene={sceneKey}
+      className="dorae-screen-scene flex min-h-0 flex-1 transition-opacity duration-200 ease-out"
+    >
       {children}
     </div>
   );

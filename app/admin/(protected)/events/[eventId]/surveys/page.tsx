@@ -12,9 +12,11 @@ import {
 } from "@/lib/auth/events";
 import {
   getSurveyFormsForEvent,
+  getSurveyResponseReviews,
   type SurveyFormSummary,
   type SurveyQuestionRecord,
   type SurveyQuestionType,
+  type SurveyResponseReview,
   type SurveyStatus,
 } from "@/lib/data/surveys";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
@@ -868,6 +870,77 @@ function QuestionManagePanel({
   );
 }
 
+function SurveyResponsesPanel({
+  responses,
+  totalCount,
+}: {
+  responses: SurveyResponseReview[];
+  totalCount: number;
+}) {
+  return (
+    <AdminPanel
+      title="제출자 확인"
+      description="최근 제출자와 응답 상세를 확인합니다. 연락처와 이메일은 표시하지 않습니다."
+    >
+      {responses.length === 0 ? (
+        <EmptyState
+          title="아직 제출한 참가자가 없습니다."
+          description="참가자가 설문을 제출하면 이곳에 최근 제출 내역이 표시됩니다."
+        />
+      ) : (
+        <div className="grid gap-4">
+          <p className="rounded-2xl border border-cyan-200 bg-cyan-50 p-4 text-sm font-bold leading-6 text-cyan-950">
+            최신 제출순으로 최근 {responses.length.toLocaleString("ko-KR")}건을
+            표시합니다. 전체 제출 수는 {totalCount.toLocaleString("ko-KR")}건입니다.
+          </p>
+          {responses.map((response) => (
+            <details
+              key={response.id}
+              className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm open:border-[#0a1a38]"
+            >
+              <summary className="cursor-pointer list-none">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xl font-black text-[color:#0a1a38]">
+                      {response.participant_name}
+                    </p>
+                    <p className="mt-1 text-sm font-bold text-slate-700">
+                      {response.organization ?? "소속 정보 없음"}
+                    </p>
+                  </div>
+                  <StatusBadge tone="slate">
+                    {response.submitted_at
+                      ? new Date(response.submitted_at).toLocaleString("ko-KR")
+                      : "제출 시각 없음"}
+                  </StatusBadge>
+                </div>
+              </summary>
+              <div className="mt-5 grid gap-3 border-t border-slate-200 pt-5">
+                {response.answers.map((answer) => (
+                  <div
+                    key={answer.question_id}
+                    className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                  >
+                    <p className="text-sm font-black text-slate-600">
+                      {questionTypeLabel(answer.question_type)}
+                    </p>
+                    <p className="mt-2 text-base font-black leading-6 text-[color:#0a1a38]">
+                      {answer.question_text}
+                    </p>
+                    <p className="mt-3 whitespace-pre-wrap rounded-2xl bg-white p-4 text-sm font-bold leading-6 text-slate-800">
+                      {answer.answer_label}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </details>
+          ))}
+        </div>
+      )}
+    </AdminPanel>
+  );
+}
+
 export default async function SurveysPage({
   params,
   searchParams,
@@ -885,6 +958,13 @@ export default async function SurveysPage({
   const requestedSurveyId = getSingle(query.surveyId);
   const activeSurvey =
     surveys.find((survey) => survey.id === requestedSurveyId) ?? surveys[0] ?? null;
+  const responseReviews =
+    activeSurvey && canManage
+      ? await getSurveyResponseReviews({
+          eventId,
+          surveyFormId: activeSurvey.id,
+        })
+      : [];
   const totalResponses = surveys.reduce(
     (sum, survey) => sum + survey.response_count,
     0
@@ -983,6 +1063,17 @@ export default async function SurveysPage({
                   survey={activeSurvey}
                   canManage={canManage}
                 />
+                {canManage ? (
+                  <SurveyResponsesPanel
+                    responses={responseReviews}
+                    totalCount={activeSurvey.response_count}
+                  />
+                ) : (
+                  <EmptyState
+                    title="응답 상세 권한이 없습니다."
+                    description="제출자 명단과 응답 상세는 설문 운영 권한이 있는 관리자에게만 표시됩니다."
+                  />
+                )}
               </>
             ) : (
               <EmptyState

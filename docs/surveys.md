@@ -17,6 +17,8 @@ Included in this step:
 - Submission counts per survey
 - Admin start, close, and draft-return controls
 - Survey guide and submission-status screen projection controls
+- Immediate selected styling for participant choice and rating inputs
+- Protected admin response review with submitter names and answer details
 
 Not included in this step:
 
@@ -90,6 +92,11 @@ Question types:
 
 Choice options are entered as newline-separated text and stored as a JSON array.
 
+The survey page also shows a protected "제출자 확인" section. It lists the
+latest 100 submissions with display name, organization, submitted time, and
+formatted answers. Phone numbers, email addresses, and participant IDs are not
+shown.
+
 ## Participant Flow
 
 Participant URLs:
@@ -107,6 +114,10 @@ Flow:
 6. A unique database constraint prevents a second submission for the same survey.
 
 The participant screen must not show participant ids, phone numbers, normalized phone numbers, email addresses, secrets, or raw screen payload.
+
+Choice, multi-choice, and rating questions visually update as soon as a
+participant selects an option. The form still submits through the existing
+server action and keeps the same answer storage format.
 
 ## Submission Counts
 
@@ -126,6 +137,7 @@ Detailed answer review and export are not part of this MVP.
 - `survey_answers.answer_value` is answer content and should be handled in protected admin areas only.
 - Operation logs for survey submission store event id, survey form id, and survey response id only.
 - Survey screen payloads show only title, description, status, counts, and a survey URL. They must not include participant ids, contact fields, answer values, or raw screen payload.
+- Individual survey answers are visible only in protected admin pages. Screen projection continues to show counts only.
 
 ## Future Step
 
@@ -133,4 +145,5 @@ Potential next phase:
 
 - Survey timer
 - One-minute survey timer and automatic close
+- CSV export for survey responses
 - Lucky draw source based on survey respondents

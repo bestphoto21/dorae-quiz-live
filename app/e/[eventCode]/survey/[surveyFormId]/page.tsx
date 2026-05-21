@@ -182,10 +182,12 @@ function QuestionInput({ question }: { question: SurveyQuestionRecord }) {
         {question.options.map((option) => (
           <label
             key={option}
-            className="flex items-center gap-3 rounded-2xl border border-slate-300 bg-white p-4 text-base font-black text-[color:#0a1a38]"
+            className="block cursor-pointer"
           >
-            <input type="radio" name={name} value={option} className="size-4" />
-            {option}
+            <input type="radio" name={name} value={option} className="peer sr-only" />
+            <span className="flex min-h-12 items-center rounded-2xl border border-slate-300 bg-white p-4 text-base font-black text-[color:#0a1a38] shadow-sm transition peer-checked:border-[#0a1a38] peer-checked:bg-[#0a1a38] peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-cyan-300">
+              {option}
+            </span>
           </label>
         ))}
       </div>
@@ -198,10 +200,17 @@ function QuestionInput({ question }: { question: SurveyQuestionRecord }) {
         {question.options.map((option) => (
           <label
             key={option}
-            className="flex items-center gap-3 rounded-2xl border border-slate-300 bg-white p-4 text-base font-black text-[color:#0a1a38]"
+            className="block cursor-pointer"
           >
-            <input type="checkbox" name={name} value={option} className="size-4" />
-            {option}
+            <input
+              type="checkbox"
+              name={name}
+              value={option}
+              className="peer sr-only"
+            />
+            <span className="flex min-h-12 items-center rounded-2xl border border-slate-300 bg-white p-4 text-base font-black text-[color:#0a1a38] shadow-sm transition peer-checked:border-[#0a1a38] peer-checked:bg-[#0a1a38] peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-cyan-300">
+              {option}
+            </span>
           </label>
         ))}
       </div>
@@ -213,10 +222,12 @@ function QuestionInput({ question }: { question: SurveyQuestionRecord }) {
       {[1, 2, 3, 4, 5].map((score) => (
         <label
           key={score}
-          className="flex min-h-14 items-center justify-center rounded-2xl border border-slate-300 bg-white text-xl font-black text-[color:#0a1a38]"
+          className="block cursor-pointer"
         >
-          <input type="radio" name={name} value={score} className="sr-only" />
-          {score}
+          <input type="radio" name={name} value={score} className="peer sr-only" />
+          <span className="flex min-h-14 items-center justify-center rounded-2xl border border-slate-300 bg-white text-xl font-black text-[color:#0a1a38] shadow-sm transition peer-checked:border-[#0a1a38] peer-checked:bg-[#0a1a38] peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-cyan-300">
+            {score}
+          </span>
         </label>
       ))}
     </div>
