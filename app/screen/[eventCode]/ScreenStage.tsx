@@ -99,10 +99,6 @@ function isOlderState(
   return nextTime < currentTime;
 }
 
-function isAbortError(error: unknown) {
-  return error instanceof Error && error.name === "AbortError";
-}
-
 function optionEntries(question: NonNullable<ScreenState["question"]>) {
   return [
     { number: 1, label: question.option_1 },
@@ -110,6 +106,27 @@ function optionEntries(question: NonNullable<ScreenState["question"]>) {
     { number: 3, label: question.option_3 },
     { number: 4, label: question.option_4 },
   ];
+}
+
+function screenStateFingerprint(state: ScreenState) {
+  return JSON.stringify({
+    updated_at: state.state_updated_at,
+    mode: state.liveState.mode,
+    screen_scene: state.liveState.screen_scene,
+    question_started_at: state.liveState.question_started_at,
+    question_ends_at: state.liveState.question_ends_at,
+    reveal_answer: state.liveState.reveal_answer,
+    show_results: state.liveState.show_results,
+    question_id: state.question?.id ?? null,
+    draw_winner_id: state.draw?.winner_id ?? null,
+    qna_question_id: state.qna?.qna_question_id ?? null,
+    notice_title: state.notice?.title ?? null,
+    notice_message: state.notice?.message ?? null,
+    join_url: state.joinQr?.join_url ?? null,
+    stats_total_answers: state.stats.total_answers,
+    stats_option_counts: state.stats.option_counts,
+    stats_correct_answers: state.stats.correct_answers ?? null,
+  });
 }
 
 function sourceLabel(sourceType: string) {
@@ -597,23 +614,28 @@ export default function ScreenStage({
   const latestStateUpdatedAtRef = useRef<string | null>(
     initialState?.state_updated_at ?? null
   );
+  const latestFingerprintRef = useRef<string | null>(
+    initialState ? screenStateFingerprint(initialState) : null
+  );
   const requestSeqRef = useRef(0);
-  const activeRequestRef = useRef<AbortController | null>(null);
+  const inFlightRef = useRef(false);
 
   useEffect(() => {
     let active = true;
 
     async function fetchState() {
-      activeRequestRef.current?.abort();
-      const controller = new AbortController();
-      activeRequestRef.current = controller;
+      if (inFlightRef.current) {
+        return;
+      }
+
+      inFlightRef.current = true;
       const requestSeq = requestSeqRef.current + 1;
       requestSeqRef.current = requestSeq;
 
       try {
         const response = await fetch(
           `/api/screen/${encodeURIComponent(eventCode)}/state`,
-          { cache: "no-store", signal: controller.signal }
+          { cache: "no-store" }
         );
 
         if (!response.ok) {
@@ -621,10 +643,12 @@ export default function ScreenStage({
         }
 
         const nextState = (await response.json()) as ScreenState;
+        const nextFingerprint = screenStateFingerprint(nextState);
 
         if (
           active &&
           requestSeq === requestSeqRef.current &&
+          nextFingerprint !== latestFingerprintRef.current &&
           !isOlderState(
             nextState.state_updated_at,
             latestStateUpdatedAtRef.current
@@ -632,21 +656,18 @@ export default function ScreenStage({
         ) {
           latestStateUpdatedAtRef.current =
             nextState.state_updated_at ?? latestStateUpdatedAtRef.current;
+          latestFingerprintRef.current = nextFingerprint;
           setState(nextState);
           setError(null);
+        } else if (active) {
+          setError(null);
         }
-      } catch (error) {
-        if (isAbortError(error)) {
-          return;
-        }
-
+      } catch {
         if (active) {
           setError("송출 상태를 불러오지 못했습니다.");
         }
       } finally {
-        if (activeRequestRef.current === controller) {
-          activeRequestRef.current = null;
-        }
+        inFlightRef.current = false;
       }
     }
 
@@ -655,7 +676,7 @@ export default function ScreenStage({
 
     return () => {
       active = false;
-      activeRequestRef.current?.abort();
+      inFlightRef.current = false;
       window.clearInterval(pollingId);
     };
   }, [eventCode]);

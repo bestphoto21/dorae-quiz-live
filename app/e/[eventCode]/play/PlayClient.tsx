@@ -97,10 +97,6 @@ function isOlderState(
   return nextTime < currentTime;
 }
 
-function isAbortError(error: unknown) {
-  return error instanceof Error && error.name === "AbortError";
-}
-
 function optionEntries(question: NonNullable<ParticipantState["question"]>) {
   return [
     { number: 1, label: question.option_1 },
@@ -108,6 +104,30 @@ function optionEntries(question: NonNullable<ParticipantState["question"]>) {
     { number: 3, label: question.option_3 },
     { number: 4, label: question.option_4 },
   ];
+}
+
+function participantStateFingerprint(state: ParticipantState) {
+  return JSON.stringify({
+    updated_at: state.state_updated_at,
+    mode: state.liveState.mode,
+    screen_scene: state.liveState.screen_scene,
+    question_started_at: state.liveState.question_started_at,
+    question_ends_at: state.liveState.question_ends_at,
+    reveal_answer: state.liveState.reveal_answer,
+    show_results: state.liveState.show_results,
+    question_id: state.question?.id ?? null,
+    answer_selected_option: state.answer?.selected_option ?? null,
+    answer_is_correct: state.answer?.is_correct ?? null,
+    can_answer: state.canAnswer,
+    qna_questions: state.qnaQuestions.map((question) => ({
+      id: question.id,
+      status: question.status,
+      created_at: question.created_at,
+    })),
+    stats_total_answers: state.stats.total_answers,
+    stats_option_counts: state.stats.option_counts,
+    stats_correct_answers: state.stats.correct_answers ?? null,
+  });
 }
 
 function AnswerNotice({ state }: { state: ParticipantState }) {
@@ -462,13 +482,14 @@ export default function PlayClient({ eventCode, eventTitle }: PlayClientProps) {
   const [qnaError, setQnaError] = useState<string | null>(null);
   const [now, setNow] = useState<number | null>(null);
   const latestStateUpdatedAtRef = useRef<string | null>(null);
+  const latestFingerprintRef = useRef<string | null>(null);
   const requestSeqRef = useRef(0);
-  const activeRequestRef = useRef<AbortController | null>(null);
+  const inFlightRef = useRef(false);
 
-  const loadState = useCallback(async (signal?: AbortSignal) => {
+  const loadState = useCallback(async () => {
     const response = await fetch(
       `/api/participant/${encodeURIComponent(eventCode)}/state`,
-      { cache: "no-store", signal }
+      { cache: "no-store" }
     );
 
     if (!response.ok) {
@@ -479,7 +500,10 @@ export default function PlayClient({ eventCode, eventTitle }: PlayClientProps) {
   }, [eventCode]);
 
   const applyLoadedState = useCallback((nextState: ParticipantState) => {
+    const nextFingerprint = participantStateFingerprint(nextState);
+
     if (
+      nextFingerprint === latestFingerprintRef.current ||
       isOlderState(
         nextState.state_updated_at,
         latestStateUpdatedAtRef.current
@@ -490,31 +514,29 @@ export default function PlayClient({ eventCode, eventTitle }: PlayClientProps) {
 
     latestStateUpdatedAtRef.current =
       nextState.state_updated_at ?? latestStateUpdatedAtRef.current;
+    latestFingerprintRef.current = nextFingerprint;
     setState(nextState);
     setError(null);
   }, []);
 
   const refreshState = useCallback(async () => {
-    activeRequestRef.current?.abort();
-    const controller = new AbortController();
-    activeRequestRef.current = controller;
+    if (inFlightRef.current) {
+      return;
+    }
+
+    inFlightRef.current = true;
     const requestSeq = requestSeqRef.current + 1;
     requestSeqRef.current = requestSeq;
 
     try {
-      const nextState = await loadState(controller.signal);
+      const nextState = await loadState();
 
       if (requestSeq === requestSeqRef.current) {
         applyLoadedState(nextState);
-      }
-    } catch (error) {
-      if (!isAbortError(error)) {
-        throw error;
+        setError(null);
       }
     } finally {
-      if (activeRequestRef.current === controller) {
-        activeRequestRef.current = null;
-      }
+      inFlightRef.current = false;
     }
   }, [applyLoadedState, loadState]);
 
@@ -526,11 +548,7 @@ export default function PlayClient({ eventCode, eventTitle }: PlayClientProps) {
         if (active) {
           await refreshState();
         }
-      } catch (error) {
-        if (isAbortError(error)) {
-          return;
-        }
-
+      } catch {
         if (active) {
           setError("현재 퀴즈 상태를 불러오지 못했습니다.");
         }
@@ -542,7 +560,7 @@ export default function PlayClient({ eventCode, eventTitle }: PlayClientProps) {
 
     return () => {
       active = false;
-      activeRequestRef.current?.abort();
+      inFlightRef.current = false;
       window.clearInterval(pollingId);
     };
   }, [refreshState]);
