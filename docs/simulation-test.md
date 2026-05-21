@@ -102,7 +102,7 @@ Use the seed output for the exact event ID. For the default event code:
 - Pending Q&A questions do not appear on the screen.
 - The QR connects to `/e/[eventCode]/join`.
 - Lucky draw rolling names contain display names only, and the final winner is the saved DB winner.
-- Lucky draw celebration is a screen-only effect and does not expose private data.
+- Lucky draw celebration is a subtle burst-style screen-only effect and does not expose private data.
 - Live screen changes appear in about 1-2 seconds while the screen window is visible.
 - Korean labels are not broken.
 - Buttons and labels remain readable.
