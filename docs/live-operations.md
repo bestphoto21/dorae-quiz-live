@@ -104,9 +104,15 @@ to `draw_winners`, then the screen plays a countdown and rolling-name
 animation before showing the saved winner.
 
 At the final "당첨!" moment, the screen also plays a short celebration effect.
-The pop, gold glow, and colorful front confetti burst are visual effects only.
-They do not affect winner selection, and they are removed if the operator
-quickly changes to another screen scene.
+The pop, gold glow, colorful front confetti burst, and optional pop sound are
+presentation effects only. They do not affect winner selection, and they are
+removed if the operator quickly changes to another screen scene.
+
+Screen audio is off by default. Press "효과음 켜기" on `/screen/[eventCode]`
+once before the draw to unlock browser audio. If the screen PC is connected to
+the venue sound system, the final winner moment can play a short generated pop
+sound. If audio playback is blocked or unavailable, the visual celebration still
+continues.
 
 Winner screen payload must contain only presentation-safe fields such as:
 
@@ -237,9 +243,10 @@ If the event needs more immediate transitions later, introduce Supabase Realtime
 8. Test Q&A waiting screen.
 9. Test approved question screen output.
 10. Confirm unapproved questions do not appear on screen.
-11. Test lucky draw ready screen, rolling animation, celebration effect, and winner output.
-12. Check that `phone` and `phone_normalized` are not visible on screen.
-13. Confirm `npm.cmd run build` passes.
+11. Press "효과음 켜기" on the screen if sound will be used.
+12. Test lucky draw ready screen, rolling animation, celebration effect, optional sound, and winner output.
+13. Check that `phone` and `phone_normalized` are not visible on screen.
+14. Confirm `npm.cmd run build` passes.
 
 ## Incident Checklist
 

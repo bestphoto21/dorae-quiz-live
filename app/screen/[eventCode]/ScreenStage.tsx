@@ -2,6 +2,7 @@
 
 import { QrCode } from "@/components/quiz/QrCode";
 import {
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -88,7 +89,115 @@ type ScreenStageProps = {
   initialState?: ScreenState | null;
 };
 
+type ScreenSoundStatus = "off" | "on" | "unavailable";
+type WindowWithWebAudio = Window &
+  typeof globalThis & {
+    webkitAudioContext?: typeof AudioContext;
+  };
+
 const SCREEN_POLL_DELAY_MS = 400;
+
+function createScreenAudioContext() {
+  const AudioContextConstructor =
+    window.AudioContext ?? (window as WindowWithWebAudio).webkitAudioContext;
+
+  if (!AudioContextConstructor) {
+    return null;
+  }
+
+  return new AudioContextConstructor();
+}
+
+function playSilentUnlockTone(audioContext: AudioContext) {
+  const now = audioContext.currentTime;
+  const oscillator = audioContext.createOscillator();
+  const gain = audioContext.createGain();
+
+  gain.gain.setValueAtTime(0.00001, now);
+  oscillator.frequency.setValueAtTime(440, now);
+  oscillator.connect(gain);
+  gain.connect(audioContext.destination);
+  oscillator.start(now);
+  oscillator.stop(now + 0.04);
+}
+
+function playLuckyDrawPopSound(audioContext: AudioContext) {
+  const now = audioContext.currentTime;
+  const master = audioContext.createGain();
+
+  master.gain.setValueAtTime(0.0001, now);
+  master.gain.exponentialRampToValueAtTime(0.32, now + 0.012);
+  master.gain.exponentialRampToValueAtTime(0.0001, now + 0.34);
+  master.connect(audioContext.destination);
+
+  const noiseLength = Math.floor(audioContext.sampleRate * 0.14);
+  const noiseBuffer = audioContext.createBuffer(
+    1,
+    noiseLength,
+    audioContext.sampleRate
+  );
+  const noiseData = noiseBuffer.getChannelData(0);
+
+  for (let index = 0; index < noiseLength; index += 1) {
+    const fade = 1 - index / noiseLength;
+    noiseData[index] = (Math.random() * 2 - 1) * fade * fade;
+  }
+
+  const noise = audioContext.createBufferSource();
+  const noiseFilter = audioContext.createBiquadFilter();
+  const noiseGain = audioContext.createGain();
+
+  noise.buffer = noiseBuffer;
+  noiseFilter.type = "bandpass";
+  noiseFilter.frequency.setValueAtTime(1350, now);
+  noiseFilter.Q.setValueAtTime(0.9, now);
+  noiseGain.gain.setValueAtTime(0.22, now);
+  noiseGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.16);
+  noise.connect(noiseFilter);
+  noiseFilter.connect(noiseGain);
+  noiseGain.connect(master);
+  noise.start(now);
+  noise.stop(now + 0.16);
+
+  const thump = audioContext.createOscillator();
+  const thumpGain = audioContext.createGain();
+
+  thump.type = "sine";
+  thump.frequency.setValueAtTime(132, now);
+  thump.frequency.exponentialRampToValueAtTime(62, now + 0.22);
+  thumpGain.gain.setValueAtTime(0.19, now);
+  thumpGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.26);
+  thump.connect(thumpGain);
+  thumpGain.connect(master);
+  thump.start(now);
+  thump.stop(now + 0.28);
+
+  const pop = audioContext.createOscillator();
+  const popGain = audioContext.createGain();
+
+  pop.type = "triangle";
+  pop.frequency.setValueAtTime(760, now + 0.015);
+  pop.frequency.exponentialRampToValueAtTime(1560, now + 0.13);
+  popGain.gain.setValueAtTime(0.0001, now);
+  popGain.gain.exponentialRampToValueAtTime(0.13, now + 0.025);
+  popGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.16);
+  pop.connect(popGain);
+  popGain.connect(master);
+  pop.start(now + 0.015);
+  pop.stop(now + 0.18);
+}
+
+function soundButtonLabel(status: ScreenSoundStatus) {
+  if (status === "on") {
+    return "효과음 끄기";
+  }
+
+  if (status === "unavailable") {
+    return "효과음 사용 불가";
+  }
+
+  return "효과음 켜기";
+}
 
 function getSecondsLeft(questionEndsAt: string | null, now: number) {
   if (!questionEndsAt) {
@@ -193,9 +302,13 @@ function sceneLabel(scene: string | null | undefined) {
 function Shell({
   state,
   children,
+  soundStatus,
+  onToggleSound,
 }: {
   state: ScreenState | null;
   children: ReactNode;
+  soundStatus?: ScreenSoundStatus;
+  onToggleSound?: () => void;
 }) {
   const accentColor = state?.event.primary_color || "#06b6d4";
   const currentSceneLabel =
@@ -205,6 +318,15 @@ function Shell({
 
   return (
     <main className="min-h-screen bg-[#0a1a38] p-5 text-white sm:p-8">
+      {onToggleSound && soundStatus && (
+        <button
+          type="button"
+          onClick={onToggleSound}
+          className="fixed bottom-4 left-4 z-[80] rounded-full border border-white/20 bg-[#0a1a38]/80 px-4 py-2 text-sm font-black text-white shadow-lg backdrop-blur-sm transition hover:bg-[#10264f] focus:outline-none focus:ring-2 focus:ring-cyan-200"
+        >
+          {soundButtonLabel(soundStatus)}
+        </button>
+      )}
       <div className="flex min-h-[calc(100vh-2.5rem)] flex-col gap-5 sm:min-h-[calc(100vh-4rem)]">
         <header className="flex flex-wrap items-center justify-between gap-4 border-b border-white/15 pb-5">
           <div className="min-w-0">
@@ -721,10 +843,16 @@ function CelebrationOverlay({ celebrationKey }: { celebrationKey: string }) {
 function DrawResultView({
   draw,
   celebrationKey,
+  onCelebrate,
 }: {
   draw: DrawPayload;
   celebrationKey: string;
+  onCelebrate: (celebrationKey: string) => void;
 }) {
+  useEffect(() => {
+    onCelebrate(celebrationKey);
+  }, [celebrationKey, onCelebrate]);
+
   return (
     <section className="relative isolate flex flex-1 items-center justify-center overflow-visible rounded-3xl bg-white p-8 text-center text-[color:#0a1a38] shadow-2xl sm:p-12">
       <CelebrationStyles />
@@ -764,9 +892,11 @@ function DrawResultView({
 function RollingDrawView({
   draw,
   animationKey,
+  onCelebrate,
 }: {
   draw: DrawPayload;
   animationKey: string;
+  onCelebrate: (celebrationKey: string) => void;
 }) {
   const candidateNamesKey = draw.candidate_names.join("\u0001");
   const candidates = useMemo(
@@ -858,7 +988,13 @@ function RollingDrawView({
   ]);
 
   if (step === "result") {
-    return <DrawResultView draw={draw} celebrationKey={animationKey} />;
+    return (
+      <DrawResultView
+        draw={draw}
+        celebrationKey={animationKey}
+        onCelebrate={onCelebrate}
+      />
+    );
   }
 
   return (
@@ -900,7 +1036,13 @@ function RollingDrawView({
   );
 }
 
-function DrawWinnerView({ state }: { state: ScreenState }) {
+function DrawWinnerView({
+  state,
+  onCelebrate,
+}: {
+  state: ScreenState;
+  onCelebrate: (celebrationKey: string) => void;
+}) {
   const draw = state.draw;
 
   if (!draw) {
@@ -915,6 +1057,7 @@ function DrawWinnerView({ state }: { state: ScreenState }) {
         key={animationKey}
         draw={draw}
         animationKey={animationKey}
+        onCelebrate={onCelebrate}
       />
     );
   }
@@ -924,6 +1067,7 @@ function DrawWinnerView({ state }: { state: ScreenState }) {
       key={animationKey}
       draw={draw}
       celebrationKey={animationKey}
+      onCelebrate={onCelebrate}
     />
   );
 }
@@ -1103,6 +1247,7 @@ export default function ScreenStage({
   const [state, setState] = useState<ScreenState | null>(initialState);
   const [error, setError] = useState<string | null>(null);
   const [now, setNow] = useState<number | null>(null);
+  const [soundStatus, setSoundStatus] = useState<ScreenSoundStatus>("off");
   const latestStateUpdatedAtRef = useRef<string | null>(
     initialState?.state_updated_at ?? null
   );
@@ -1112,6 +1257,71 @@ export default function ScreenStage({
   const requestSeqRef = useRef(0);
   const inFlightRef = useRef(false);
   const pollTimeoutRef = useRef<number | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const soundStatusRef = useRef<ScreenSoundStatus>("off");
+  const playedSoundKeysRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    soundStatusRef.current = soundStatus;
+  }, [soundStatus]);
+
+  useEffect(() => {
+    return () => {
+      void audioContextRef.current?.close().catch(() => undefined);
+    };
+  }, []);
+
+  const handleToggleSound = useCallback(async () => {
+    if (soundStatusRef.current === "on") {
+      setSoundStatus("off");
+      return;
+    }
+
+    try {
+      const audioContext =
+        audioContextRef.current ?? createScreenAudioContext();
+
+      if (!audioContext) {
+        setSoundStatus("unavailable");
+        return;
+      }
+
+      audioContextRef.current = audioContext;
+
+      if (audioContext.state !== "running") {
+        await audioContext.resume();
+      }
+
+      playSilentUnlockTone(audioContext);
+      setSoundStatus("on");
+    } catch {
+      setSoundStatus("unavailable");
+    }
+  }, []);
+
+  const handleLuckyDrawCelebrate = useCallback((celebrationKey: string) => {
+    if (playedSoundKeysRef.current.has(celebrationKey)) {
+      return;
+    }
+
+    playedSoundKeysRef.current.add(celebrationKey);
+
+    if (soundStatusRef.current !== "on") {
+      return;
+    }
+
+    const audioContext = audioContextRef.current;
+
+    if (!audioContext || audioContext.state !== "running") {
+      return;
+    }
+
+    try {
+      playLuckyDrawPopSound(audioContext);
+    } catch {
+      // Audio failure must never block the screen celebration.
+    }
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -1207,7 +1417,11 @@ export default function ScreenStage({
 
   if (!state) {
     return (
-      <Shell state={null}>
+      <Shell
+        state={null}
+        soundStatus={soundStatus}
+        onToggleSound={handleToggleSound}
+      >
         <section className="flex flex-1 items-center justify-center rounded-3xl bg-white p-10 text-center text-[color:#0a1a38] shadow-2xl">
           <div>
             <p className="text-3xl font-black uppercase text-cyan-700">
@@ -1224,7 +1438,11 @@ export default function ScreenStage({
   }
 
   return (
-    <Shell state={state}>
+    <Shell
+      state={state}
+      soundStatus={soundStatus}
+      onToggleSound={handleToggleSound}
+    >
       {scene === "inactive" && (
         <PlaceholderView
           state={state}
@@ -1240,7 +1458,12 @@ export default function ScreenStage({
       )}
       {scene === "closed" && <ClosedView state={state} />}
       {scene === "result" && <ResultView state={state} />}
-      {scene === "draw_winner" && <DrawWinnerView state={state} />}
+      {scene === "draw_winner" && (
+        <DrawWinnerView
+          state={state}
+          onCelebrate={handleLuckyDrawCelebrate}
+        />
+      )}
       {scene === "draw" && <DrawPreparingView state={state} />}
       {scene === "qna_question" && <QnaQuestionView state={state} />}
       {(scene === "qna" || scene === "qna_waiting") && (

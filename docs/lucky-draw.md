@@ -129,11 +129,18 @@ When the final winner screen appears, the screen plays a short celebration effec
 - "당첨!" pops into place.
 - The winner card briefly glows with a soft gold highlight.
 - Colorful paper confetti bursts in front of the winner text, then falls away.
+- If enabled on the screen, a short generated pop sound plays at the same time.
 
 This is a screen-only visual effect. It does not select, change, or re-randomize
 the winner. The final winner is still the `draw_winners` row saved by the server.
 If the operator switches to another scene during the animation, the front
 confetti effect is cleaned up with the screen component.
+
+The pop sound is generated with the browser Web Audio API. Browsers can block
+automatic audio, so the screen operator must press "효과음 켜기" once on the
+screen page before the draw. The screen PC audio output must be connected to the
+venue sound system if the effect should be heard in the room. If audio unlock or
+playback fails, the visual celebration still runs.
 
 ## Privacy Rules
 
