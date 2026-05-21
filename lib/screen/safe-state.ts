@@ -6,11 +6,19 @@ import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
 export type SafeDrawPayload = {
   winner_id: string;
+  animation_id: string;
   participant_display_name: string;
   display_name: string;
+  winner_name: string;
   organization: string | null;
   prize_name: string;
+  prize_title: string;
   source_type: string;
+  draw_phase: "ready" | "rolling" | "result";
+  candidate_names: string[];
+  message: string | null;
+  duration_ms: number;
+  countdown_seconds: number;
   created_at: string | null;
   drawn_at: string | null;
 };
@@ -52,6 +60,30 @@ type QnaParticipantRow = {
   group_name: string | null;
 };
 
+type DrawWinnerRow = {
+  id: string;
+  prize_id: string | null;
+  participant_id: string;
+  source_type: string;
+  created_at: string | null;
+};
+
+type DrawParticipantRow = {
+  name: string;
+  display_name: string | null;
+};
+
+type DrawPrizeRow = {
+  name: string;
+};
+
+type DrawWinnerSnapshot = {
+  displayName: string | null;
+  prizeName: string | null;
+  sourceType: string | null;
+  createdAt: string | null;
+};
+
 function assertServerOnly() {
   if (typeof window !== "undefined") {
     throw new Error("Screen safe-state helpers must run on the server only.");
@@ -66,12 +98,132 @@ function pickNullableString(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
+function pickStringArray(value: unknown) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .filter((item): item is string => typeof item === "string")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function pickDrawPhase(value: unknown): SafeDrawPayload["draw_phase"] {
+  return value === "ready" || value === "rolling" || value === "result"
+    ? value
+    : "result";
+}
+
+function pickBoundedNumber({
+  value,
+  fallback,
+  min,
+  max,
+}: {
+  value: unknown;
+  fallback: number;
+  min: number;
+  max: number;
+}) {
+  const numberValue = typeof value === "number" ? value : Number(value);
+
+  if (!Number.isFinite(numberValue)) {
+    return fallback;
+  }
+
+  return Math.min(max, Math.max(min, Math.round(numberValue)));
+}
+
 function toParticipantDisplayName(participant: QnaParticipantRow | null) {
   return (
     participant?.display_name?.trim() ||
     participant?.name?.trim() ||
     "익명 참가자"
   );
+}
+
+function fallbackRollingNames(winnerName: string) {
+  return [
+    "참가자 후보 01",
+    "참가자 후보 02",
+    "참가자 후보 03",
+    winnerName,
+    "참가자 후보 04",
+    "참가자 후보 05",
+  ];
+}
+
+async function getDrawWinnerSnapshot({
+  eventId,
+  winnerId,
+}: {
+  eventId: string;
+  winnerId: string;
+}): Promise<DrawWinnerSnapshot | null> {
+  const supabase = createAdminSupabaseClient();
+  const { data: winnerData, error: winnerError } = await supabase
+    .from("draw_winners")
+    .select("id, prize_id, participant_id, source_type, created_at")
+    .eq("id", winnerId)
+    .eq("event_id", eventId)
+    .maybeSingle();
+
+  if (winnerError) {
+    console.error("[screen-state] Failed to load draw winner.", {
+      eventId,
+      winnerId,
+      message: winnerError.message,
+      code: winnerError.code,
+    });
+
+    return null;
+  }
+
+  if (!winnerData) {
+    return null;
+  }
+
+  const winner = winnerData as DrawWinnerRow;
+  const [participantResult, prizeResult] = await Promise.all([
+    supabase
+      .from("participants")
+      .select("name, display_name")
+      .eq("id", winner.participant_id)
+      .eq("event_id", eventId)
+      .maybeSingle(),
+    winner.prize_id
+      ? supabase.from("prizes").select("name").eq("id", winner.prize_id).maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
+  ]);
+
+  if (participantResult.error) {
+    console.error("[screen-state] Failed to load draw winner display name.", {
+      eventId,
+      winnerId,
+      message: participantResult.error.message,
+      code: participantResult.error.code,
+    });
+  }
+
+  if (prizeResult.error) {
+    console.error("[screen-state] Failed to load draw prize name.", {
+      eventId,
+      winnerId,
+      message: prizeResult.error.message,
+      code: prizeResult.error.code,
+    });
+  }
+
+  const participant = participantResult.data as DrawParticipantRow | null;
+  const prize = prizeResult.data as DrawPrizeRow | null;
+
+  return {
+    displayName: participant?.display_name?.trim() || participant?.name?.trim() || null,
+    prizeName: prize?.name?.trim() || null,
+    sourceType: winner.source_type,
+    createdAt: winner.created_at,
+  };
 }
 
 export function toSafeNoticePayload(payload: unknown): SafeNoticePayload | null {
@@ -108,30 +260,80 @@ export function toSafeJoinQrPayload(payload: unknown): SafeJoinQrPayload | null 
   };
 }
 
-export function toSafeDrawPayload(payload: unknown): SafeDrawPayload | null {
+export async function getSafeDrawPayload({
+  eventId,
+  payload,
+}: {
+  eventId: string;
+  payload: unknown;
+}): Promise<SafeDrawPayload | null> {
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
     return null;
   }
 
   const source = payload as Record<string, unknown>;
   const winnerId = pickString(source.winner_id);
-  const participantDisplayName = pickString(source.participant_display_name);
-  const prizeName = pickString(source.prize_name);
-  const sourceType = pickString(source.source_type);
-  const createdAt = pickString(source.created_at);
-  const organization = pickNullableString(source.organization);
 
-  if (!winnerId || !participantDisplayName || !prizeName || !sourceType) {
+  if (!winnerId) {
     return null;
   }
 
+  const snapshot = await getDrawWinnerSnapshot({ eventId, winnerId });
+  const participantDisplayName =
+    pickString(source.participant_display_name) ??
+    pickString(source.winner_name) ??
+    snapshot?.displayName;
+  const prizeName =
+    pickString(source.prize_name) ?? pickString(source.prize_title) ?? snapshot?.prizeName;
+  const sourceType = pickString(source.source_type) ?? snapshot?.sourceType;
+  const createdAt = pickString(source.created_at) ?? snapshot?.createdAt ?? null;
+  const organization = pickNullableString(source.organization);
+  const drawPhase = pickDrawPhase(source.draw_phase);
+  const candidateNames = Array.from(
+    new Set([
+      ...pickStringArray(source.candidate_names),
+      participantDisplayName,
+    ].filter((name): name is string => Boolean(name)))
+  ).slice(0, 30);
+
+  if (!participantDisplayName || !prizeName || !sourceType) {
+    return null;
+  }
+
+  const safeCandidateNames =
+    drawPhase === "rolling" && candidateNames.length < 2
+      ? fallbackRollingNames(participantDisplayName)
+      : candidateNames.length > 0
+        ? candidateNames
+        : [participantDisplayName];
+
   return {
     winner_id: winnerId,
+    animation_id:
+      pickString(source.animation_id) ??
+      `${winnerId}-${createdAt ?? "draw"}`,
     participant_display_name: participantDisplayName,
     display_name: participantDisplayName,
+    winner_name: participantDisplayName,
     organization,
     prize_name: prizeName,
+    prize_title: prizeName,
     source_type: sourceType,
+    draw_phase: drawPhase,
+    candidate_names: safeCandidateNames,
+    message: pickNullableString(source.message),
+    duration_ms: pickBoundedNumber({
+      value: source.duration_ms,
+      fallback: 7000,
+      min: 3000,
+      max: 10000,
+    }),
+    countdown_seconds: pickBoundedNumber({
+      value: source.countdown_seconds,
+      fallback: 3,
+      min: 1,
+      max: 5,
+    }),
     created_at: createdAt,
     drawn_at: createdAt,
   };
@@ -237,7 +439,7 @@ export async function buildSafeScreenPayload({
         : null,
     draw:
       mode === "draw" || scene === "draw_winner"
-        ? toSafeDrawPayload(payload)
+        ? await getSafeDrawPayload({ eventId, payload })
         : null,
     qna:
       mode === "qna" || scene === "qna_question"

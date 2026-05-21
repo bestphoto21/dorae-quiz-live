@@ -130,6 +130,22 @@ function sceneLabel(scene: string | null | undefined) {
   return "대기 화면";
 }
 
+function drawPhaseLabel(phase: unknown) {
+  if (phase === "rolling") {
+    return "추첨 연출 중";
+  }
+
+  if (phase === "result") {
+    return "당첨자 발표";
+  }
+
+  if (phase === "ready") {
+    return "추첨 준비";
+  }
+
+  return "발표 대기";
+}
+
 async function getLiveState(eventId: string): Promise<DrawLiveState | null> {
   const supabase = createAdminSupabaseClient();
   const { data, error } = await supabase
@@ -386,7 +402,7 @@ function DrawForm({
 
       <div>
         <SubmitButton tone="amber" disabled={!canOperate || drawablePrizes.length === 0}>
-          추첨 실행 및 스크린 발표
+          추첨 실행 및 연출 시작
         </SubmitButton>
       </div>
     </form>
@@ -475,17 +491,21 @@ function ScreenStatePanel({ liveState }: { liveState: DrawLiveState | null }) {
       : null;
   const prizeName =
     typeof payload.prize_name === "string" ? payload.prize_name : null;
+  const drawPhase = payload.draw_phase;
 
   return (
     <AdminPanel
       title="현재 스크린 발표 상태"
-      description="추첨이 성공하면 저장된 당첨 결과만 스크린으로 발표됩니다."
+      description="추첨이 성공하면 저장된 당첨 결과를 기준으로 스크린 연출을 시작합니다."
     >
       <div className="grid gap-3">
         <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
           <p className="text-xs font-black text-slate-700">현재 송출 화면</p>
           <p className="mt-2 text-sm font-bold text-[color:#0a1a38]">
             {sceneLabel(liveState?.screen_scene ?? liveState?.mode)}
+          </p>
+          <p className="mt-1 text-xs font-bold text-slate-600">
+            {drawPhaseLabel(drawPhase)}
           </p>
         </div>
         <div className="rounded-2xl border border-cyan-200 bg-cyan-50 p-4">
@@ -587,7 +607,7 @@ export default async function DrawPage({ params, searchParams }: DrawPageProps) 
 
             <AdminPanel
               title="추첨 실행"
-              description="추첨은 서버에서 crypto.randomInt로 후보를 선택하고, draw_winners 저장이 성공한 뒤 스크린 발표로 전환합니다."
+              description="추첨은 서버에서 후보를 선택해 저장한 뒤, 스크린에서 카운트다운과 롤링 연출을 보여줍니다."
             >
               <DrawForm
                 eventId={eventId}
@@ -636,6 +656,10 @@ export default async function DrawPage({ params, searchParams }: DrawPageProps) 
               <p className="rounded-2xl border border-slate-300 bg-slate-50 p-4">
                   스크린 발표 payload에는 당첨자 이름, 경품명, 추첨 방식만 저장하며
                   전화번호는 포함하지 않습니다.
+                </p>
+              <p className="rounded-2xl border border-slate-300 bg-slate-50 p-4">
+                  추첨 연출은 화면 효과입니다. 최종 당첨자는 서버에 저장된
+                  draw_winners 결과를 기준으로 표시됩니다.
                 </p>
               </div>
             </AdminPanel>

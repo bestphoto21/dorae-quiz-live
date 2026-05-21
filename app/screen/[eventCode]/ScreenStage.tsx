@@ -38,9 +38,17 @@ type ScreenState = {
   } | null;
   draw: {
     winner_id: string;
+    animation_id: string;
     participant_display_name: string;
+    winner_name: string;
     prize_name: string;
+    prize_title: string;
     source_type: string;
+    draw_phase: "ready" | "rolling" | "result";
+    candidate_names: string[];
+    message: string | null;
+    duration_ms: number;
+    countdown_seconds: number;
     created_at: string | null;
   } | null;
   qna: {
@@ -121,6 +129,11 @@ function screenStateFingerprint(state: ScreenState) {
     show_results: state.liveState.show_results,
     question_id: state.question?.id ?? null,
     draw_winner_id: state.draw?.winner_id ?? null,
+    draw_animation_id: state.draw?.animation_id ?? null,
+    draw_phase: state.draw?.draw_phase ?? null,
+    draw_candidate_names: state.draw?.candidate_names ?? [],
+    draw_duration_ms: state.draw?.duration_ms ?? null,
+    draw_countdown_seconds: state.draw?.countdown_seconds ?? null,
     qna_question_id: state.qna?.qna_question_id ?? null,
     notice_title: state.notice?.title ?? null,
     notice_message: state.notice?.message ?? null,
@@ -178,6 +191,10 @@ function Shell({
   children: ReactNode;
 }) {
   const accentColor = state?.event.primary_color || "#06b6d4";
+  const currentSceneLabel =
+    state?.draw?.draw_phase === "rolling"
+      ? "추첨 연출"
+      : sceneLabel(state?.liveState.screen_scene ?? state?.liveState.mode);
 
   return (
     <main className="min-h-screen bg-[#0a1a38] p-5 text-white sm:p-8">
@@ -202,7 +219,7 @@ function Shell({
           >
             <p className="text-sm font-black text-slate-200">현재 송출</p>
             <p className="mt-1 text-3xl font-black text-emerald-200">
-              {sceneLabel(state?.liveState.screen_scene ?? state?.liveState.mode)}
+              {currentSceneLabel}
             </p>
           </div>
         </header>
@@ -405,21 +422,41 @@ function normalizeScene(scene: string | null | undefined) {
   return scene ? (sceneAliases[scene] ?? scene) : scene;
 }
 
-function DrawWinnerView({ state }: { state: ScreenState }) {
-  const draw = state.draw;
+type DrawPayload = NonNullable<ScreenState["draw"]>;
+type DrawAnimationStep = "countdown" | "rolling" | "result";
 
-  if (!draw) {
-    return <DrawPreparingView state={state} />;
-  }
+function drawCandidateNames(draw: DrawPayload) {
+  const names = Array.from(
+    new Set(
+      [...(draw.candidate_names ?? []), draw.participant_display_name]
+        .map((name) => name.trim())
+        .filter(Boolean)
+    )
+  );
 
+  return names.length > 0 ? names : [draw.participant_display_name];
+}
+
+function drawAnimationKey(draw: DrawPayload) {
+  return [
+    draw.animation_id,
+    draw.winner_id,
+    draw.created_at,
+    draw.duration_ms,
+    draw.countdown_seconds,
+    draw.candidate_names.join("|"),
+  ].join(":");
+}
+
+function DrawResultView({ draw }: { draw: DrawPayload }) {
   return (
     <section className="flex flex-1 items-center justify-center rounded-3xl bg-white p-8 text-center text-[color:#0a1a38] shadow-2xl sm:p-12">
       <div className="w-full">
         <p className="text-3xl font-black uppercase tracking-normal text-amber-600">
           {sourceLabel(draw.source_type)}
         </p>
-        <h2 className="mt-6 text-6xl font-black leading-tight text-[color:#0a1a38] sm:text-8xl">
-          축하합니다
+        <h2 className="mt-6 text-7xl font-black leading-tight text-[color:#0a1a38] sm:text-9xl">
+          당첨!
         </h2>
         <div className="mx-auto mt-10 max-w-5xl rounded-3xl border border-amber-200 bg-amber-50 p-8">
           <p className="text-3xl font-black text-amber-700">당첨 경품</p>
@@ -436,6 +473,144 @@ function DrawWinnerView({ state }: { state: ScreenState }) {
       </div>
     </section>
   );
+}
+
+function RollingDrawView({ draw }: { draw: DrawPayload }) {
+  const candidates = useMemo(() => drawCandidateNames(draw), [draw]);
+  const [step, setStep] = useState<DrawAnimationStep>("countdown");
+  const [countdown, setCountdown] = useState(draw.countdown_seconds);
+  const [rollingName, setRollingName] = useState(
+    candidates[0] ?? draw.participant_display_name
+  );
+
+  useEffect(() => {
+    let active = true;
+    const timers: number[] = [];
+    const countdownSeconds = Math.max(1, draw.countdown_seconds);
+    const countdownMs = countdownSeconds * 1000;
+    const totalDurationMs = Math.max(draw.duration_ms, countdownMs + 1800);
+    const rollingDurationMs = Math.max(1800, totalDurationMs - countdownMs);
+
+    for (let secondsLeft = countdownSeconds; secondsLeft >= 1; secondsLeft -= 1) {
+      timers.push(
+        window.setTimeout(() => {
+          if (active) {
+            setCountdown(secondsLeft);
+          }
+        }, (countdownSeconds - secondsLeft) * 1000)
+      );
+    }
+
+    timers.push(
+      window.setTimeout(() => {
+        if (!active) {
+          return;
+        }
+
+        setStep("rolling");
+        const startedAt = Date.now();
+        let index = 0;
+
+        function tick() {
+          if (!active) {
+            return;
+          }
+
+          const elapsed = Date.now() - startedAt;
+
+          if (elapsed >= rollingDurationMs) {
+            setStep("result");
+            setRollingName(draw.participant_display_name);
+            return;
+          }
+
+          index = (index + 1) % candidates.length;
+          setRollingName(candidates[index] ?? draw.participant_display_name);
+
+          const progress = Math.min(1, elapsed / rollingDurationMs);
+          const nextDelay = 55 + Math.round(progress * progress * 360);
+          timers.push(window.setTimeout(tick, nextDelay));
+        }
+
+        tick();
+      }, countdownMs)
+    );
+
+    timers.push(
+      window.setTimeout(() => {
+        if (active) {
+          setStep("result");
+          setRollingName(draw.participant_display_name);
+        }
+      }, totalDurationMs)
+    );
+
+    return () => {
+      active = false;
+      timers.forEach((timer) => window.clearTimeout(timer));
+    };
+  }, [
+    candidates,
+    draw.countdown_seconds,
+    draw.duration_ms,
+    draw.participant_display_name,
+  ]);
+
+  if (step === "result") {
+    return <DrawResultView draw={draw} />;
+  }
+
+  return (
+    <section className="flex flex-1 items-center justify-center rounded-3xl border border-white/15 bg-white/10 p-8 text-center shadow-2xl sm:p-12">
+      <div className="w-full">
+        <p className="text-3xl font-black text-amber-200">
+          {draw.message || "두구두구... 곧 당첨자를 공개합니다."}
+        </p>
+        <h2 className="mt-5 text-6xl font-black leading-tight sm:text-8xl">
+          {step === "countdown" ? "추첨을 시작합니다" : "추첨 중"}
+        </h2>
+
+        <div className="mx-auto mt-8 max-w-5xl rounded-3xl bg-white p-8 text-[color:#0a1a38] shadow-2xl">
+          <p className="text-2xl font-black text-amber-700">경품</p>
+          <p className="mt-3 text-4xl font-black leading-tight sm:text-6xl">
+            {draw.prize_name}
+          </p>
+        </div>
+
+        <div className="mx-auto mt-8 max-w-5xl rounded-3xl border border-cyan-100 bg-cyan-50 p-8 text-[color:#0a1a38] shadow-2xl">
+          {step === "countdown" ? (
+            <>
+              <p className="text-2xl font-black text-cyan-800">카운트다운</p>
+              <p className="mt-2 text-9xl font-black leading-none text-cyan-950 sm:text-[12rem]">
+                {countdown}
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-2xl font-black text-cyan-800">후보 확인 중</p>
+              <p className="mt-4 break-words text-7xl font-black leading-tight text-cyan-950 sm:text-9xl">
+                {rollingName}
+              </p>
+            </>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function DrawWinnerView({ state }: { state: ScreenState }) {
+  const draw = state.draw;
+
+  if (!draw) {
+    return <DrawPreparingView state={state} />;
+  }
+
+  if (draw.draw_phase === "rolling") {
+    return <RollingDrawView key={drawAnimationKey(draw)} draw={draw} />;
+  }
+
+  return <DrawResultView draw={draw} />;
 }
 
 function DrawPreparingView({ state }: { state: ScreenState }) {

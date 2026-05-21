@@ -114,6 +114,23 @@ function displayName(participant: CandidateParticipant) {
   return participant.display_name?.trim() || participant.name;
 }
 
+function candidateNamesForScreen(
+  participants: CandidateParticipant[],
+  selectedParticipant: CandidateParticipant
+) {
+  const selectedName = displayName(selectedParticipant);
+  const names = participants
+    .map(displayName)
+    .filter((name) => name.length > 0 && name.length <= 40);
+  const uniqueNames = Array.from(new Set(names)).slice(0, 30);
+
+  if (!uniqueNames.includes(selectedName)) {
+    uniqueNames.push(selectedName);
+  }
+
+  return uniqueNames.length > 0 ? uniqueNames : [selectedName];
+}
+
 async function requireDrawOperation(eventId: string) {
   const { admin, event } = await requireEventAccess(eventId);
   const role = await getEventScopedRole(admin, eventId);
@@ -453,6 +470,7 @@ async function setDrawScreenState({
   participantDisplayName,
   prizeName,
   sourceType,
+  candidateNames,
   createdAt,
 }: {
   eventId: string;
@@ -461,6 +479,7 @@ async function setDrawScreenState({
   participantDisplayName: string;
   prizeName: string;
   sourceType: DrawSourceType;
+  candidateNames: string[];
   createdAt: string | null;
 }) {
   const supabase = createAdminSupabaseClient();
@@ -480,9 +499,17 @@ async function setDrawScreenState({
       screen_scene: "draw_winner",
       screen_payload: {
         winner_id: winnerId,
+        animation_id: `${winnerId}-${Date.now()}`,
         participant_display_name: participantDisplayName,
+        winner_name: participantDisplayName,
         prize_name: prizeName,
+        prize_title: prizeName,
         source_type: sourceType,
+        draw_phase: "rolling",
+        candidate_names: candidateNames,
+        message: "두구두구... 곧 당첨자를 공개합니다.",
+        duration_ms: 7000,
+        countdown_seconds: 3,
         created_at: createdAt,
       },
     },
@@ -510,6 +537,7 @@ async function insertDrawWinner({
   sourceSessionId,
   sourceQuestionId,
   participant,
+  candidateNames,
   logAction = "draw_winner_selected",
 }: {
   eventId: string;
@@ -520,6 +548,7 @@ async function insertDrawWinner({
   sourceSessionId: string | null;
   sourceQuestionId: string | null;
   participant: CandidateParticipant;
+  candidateNames: string[];
   logAction?: Extract<DrawLogAction, "draw_winner_selected" | "draw_winner_redrawn">;
 }) {
   const supabase = createAdminSupabaseClient();
@@ -568,11 +597,13 @@ async function insertDrawWinner({
     detail: {
       event_id: eventId,
       prize_id: prize.id,
-      participant_id: participant.id,
       source_type: sourceType,
       source_session_id: sourceSessionId,
       source_question_id: sourceQuestionId,
       winner_id: data.id,
+      screen_scene: "draw_winner",
+      draw_phase: "rolling",
+      changed_at: new Date().toISOString(),
     },
   });
 
@@ -583,6 +614,7 @@ async function insertDrawWinner({
     participantDisplayName: displayName(participant),
     prizeName: prize.name,
     sourceType,
+    candidateNames,
     createdAt: data.created_at,
   });
 }
@@ -802,6 +834,7 @@ export async function drawWinner(eventId: string, formData: FormData) {
     sourceSessionId,
     sourceQuestionId,
     participant: selectedParticipant,
+    candidateNames: candidateNamesForScreen(pool, selectedParticipant),
   });
 
   redirectToDraw({
@@ -871,7 +904,6 @@ export async function markWinnerClaimed(eventId: string, winnerId: string) {
       event_id: eventId,
       winner_id: winnerId,
       prize_id: winner.prize_id,
-      participant_id: winner.participant_id,
       source_type: winner.source_type,
       source_question_id: winner.source_question_id,
     },
@@ -919,7 +951,6 @@ export async function cancelWinner(eventId: string, winnerId: string) {
       event_id: eventId,
       winner_id: winnerId,
       prize_id: winner.prize_id,
-      participant_id: winner.participant_id,
       source_type: winner.source_type,
       source_question_id: winner.source_question_id,
     },
@@ -986,7 +1017,6 @@ export async function redrawWinner(eventId: string, winnerId: string) {
       event_id: eventId,
       winner_id: winnerId,
       prize_id: winner.prize_id,
-      participant_id: winner.participant_id,
       source_type: winner.source_type,
       source_question_id: winner.source_question_id,
       status: "redrawn",
@@ -1002,6 +1032,7 @@ export async function redrawWinner(eventId: string, winnerId: string) {
     sourceSessionId: null,
     sourceQuestionId: winner.source_question_id,
     participant: selectedParticipant,
+    candidateNames: candidateNamesForScreen(pool, selectedParticipant),
     logAction: "draw_winner_selected",
   });
 

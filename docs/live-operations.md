@@ -99,16 +99,23 @@ The screen state API re-checks `qna_questions.status = approved` before returnin
 Use "럭키드로우 준비 화면 송출" before drawing or between winners.
 
 Actual winner selection still happens in `/admin/events/[eventId]/draw`.
+When the draw button is submitted, the server first writes the selected winner
+to `draw_winners`, then the screen plays a countdown and rolling-name
+animation before showing the saved winner.
 
 Winner screen payload must contain only presentation-safe fields such as:
 
 - winner id or draw result id
+- animation id
 - display name
 - organization, if available and safe
 - prize name
 - drawn time
+- draw phase, message, countdown duration, and safe candidate display names
 
-It must not include phone numbers or raw participant contact details.
+It must not include participant ids, phone numbers, email addresses, or raw
+participant contact details. Candidate names shown during rolling are visual
+effects only; the final result is always the saved database winner.
 
 ## Break Screen
 
@@ -139,11 +146,19 @@ Allowed fields are selected per scene.
 ### `draw_winner`
 
 - `winner_id`
+- `animation_id`
 - `display_name`
 - `participant_display_name`
+- `winner_name`
 - `organization`
 - `prize_name`
+- `prize_title`
 - `source_type`
+- `draw_phase`
+- `candidate_names`
+- `message`
+- `duration_ms`
+- `countdown_seconds`
 - `drawn_at`
 
 ### `waiting` / `break`
@@ -217,7 +232,7 @@ If the event needs more immediate transitions later, introduce Supabase Realtime
 8. Test Q&A waiting screen.
 9. Test approved question screen output.
 10. Confirm unapproved questions do not appear on screen.
-11. Test lucky draw winner output.
+11. Test lucky draw ready screen, rolling animation, and winner output.
 12. Check that `phone` and `phone_normalized` are not visible on screen.
 13. Confirm `npm.cmd run build` passes.
 
@@ -232,5 +247,7 @@ If the screen looks wrong during rehearsal or event operation:
 5. Confirm the selected quiz session/question exists.
 6. For Q&A, confirm the question is approved.
 7. For lucky draw, confirm the winner was saved in `draw_winners`.
-8. Check recent operation logs.
-9. Re-run `npm.cmd run build` before deployment if code changed.
+8. During draw animation, switch to waiting/QR/break once and confirm the old
+   rolling timer does not overwrite the new scene.
+9. Check recent operation logs.
+10. Re-run `npm.cmd run build` before deployment if code changed.

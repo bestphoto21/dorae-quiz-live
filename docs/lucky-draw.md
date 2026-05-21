@@ -2,7 +2,7 @@
 
 This step implements prize management, winner selection, saved draw results, and screen presentation.
 
-It does not implement Q&A, score ranking, Kakao/SMS notification, winner export, prize images, or advanced draw animation yet.
+It does not implement Q&A, score ranking, Kakao/SMS notification, winner export, or prize images.
 
 ## Prize Management
 
@@ -99,17 +99,28 @@ After a winner is inserted, the app updates `live_state`:
 
 - `mode = 'draw'`
 - `screen_scene = 'draw_winner'`
-- `screen_payload` contains presentation-safe winner data
+- `screen_payload` contains presentation-safe winner data and animation metadata
 
 Allowed screen payload fields:
 
 - `winner_id`
+- `animation_id`
 - `participant_display_name`
+- `winner_name`
 - `prize_name`
+- `prize_title`
 - `source_type`
+- `draw_phase`
+- `candidate_names`
+- `message`
+- `duration_ms`
+- `countdown_seconds`
 - `created_at`
 
 The screen API still sanitizes the payload and returns only these fields.
+The rolling animation is presentation only. The selected winner is inserted into
+`draw_winners` before the screen starts the animation, and the final result uses
+that saved winner.
 
 ## Privacy Rules
 
@@ -117,6 +128,8 @@ Never put these fields in `screen_payload`:
 
 - `phone`
 - `phone_normalized`
+- `email`
+- `participant_id`
 - raw participant rows
 - private admin data
 
@@ -134,9 +147,9 @@ The draw flow writes these actions:
 - `draw_winner_cancelled`
 - `draw_winner_redrawn`
 
-Log details include operational identifiers such as `event_id`, `prize_id`, `participant_id`, `source_type`, `source_question_id`, and `winner_id`.
+Log details include operational identifiers such as `event_id`, `prize_id`, `source_type`, `source_question_id`, `screen_scene`, `draw_phase`, and `winner_id`.
 
-Logs must not include phone numbers.
+Logs must not include participant ids, phone numbers, or email addresses.
 
 ## Current Limits
 
@@ -147,5 +160,4 @@ Not implemented yet:
 - SMS or Kakao notification
 - duplicate winner allow option
 - weighted draw rules
-- advanced draw animation
 - Q&A integration
