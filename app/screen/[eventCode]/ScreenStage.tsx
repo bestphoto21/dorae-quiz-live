@@ -455,8 +455,8 @@ const CONFETTI_COLORS = [
   "#67e8f9",
   "#ffffff",
 ];
-const CONFETTI_COUNT = 72;
-const CELEBRATION_DURATION_MS = 2800;
+const CONFETTI_COUNT = 200;
+const CELEBRATION_DURATION_MS = 3500;
 
 function normalizeCandidateNames(
   candidateNames: string[],
@@ -505,9 +505,9 @@ function buildConfettiParticles(seed: string): ConfettiParticle[] {
     const shape =
       shapeSeed > 0.78 ? "spark" : shapeSeed > 0.46 ? "capsule" : "dot";
     const angle = seededRatio(seed, index, 3) * Math.PI * 2;
-    const distance = 130 + seededRatio(seed, index, 4) * 330;
-    const gravity = 26 + seededRatio(seed, index, 5) * 60;
-    const baseSize = 5 + Math.round(seededRatio(seed, index, 6) * 7);
+    const distance = 220 + seededRatio(seed, index, 4) * 540;
+    const gravity = 50 + seededRatio(seed, index, 5) * 90;
+    const baseSize = 8 + Math.round(seededRatio(seed, index, 6) * 10);
 
     return {
       id: index,
@@ -518,20 +518,20 @@ function buildConfettiParticles(seed: string): ConfettiParticle[] {
         ] ?? "#f59e0b",
       width:
         shape === "capsule"
-          ? 12 + Math.round(seededRatio(seed, index, 7) * 12)
+          ? 20 + Math.round(seededRatio(seed, index, 7) * 24)
           : baseSize,
       height:
         shape === "capsule"
-          ? 3 + Math.round(seededRatio(seed, index, 8) * 3)
+          ? 6 + Math.round(seededRatio(seed, index, 8) * 5)
           : baseSize,
-      opacity: 0.64 + seededRatio(seed, index, 9) * 0.26,
-      delayMs: Math.round(seededRatio(seed, index, 10) * 120),
-      durationMs: 1900 + Math.round(seededRatio(seed, index, 11) * 680),
+      opacity: 0.7 + seededRatio(seed, index, 9) * 0.24,
+      delayMs: Math.round(seededRatio(seed, index, 10) * 150),
+      durationMs: 2500 + Math.round(seededRatio(seed, index, 11) * 950),
       x: Math.round(Math.cos(angle) * distance),
       y: Math.round(Math.sin(angle) * distance + gravity),
       rotateDeg: Math.round((seededRatio(seed, index, 12) - 0.5) * 420),
       radius: shape === "spark" ? "2px" : "9999px",
-      glowPx: 8 + Math.round(seededRatio(seed, index, 13) * 18),
+      glowPx: 4 + Math.round(seededRatio(seed, index, 13) * 10),
     };
   });
 }
@@ -542,7 +542,7 @@ function CelebrationStyles() {
       @keyframes doraeConfettiBurst {
         0% {
           opacity: 0;
-          transform: translate3d(-50%, -50%, 0) rotate(0deg) scale(0.52);
+          transform: translate3d(-50%, -50%, 0) rotate(0deg) scale(0.42);
         }
         12% {
           opacity: var(--particle-opacity);
@@ -554,7 +554,7 @@ function CelebrationStyles() {
             rotate(var(--burst-start-rotate))
             scale(1);
         }
-        64% {
+        68% {
           opacity: calc(var(--particle-opacity) * 0.72);
         }
         100% {
@@ -565,7 +565,7 @@ function CelebrationStyles() {
               0
             )
             rotate(var(--burst-rotate))
-            scale(0.72);
+            scale(0.78);
         }
       }
 
@@ -608,7 +608,7 @@ function CelebrationStyles() {
         animation-timing-function: cubic-bezier(0.13, 0.82, 0.28, 1);
         box-shadow:
           0 0 var(--particle-glow) currentColor,
-          0 0 calc(var(--particle-glow) * 1.8) rgba(250, 204, 21, 0.16);
+          0 0 calc(var(--particle-glow) * 1.35) rgba(250, 204, 21, 0.12);
       }
 
       .dorae-winner-pop {
@@ -656,7 +656,7 @@ function CelebrationOverlay({ celebrationKey }: { celebrationKey: string }) {
   return (
     <div
       aria-hidden="true"
-      className="pointer-events-none fixed inset-0 z-20 overflow-hidden"
+      className="pointer-events-none fixed inset-0 z-30 overflow-hidden"
     >
       {particles.map((particle) => (
         <span
