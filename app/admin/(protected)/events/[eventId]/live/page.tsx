@@ -30,6 +30,8 @@ import {
   startQuestion,
 } from "./actions";
 import { buildPublicUrl } from "@/lib/site-url";
+import { AdminScreenStatusCard } from "../_components/AdminScreenStatusCard";
+import { ConfirmSubmitButton } from "../_components/ConfirmSubmitButton";
 
 type LivePageProps = {
   params: Promise<{ eventId: string }>;
@@ -279,28 +281,28 @@ function ControlButton({
   children,
   tone = "dark",
   sessionId,
+  confirmMessage,
+  pendingLabel = "처리 중...",
 }: {
   action: (formData: FormData) => void | Promise<void>;
   children: string;
   tone?: "dark" | "cyan" | "amber" | "rose";
   sessionId?: string | null;
+  confirmMessage?: string;
+  pendingLabel?: string;
 }) {
-  const classes = {
-    dark: "border-[#0a1a38] bg-[#0a1a38] text-white hover:bg-[#10284f]",
-    cyan: "border-[#0a1a38] bg-[#0a1a38] text-white hover:bg-[#10284f]",
-    amber: "border-amber-500 bg-amber-400 text-[color:#0a1a38] hover:bg-amber-300",
-    rose: "border-rose-600 bg-rose-600 text-white hover:bg-rose-700",
-  };
-
   return (
     <form action={action}>
       {sessionId && <input type="hidden" name="session_id" value={sessionId} />}
-      <button
-        type="submit"
-        className={`min-h-12 w-full rounded-2xl border px-5 py-3 text-base font-black shadow-sm transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0a1a38] ${classes[tone]}`}
+      <ConfirmSubmitButton
+        tone={tone}
+        fullWidth
+        size="lg"
+        confirmMessage={confirmMessage}
+        pendingLabel={pendingLabel}
       >
         {children}
-      </button>
+      </ConfirmSubmitButton>
     </form>
   );
 }
@@ -470,14 +472,16 @@ export default async function LivePage({ params, searchParams }: LivePageProps) 
             title="현재 송출 상태"
             description="지금 현장 스크린에 무엇이 나가는지 먼저 확인한 뒤 전환해 주세요."
           >
-            <div className="rounded-3xl border border-cyan-200 bg-cyan-50 p-5">
-              <p className="text-sm font-black uppercase text-cyan-700">
-                Live Output
-              </p>
-              <h2 className="mt-3 text-3xl font-black leading-tight text-[color:#0a1a38]">
-                {sceneDescription(liveState)}
-              </h2>
-            </div>
+            <AdminScreenStatusCard
+              mode={liveState?.mode}
+              screenScene={liveState?.screen_scene}
+              updatedAt={liveState?.updated_at}
+              screenUrl={screenUrl}
+              eventCode={event.event_code}
+            />
+            <p className="mt-4 rounded-2xl border border-cyan-200 bg-cyan-50 p-4 text-sm font-black leading-6 text-cyan-950">
+              {sceneDescription(liveState)}
+            </p>
             <div className="mt-4 grid gap-3 md:grid-cols-3">
               <StateRow label="퀴즈" value={status.quiz} />
               <StateRow label="Q&A" value={status.qna} />
@@ -638,22 +642,47 @@ export default async function LivePage({ params, searchParams }: LivePageProps) 
                 <div className="grid gap-3">
                   {canOperateScreen && (
                     <>
-                      <ControlButton action={waitingAction} tone="dark">
+                      <ControlButton
+                        action={waitingAction}
+                        tone="dark"
+                        pendingLabel="송출 중..."
+                        confirmMessage="스크린을 대기 화면으로 전환합니다. 진행할까요?"
+                      >
                         대기 화면 송출
                       </ControlButton>
-                      <ControlButton action={joinQrAction} tone="dark">
+                      <ControlButton
+                        action={joinQrAction}
+                        tone="dark"
+                        pendingLabel="송출 중..."
+                        confirmMessage="스크린을 QR 입장 안내 화면으로 전환합니다. 진행할까요?"
+                      >
                         QR 참여 안내 화면 송출
                       </ControlButton>
-                      <ControlButton action={breakAction} tone="amber">
+                      <ControlButton
+                        action={breakAction}
+                        tone="amber"
+                        pendingLabel="송출 중..."
+                        confirmMessage="스크린을 휴식 화면으로 전환합니다. 진행할까요?"
+                      >
                         휴식 화면 송출
                       </ControlButton>
-                      <ControlButton action={luckyDrawAction} tone="dark">
+                      <ControlButton
+                        action={luckyDrawAction}
+                        tone="dark"
+                        pendingLabel="송출 중..."
+                        confirmMessage="스크린을 럭키드로우 준비 화면으로 전환합니다. 진행할까요?"
+                      >
                         럭키드로우 준비 화면 송출
                       </ControlButton>
                     </>
                   )}
                   {canSetQnaScreen && (
-                    <ControlButton action={qnaWaitingAction} tone="cyan">
+                    <ControlButton
+                      action={qnaWaitingAction}
+                      tone="cyan"
+                      pendingLabel="송출 중..."
+                      confirmMessage="스크린을 Q&A 접수 화면으로 전환합니다. 진행할까요?"
+                    >
                       Q&A 대기 화면 송출
                     </ControlButton>
                   )}

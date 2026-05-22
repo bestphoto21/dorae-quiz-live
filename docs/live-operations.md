@@ -24,6 +24,18 @@ It shows:
 
 Operators should always check the current output panel before pressing a screen-transition button.
 
+The admin live, survey, Q&A, and draw pages include a "현재 스크린 송출 상태"
+card near the top. It shows the Korean mode label, Korean screen label, last
+change time, screen-open button, event code, and a plain-language broadcast
+description such as "QR 입장 안내 송출 중", "1분 설문 진행 중", or
+"럭키드로우 당첨 발표 송출 중". Internal mode and scene values may appear only
+as small helper text.
+
+The operator rule is: the last confirmed screen-control button wins. Because
+all features share the same event `live_state` and `/screen/[eventCode]`, a QR,
+waiting, break, survey, Q&A, or draw button can intentionally replace the
+previous screen output.
+
 ## Mode And Scene
 
 `live_state.mode` is the database-level state. Its allowed values are defined by the existing schema:
@@ -98,6 +110,9 @@ The Q&A management page also includes a "화면 제어" card. Operators can open
 the screen window and switch to waiting, QR participation, break, or Q&A waiting
 without leaving the Q&A workflow.
 
+Showing an approved Q&A question on screen requires confirmation. The button
+also shows a pending "송출 중..." state after it is pressed.
+
 ## Survey Flow
 
 Survey MVP management is available at `/admin/events/[eventId]/surveys`.
@@ -122,8 +137,12 @@ Survey start/close and survey screen projection are separate operations. The
 first controls `survey_forms.status`; the second only changes `live_state` for
 the screen. The survey page can create a default 10-question feedback set for an
 empty survey, and participants see immediate selection feedback plus a pending
-submit state. One-minute timers and automatic survey transitions are still
-future work. Keep survey answer details inside protected admin flows only.
+submit state. The one-minute timer and lazy automatic close are part of the
+current survey flow. Keep survey answer details inside protected admin flows only.
+
+The one-minute survey start and survey close controls show confirmation prompts.
+Screen buttons for waiting, break, QR, survey guide, and survey status also ask
+for confirmation and show pending text while the server action is running.
 
 ## Lucky Draw Flow
 
@@ -141,9 +160,15 @@ pool comes from `survey_responses` for the selected form. Individual survey
 answers and participant contact fields are never sent to the screen.
 
 The lucky draw management page includes the same basic screen controls, plus
-"럭키드로우 준비 화면 송출" and "최근 당첨 결과 다시 송출". "추첨 실행 및 연출
-시작" creates a new winner; "최근 당첨 결과 다시 송출" only replays the latest
-saved winner on the screen.
+"럭키드로우 준비 화면 송출" and "최근 당첨 결과 다시 송출".
+
+"새 당첨자 추첨 실행" creates a new saved winner from the selected candidate
+pool and then announces it on the screen. It is visually separated in a warning
+style card and requires confirmation.
+
+"최근 당첨 결과 다시 송출" does not draw anyone. It only replays the latest saved
+winner on the screen, uses a quieter secondary style, and also asks for
+confirmation.
 
 At the final "당첨!" moment, the screen also plays a short celebration effect.
 The pop, gold glow, canvas-confetti central burst, and optional pop sound are
@@ -172,6 +197,11 @@ effects only; the final result is always the saved database winner.
 ## Break Screen
 
 Use "휴식 화면 송출" during intermissions.
+
+Waiting, break, QR, Q&A, survey status, and draw replay controls are protected
+with browser confirmation prompts because they immediately change what the
+venue screen displays. The pending label confirms the click was accepted and
+prevents double submission while the request is running.
 
 Because no database migration is introduced in this step, break is stored as:
 

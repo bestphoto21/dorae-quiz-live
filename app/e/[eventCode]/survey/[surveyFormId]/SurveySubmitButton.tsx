@@ -37,6 +37,11 @@ export function SurveySubmitButton({ endsAt }: { endsAt: string | null }) {
           남은 시간 {formatSeconds(remainingSeconds)}
         </p>
       )}
+      <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm font-bold leading-6 text-amber-950">
+        <p className="font-black">제출 전 마지막으로 확인해주세요.</p>
+        <p>제출 후에는 수정할 수 없습니다.</p>
+        <p>설문 마감 시간이 지나면 제출할 수 없습니다.</p>
+      </div>
       <button
         type="submit"
         disabled={pending || expired}

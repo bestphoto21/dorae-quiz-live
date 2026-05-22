@@ -23,6 +23,8 @@ import {
 } from "@/lib/data/surveys";
 import { buildPublicUrl } from "@/lib/site-url";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
+import { AdminScreenStatusCard } from "../_components/AdminScreenStatusCard";
+import { ConfirmSubmitButton } from "../_components/ConfirmSubmitButton";
 import {
   cancelWinner,
   createPrize,
@@ -221,26 +223,24 @@ function SubmitButton({
   children,
   tone = "dark",
   disabled = false,
+  pendingLabel = "처리 중...",
+  confirmMessage,
 }: {
   children: string;
   tone?: "dark" | "cyan" | "amber" | "rose";
   disabled?: boolean;
+  pendingLabel?: string;
+  confirmMessage?: string;
 }) {
-  const classes = {
-    dark: "border-[#0a1a38] bg-[#0a1a38] text-white hover:bg-[#10284f]",
-    cyan: "border-[#0a1a38] bg-[#0a1a38] text-white hover:bg-[#10284f]",
-    amber: "border-amber-500 bg-amber-400 text-[color:#0a1a38] hover:bg-amber-300",
-    rose: "border-rose-600 bg-rose-600 text-white hover:bg-rose-700",
-  };
-
   return (
-    <button
-      type="submit"
+    <ConfirmSubmitButton
+      tone={tone}
       disabled={disabled}
-      className={`min-h-11 rounded-2xl border px-4 py-2 text-sm font-black shadow-sm transition disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-200 disabled:text-slate-700 ${classes[tone]}`}
+      pendingLabel={pendingLabel}
+      confirmMessage={confirmMessage}
     >
       {children}
-    </button>
+    </ConfirmSubmitButton>
   );
 }
 
@@ -249,28 +249,27 @@ function ScreenControlButton({
   children,
   tone = "dark",
   disabled = false,
+  confirmMessage,
+  pendingLabel = "송출 중...",
 }: {
   action: (formData: FormData) => void | Promise<void>;
   children: string;
-  tone?: "dark" | "cyan" | "amber" | "rose";
+  tone?: "dark" | "cyan" | "amber" | "rose" | "secondary";
   disabled?: boolean;
+  confirmMessage?: string;
+  pendingLabel?: string;
 }) {
-  const classes = {
-    dark: "border-[#0a1a38] bg-[#0a1a38] text-white hover:bg-[#10284f]",
-    cyan: "border-[#0a1a38] bg-[#0a1a38] text-white hover:bg-[#10284f]",
-    amber: "border-amber-500 bg-amber-400 text-[color:#0a1a38] hover:bg-amber-300",
-    rose: "border-rose-600 bg-rose-600 text-white hover:bg-rose-700",
-  };
-
   return (
     <form action={action}>
-      <button
-        type="submit"
+      <ConfirmSubmitButton
+        tone={tone}
         disabled={disabled}
-        className={`min-h-11 w-full rounded-2xl border px-4 py-2 text-sm font-black shadow-sm transition disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-200 disabled:text-slate-700 ${classes[tone]}`}
+        fullWidth
+        confirmMessage={confirmMessage}
+        pendingLabel={pendingLabel}
       >
         {children}
-      </button>
+      </ConfirmSubmitButton>
     </form>
   );
 }
@@ -333,12 +332,14 @@ function ScreenControlPanel({
           <ScreenControlButton
             action={waitingAction}
             disabled={!canOperate}
+            confirmMessage="스크린을 대기 화면으로 전환합니다. 진행할까요?"
           >
             대기 화면 송출
           </ScreenControlButton>
           <ScreenControlButton
             action={joinQrAction}
             disabled={!canOperate}
+            confirmMessage="스크린을 QR 입장 안내 화면으로 전환합니다. 진행할까요?"
           >
             QR 참여 안내 송출
           </ScreenControlButton>
@@ -346,22 +347,35 @@ function ScreenControlPanel({
             action={breakAction}
             tone="amber"
             disabled={!canOperate}
+            confirmMessage="스크린을 휴식 화면으로 전환합니다. 진행할까요?"
           >
             휴식 화면 송출
           </ScreenControlButton>
           <ScreenControlButton
             action={readyAction}
             disabled={!canOperate}
+            confirmMessage="스크린을 럭키드로우 준비 화면으로 전환합니다. 진행할까요?"
           >
             럭키드로우 준비 화면 송출
           </ScreenControlButton>
-          <ScreenControlButton
-            action={replayAction}
-            tone="cyan"
-            disabled={!canOperate || !hasLatestWinner}
-          >
-            최근 당첨 결과 다시 송출
-          </ScreenControlButton>
+          <div className="rounded-2xl border border-slate-300 bg-white p-4">
+            <p className="text-sm font-black text-[color:#0a1a38]">
+              최근 당첨 결과 다시 송출
+            </p>
+            <p className="mt-1 text-xs font-bold leading-5 text-slate-700">
+              새로 뽑지 않고 가장 최근 당첨 결과만 다시 화면에 표시합니다.
+            </p>
+            <div className="mt-3">
+              <ScreenControlButton
+                action={replayAction}
+                tone="secondary"
+                disabled={!canOperate || !hasLatestWinner}
+                confirmMessage="최근 당첨 결과를 다시 송출합니다. 새 추첨은 실행되지 않습니다. 송출할까요?"
+              >
+                최근 당첨 결과 다시 송출
+              </ScreenControlButton>
+            </div>
+          </div>
           {!canOperate && (
             <p className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-xs font-bold leading-5 text-amber-800">
               현재 역할은 추첨 화면을 조회할 수 있지만 변경할 수 없습니다.
@@ -774,7 +788,7 @@ export default async function DrawPage({ params, searchParams }: DrawPageProps) 
               {canOperate ? "추첨 운영 가능" : "조회 전용"}
             </StatusBadge>
             <StatusBadge tone="slate">
-              중복 당첨 방지: event_id + participant_id
+              중복 당첨 방지: 행사별 참가자 기준
             </StatusBadge>
           </div>
           {!canOperate && (
@@ -794,6 +808,14 @@ export default async function DrawPage({ params, searchParams }: DrawPageProps) 
             </p>
           )}
         </AdminPanel>
+
+        <AdminScreenStatusCard
+          mode={liveState?.mode}
+          screenScene={liveState?.screen_scene}
+          updatedAt={liveState?.updated_at}
+          screenUrl={screenUrl}
+          eventCode={event.event_code}
+        />
 
         <div className="grid gap-5 xl:grid-cols-[1fr_24rem]">
           <section className="grid content-start gap-5">

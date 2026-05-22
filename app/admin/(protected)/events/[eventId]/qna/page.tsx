@@ -19,6 +19,8 @@ import {
   type QnaQuestionSummary,
   type QnaStatus,
 } from "@/lib/data/qna";
+import { AdminScreenStatusCard } from "../_components/AdminScreenStatusCard";
+import { ConfirmSubmitButton } from "../_components/ConfirmSubmitButton";
 import {
   approveQuestion,
   clearQnaScreenFromQna,
@@ -179,26 +181,25 @@ function SubmitButton({
   children,
   tone = "dark",
   disabled = false,
+  pendingLabel = "처리 중...",
+  confirmMessage,
 }: {
   children: string;
   tone?: "dark" | "cyan" | "amber" | "rose";
   disabled?: boolean;
+  pendingLabel?: string;
+  confirmMessage?: string;
 }) {
-  const classes = {
-    dark: "border-[#0a1a38] bg-[#0a1a38] text-white hover:bg-[#10284f]",
-    cyan: "border-[#0a1a38] bg-[#0a1a38] text-white hover:bg-[#10284f]",
-    amber: "border-amber-500 bg-amber-400 text-[color:#0a1a38] hover:bg-amber-300",
-    rose: "border-rose-600 bg-rose-600 text-white hover:bg-rose-700",
-  };
-
   return (
-    <button
-      type="submit"
+    <ConfirmSubmitButton
+      tone={tone}
       disabled={disabled}
-      className={`min-h-10 rounded-2xl border px-4 py-2 text-sm font-black shadow-sm transition disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-200 disabled:text-slate-700 ${classes[tone]}`}
+      size="sm"
+      pendingLabel={pendingLabel}
+      confirmMessage={confirmMessage}
     >
       {children}
-    </button>
+    </ConfirmSubmitButton>
   );
 }
 
@@ -207,28 +208,25 @@ function ScreenControlButton({
   children,
   tone = "dark",
   disabled = false,
+  confirmMessage,
 }: {
   action: (formData: FormData) => void | Promise<void>;
   children: string;
   tone?: "dark" | "cyan" | "amber" | "rose";
   disabled?: boolean;
+  confirmMessage?: string;
 }) {
-  const classes = {
-    dark: "border-[#0a1a38] bg-[#0a1a38] text-white hover:bg-[#10284f]",
-    cyan: "border-[#0a1a38] bg-[#0a1a38] text-white hover:bg-[#10284f]",
-    amber: "border-amber-500 bg-amber-400 text-[color:#0a1a38] hover:bg-amber-300",
-    rose: "border-rose-600 bg-rose-600 text-white hover:bg-rose-700",
-  };
-
   return (
     <form action={action}>
-      <button
-        type="submit"
+      <ConfirmSubmitButton
+        tone={tone}
         disabled={disabled}
-        className={`min-h-11 w-full rounded-2xl border px-4 py-2 text-sm font-black shadow-sm transition disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-200 disabled:text-slate-700 ${classes[tone]}`}
+        fullWidth
+        pendingLabel="송출 중..."
+        confirmMessage={confirmMessage}
       >
         {children}
-      </button>
+      </ConfirmSubmitButton>
     </form>
   );
 }
@@ -290,12 +288,14 @@ function ScreenControlPanel({
           <ScreenControlButton
             action={waitingAction}
             disabled={!canOperateScreen}
+            confirmMessage="스크린을 대기 화면으로 전환합니다. 진행할까요?"
           >
             대기 화면 송출
           </ScreenControlButton>
           <ScreenControlButton
             action={joinQrAction}
             disabled={!canOperateScreen}
+            confirmMessage="스크린을 QR 입장 안내 화면으로 전환합니다. 진행할까요?"
           >
             QR 참여 안내 송출
           </ScreenControlButton>
@@ -303,6 +303,7 @@ function ScreenControlPanel({
             action={breakAction}
             tone="amber"
             disabled={!canOperateScreen}
+            confirmMessage="스크린을 휴식 화면으로 전환합니다. 진행할까요?"
           >
             휴식 화면 송출
           </ScreenControlButton>
@@ -310,6 +311,7 @@ function ScreenControlPanel({
             action={clearQnaAction}
             tone="cyan"
             disabled={!canSetQnaScreen}
+            confirmMessage="Q&A 송출을 해제하고 질문 접수 화면으로 전환합니다. 진행할까요?"
           >
             Q&A 송출 해제
           </ScreenControlButton>
@@ -428,6 +430,8 @@ function QuestionActions({
         <SubmitButton
           tone="dark"
           disabled={!canModerate || question.status !== "approved"}
+          pendingLabel="송출 중..."
+          confirmMessage="이 Q&A 질문을 스크린에 송출합니다. 진행할까요?"
         >
           승인 질문 스크린 송출
         </SubmitButton>
@@ -537,6 +541,14 @@ export default async function QnaPage({ params, searchParams }: QnaPageProps) {
             </p>
           )}
         </AdminPanel>
+
+        <AdminScreenStatusCard
+          mode={liveState?.mode}
+          screenScene={liveState?.screen_scene}
+          updatedAt={liveState?.updated_at}
+          screenUrl={screenUrl}
+          eventCode={event.event_code}
+        />
 
         <ScreenControlPanel
           eventId={eventId}

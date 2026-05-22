@@ -40,6 +40,7 @@ import {
   updateSurveyQuestion,
 } from "./actions";
 import { buildPublicUrl } from "@/lib/site-url";
+import { AdminScreenStatusCard } from "../_components/AdminScreenStatusCard";
 import { SurveyActionButton } from "./SurveyActionButton";
 import { SurveyStatsClient } from "./SurveyStatsClient";
 
@@ -183,17 +184,20 @@ function SubmitButton({
   tone = "dark",
   disabled = false,
   pendingLabel,
+  confirmMessage,
 }: {
   children: string;
   tone?: "dark" | "amber" | "rose" | "outline";
   disabled?: boolean;
   pendingLabel?: string;
+  confirmMessage?: string;
 }) {
   return (
     <SurveyActionButton
       tone={tone}
       disabled={disabled}
       pendingLabel={pendingLabel}
+      confirmMessage={confirmMessage}
     >
       {children}
     </SurveyActionButton>
@@ -502,14 +506,23 @@ function SurveyOperationPanel({
         <div className="flex flex-wrap gap-2">
           {survey.status === "draft" && (
             <form action={startAction}>
-              <SubmitButton disabled={!canManage || !hasQuestions}>
+              <SubmitButton
+                disabled={!canManage || !hasQuestions}
+                pendingLabel="설문 시작 중..."
+                confirmMessage="1분 설문을 시작합니다. 참가자 화면과 스크린에 설문이 공개됩니다. 시작할까요?"
+              >
                 1분 설문 시작
               </SubmitButton>
             </form>
           )}
           {survey.status === "open" && (
             <form action={closeAction}>
-              <SubmitButton tone="amber" disabled={!canManage}>
+              <SubmitButton
+                tone="amber"
+                disabled={!canManage}
+                pendingLabel="마감 중..."
+                confirmMessage="설문을 마감합니다. 참가자는 더 이상 제출할 수 없습니다. 마감할까요?"
+              >
                 설문 마감
               </SubmitButton>
             </form>
@@ -596,21 +609,41 @@ function ScreenControlPanel({
 
         <div className="grid gap-2">
           <form action={waitingAction}>
-            <SubmitButton disabled={!canManage}>대기 화면 송출</SubmitButton>
+            <SubmitButton
+              disabled={!canManage}
+              pendingLabel="송출 중..."
+              confirmMessage="스크린을 대기 화면으로 전환합니다. 진행할까요?"
+            >
+              대기 화면 송출
+            </SubmitButton>
           </form>
           <form action={breakAction}>
-            <SubmitButton tone="amber" disabled={!canManage}>
+            <SubmitButton
+              tone="amber"
+              disabled={!canManage}
+              pendingLabel="송출 중..."
+              confirmMessage="스크린을 휴식 화면으로 전환합니다. 진행할까요?"
+            >
               휴식 화면 송출
             </SubmitButton>
           </form>
           <form action={joinQrAction}>
-            <SubmitButton tone="outline" disabled={!canManage}>
+            <SubmitButton
+              tone="outline"
+              disabled={!canManage}
+              pendingLabel="송출 중..."
+              confirmMessage="스크린을 QR 입장 안내 화면으로 전환합니다. 진행할까요?"
+            >
               QR 입장 안내 송출
             </SubmitButton>
           </form>
           {surveyIntroAction && (
             <form action={surveyIntroAction}>
-              <SubmitButton disabled={!canManage || !surveyIsOpen}>
+              <SubmitButton
+                disabled={!canManage || !surveyIsOpen}
+                pendingLabel="송출 중..."
+                confirmMessage="스크린을 설문 참여 안내 화면으로 전환합니다. 진행할까요?"
+              >
                 설문 참여 안내 송출
               </SubmitButton>
             </form>
@@ -620,6 +653,8 @@ function ScreenControlPanel({
               <SubmitButton
                 tone="outline"
                 disabled={!canManage || !canBroadcastStatus}
+                pendingLabel="송출 중..."
+                confirmMessage="스크린을 설문 제출 현황 화면으로 전환합니다. 진행할까요?"
               >
                 제출 현황 송출
               </SubmitButton>
@@ -1066,6 +1101,14 @@ export default async function SurveysPage({
             </p>
           )}
         </AdminPanel>
+
+        <AdminScreenStatusCard
+          mode={liveState?.mode}
+          screenScene={liveState?.screen_scene}
+          updatedAt={liveState?.updated_at}
+          screenUrl={screenUrl}
+          eventCode={event.event_code}
+        />
 
         {surveys.length === 0 ? (
           <AdminPanel

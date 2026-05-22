@@ -337,7 +337,7 @@ export default async function SurveyDetailPage({
         <AudienceHero
           label="제출 완료"
           title="이미 제출한 설문입니다"
-          description="같은 설문은 한 번만 제출할 수 있습니다. 참여해 주셔서 감사합니다."
+          description="이 설문은 중복 제출 또는 수정이 불가능합니다. 참여해 주셔서 감사합니다."
         >
           <Link
             href={`/e/${event.event_code}/survey`}
@@ -385,6 +385,14 @@ export default async function SurveyDetailPage({
           )}
         </MobileCard>
       )}
+
+      <MobileCard>
+        <div className="grid gap-2 text-sm font-bold leading-6 text-[color:#0a1a38]">
+          <p className="text-base font-black">제출 후에는 수정할 수 없습니다.</p>
+          <p>내용을 확인한 뒤 제출해주세요.</p>
+          <p>설문 마감 시간이 지나면 제출할 수 없습니다.</p>
+        </div>
+      </MobileCard>
 
       <MobileCard>
         {questions.length > 0 ? (

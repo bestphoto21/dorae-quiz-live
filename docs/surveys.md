@@ -14,19 +14,22 @@ Included in this step:
 - Survey question create, update, delete, and ordering
 - Participant survey list and submission pages
 - One submission per participant per survey
+- No participant-side editing after submission
 - Submission counts per survey
 - Admin start, close, and draft-return controls
+- Confirm prompts for survey start, close, and immediate screen projection buttons
 - Survey guide and submission-status screen projection controls
 - Immediate selected styling for participant choice and rating inputs
 - Pending submit feedback for participant and admin survey actions
 - Default event feedback question set creation
 - Protected admin response review with submitter names and answer details
 - Lucky draw source based on survey respondents
+- One-minute survey timer
+- Survey timer and automatic close
 
 Not included in this step:
 
-- One-minute survey timer
-- Survey timer and automatic close
+- Participant-side edit-after-submit flow
 
 ## Database
 
@@ -66,6 +69,11 @@ Operational buttons:
 - "설문 마감": changes status to `closed` and stops new participant submissions.
 - "작성 중으로 되돌리기": changes status back to `draft` so the operator can edit again.
 
+The start and close buttons show a browser confirmation prompt before
+submitting. This is intentional field-operations protection: starting a
+one-minute survey makes it visible to participants and the screen, while
+closing a survey stops new submissions.
+
 Screen controls on the same page:
 
 - "스크린 열기"
@@ -78,6 +86,10 @@ Screen controls on the same page:
 Starting a survey and showing it on the screen are separate operations. The start
 button controls participant submission availability. The screen buttons only
 change what `/screen/[eventCode]` displays.
+
+Screen projection buttons that immediately replace the venue screen also ask for
+confirmation. Operators should check the current screen status card before
+confirming the transition.
 
 Survey statuses:
 
@@ -116,6 +128,16 @@ Flow:
 4. Only `open` surveys for the current event are shown.
 5. Participant submits answers.
 6. A unique database constraint prevents a second submission for the same survey.
+
+Participants are told before submission that answers cannot be edited after
+submission, that they should review the content before pressing submit, and that
+the survey cannot be submitted after the closing time. After a successful
+submission, the completion message repeats that edits are not available and that
+prize drawing follows the operator-announced criteria.
+
+If a participant opens a survey they already submitted, the detail page says the
+survey was already submitted and cannot be submitted again or edited. This step
+does not add a participant-side edit flow.
 
 The participant screen must not show participant ids, phone numbers, normalized phone numbers, email addresses, secrets, or raw screen payload.
 
@@ -168,6 +190,10 @@ survey with at least one response, then the server builds the candidate pool
 from `survey_responses` for that form. Phone numbers, email addresses, raw
 answers, and participant IDs are not shown on screen.
 
+For survey respondent draws, the inclusion criterion in this step is submission
+existence for the selected survey. Answer content is not used for eligibility
+yet, and contact fields are not exposed by the screen.
+
 ## Timed Survey Operation
 
 The primary survey start button is "1분 설문 시작". When pressed, the selected
@@ -212,3 +238,6 @@ Potential next phase:
 
 - CSV export for survey responses
 - Consent-answer-only lucky draw filtering
+- Optional "allow edits before close" setting for surveys that explicitly need
+  pre-close revision. The current production rule remains one submission per
+  participant per survey with no participant-side edits.

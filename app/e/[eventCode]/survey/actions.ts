@@ -449,6 +449,7 @@ export async function submitSurveyResponse(
 
   redirectToSurvey({
     eventCode: event.event_code,
-    message: "설문 제출이 완료되었습니다. 감사합니다.",
+    message:
+      "설문 제출이 완료되었습니다. 제출 후에는 수정할 수 없습니다. 경품 추첨은 운영자가 안내한 기준에 따라 진행됩니다.",
   });
 }
