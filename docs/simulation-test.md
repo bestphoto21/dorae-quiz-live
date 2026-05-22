@@ -173,10 +173,11 @@ Use the seed output for the exact event ID. For the default event code:
 54. Try an existing event code and confirm duplicate validation appears.
 55. Clone with a new `sim-` event code.
 56. Confirm the cloned event detail page opens and uses the new event code in QR, participant, and screen URLs.
-57. Confirm quiz sessions/questions, survey forms/questions, and prizes were copied.
-58. Confirm cloned survey forms are `draft` with no submitted responses.
-59. Confirm participants, quiz answers, Q&A questions, draw winners, and source operation logs were not copied.
-60. Confirm the cloned event screen opens in waiting state with an empty payload.
+57. Confirm participant screen settings and venue screen display settings were copied.
+58. Confirm quiz sessions/questions, survey forms/questions, and prizes were copied.
+59. Confirm cloned survey forms are `draft` with no submitted responses.
+60. Confirm participants, quiz answers, Q&A questions, draw winners, and source operation logs were not copied.
+61. Confirm the cloned event screen opens in waiting state with an empty payload.
 
 ## Must Check
 
@@ -208,6 +209,7 @@ Use the seed output for the exact event ID. For the default event code:
 - Operation log CSVs show sanitized Korean descriptions, not raw detail payloads.
 - Event clone copies only setup data and never copies participants, answers,
   survey responses, submitted Q&A, winners, source logs, or raw screen payloads.
+- Event clone includes participant feature settings and screen display settings.
 - Timed surveys run for 60 seconds, auto-close lazily, and show submitted count/rate on the screen.
 - `/e/[eventCode]/play` shows the active survey card automatically while a timed survey is open.
 - Live screen changes appear in about 1-2 seconds while the screen window is visible.

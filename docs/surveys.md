@@ -219,12 +219,12 @@ Copied:
 
 Participant screen settings such as `participant_title`,
 `participant_description`, and the feature ON/OFF flags are event setup values.
-If an event clone workflow copies event setup, include these settings with the
-template data; never copy responses or answers.
+The event clone workflow copies these settings with the template data; it never
+copies responses or answers.
 
 Venue screen settings such as `screen_survey_message`, `screen_title`, and
-`screen_footer_message` are also event setup values. Future event clone work
-should copy these settings with the template, while still never copying survey
+`screen_footer_message` are also event setup values. The event clone workflow
+copies these settings with the template, while still never copying survey
 responses or answers.
 
 Reset in the new event:

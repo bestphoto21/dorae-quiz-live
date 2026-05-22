@@ -69,9 +69,9 @@ If all participant features are off, participant pages show "현재 참여 가�
 submission paths is blocked with a feature-disabled message.
 
 `participant_title`, `participant_description`, and the four feature flags are
-event setup values. If an event clone workflow is used, these values should be
-copied with the event setup data, while participant data, responses, Q&A
-submissions, winners, and logs remain excluded.
+event setup values. The event clone workflow copies these values with the event
+setup data, while participant data, responses, Q&A submissions, winners, and
+logs remain excluded.
 
 ## Screen Display Settings
 
@@ -109,8 +109,7 @@ For survey + draw events, emphasize `screen_survey_message` and
 `screen_draw_message`. For quiz shows, emphasize QR entry and quiz participation
 copy. For forums, emphasize `screen_qna_message`.
 
-These values are event setup values. If an event clone workflow copies event
-setup, include:
+These values are event setup values. The event clone workflow copies:
 
 - `screen_title`
 - `screen_subtitle`
@@ -131,6 +130,8 @@ event navigation to create a new event from an existing event.
 The clone workflow copies setup and content only:
 
 - event subtitle, venue, primary color, logo URL, and screen notice
+- participant screen title/description and feature visibility settings
+- venue screen title, scene messages, footer message, and logo visibility setting
 - quiz sessions and questions
 - survey forms and survey questions
 - prize names and quantities
@@ -156,10 +157,12 @@ waiting`, no current question, no reveal state, and an empty screen payload.
 After cloning, check:
 
 1. The new event code, QR URL, participant URL, and screen URL.
-2. Quiz sessions and questions.
-3. Survey forms and questions, all starting from `draft`.
-4. Prize list and quantities.
-5. Participant, survey response, Q&A, and winner counts are zero.
+2. Participant screen settings.
+3. Venue screen display settings.
+4. Quiz sessions and questions.
+5. Survey forms and questions, all starting from `draft`.
+6. Prize list and quantities.
+7. Participant, survey response, Q&A, and winner counts are zero.
 
 ## Mode And Scene
 

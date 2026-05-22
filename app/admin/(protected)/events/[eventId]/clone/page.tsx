@@ -201,6 +201,8 @@ export default async function CloneEventPage({ params }: CloneEventPageProps) {
           >
             <ul className="grid gap-2 text-sm font-bold leading-6 text-slate-700">
               <li>행사 기본 설정: 부제, 장소, 대표 색상, 로고 URL, 스크린 안내 문구</li>
+              <li>참가자 화면 제목/설명과 퀴즈, Q&A, 설문, 추첨 안내 ON/OFF 설정</li>
+              <li>스크린 화면 제목, 장면별 안내 문구, 푸터 문구, 로고 표시 설정</li>
               <li>퀴즈 세션과 문제, 선택지, 정답, 제한 시간</li>
               <li>설문지와 설문 질문, 선택지, 필수 여부, 순서</li>
               <li>경품명과 수량</li>

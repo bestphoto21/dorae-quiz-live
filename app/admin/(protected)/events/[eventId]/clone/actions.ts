@@ -27,6 +27,22 @@ type SourceEventRow = {
   primary_color: string | null;
   logo_url: string | null;
   screen_notice: string | null;
+  participant_title: string | null;
+  participant_description: string | null;
+  participant_show_quiz: boolean | null;
+  participant_show_qna: boolean | null;
+  participant_show_survey: boolean | null;
+  participant_show_draw: boolean | null;
+  screen_title: string | null;
+  screen_subtitle: string | null;
+  screen_waiting_message: string | null;
+  screen_break_message: string | null;
+  screen_join_message: string | null;
+  screen_survey_message: string | null;
+  screen_qna_message: string | null;
+  screen_draw_message: string | null;
+  screen_footer_message: string | null;
+  screen_show_logo: boolean | null;
 };
 
 type QuizSessionRow = {
@@ -488,6 +504,22 @@ export async function cloneEventAction(
       primary_color: sourceEvent.primary_color ?? DEFAULT_PRIMARY_COLOR,
       logo_url: sourceEvent.logo_url,
       screen_notice: sourceEvent.screen_notice,
+      participant_title: sourceEvent.participant_title,
+      participant_description: sourceEvent.participant_description,
+      participant_show_quiz: sourceEvent.participant_show_quiz ?? true,
+      participant_show_qna: sourceEvent.participant_show_qna ?? true,
+      participant_show_survey: sourceEvent.participant_show_survey ?? true,
+      participant_show_draw: sourceEvent.participant_show_draw ?? true,
+      screen_title: sourceEvent.screen_title,
+      screen_subtitle: sourceEvent.screen_subtitle,
+      screen_waiting_message: sourceEvent.screen_waiting_message,
+      screen_break_message: sourceEvent.screen_break_message,
+      screen_join_message: sourceEvent.screen_join_message,
+      screen_survey_message: sourceEvent.screen_survey_message,
+      screen_qna_message: sourceEvent.screen_qna_message,
+      screen_draw_message: sourceEvent.screen_draw_message,
+      screen_footer_message: sourceEvent.screen_footer_message,
+      screen_show_logo: sourceEvent.screen_show_logo ?? true,
       is_active: true,
     })
     .select("id, event_code, title")

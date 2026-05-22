@@ -233,7 +233,7 @@ The cloned event starts with the same prize list and zero winners. Operators
 must run a new draw in the cloned event to create new `draw_winners` rows.
 
 Venue screen display settings, including `screen_draw_message`, are event setup
-values. Future clone work should include them with setup data while still never
+values. The event clone workflow copies them with setup data while still never
 copying `draw_winners` or participant/contact data.
 
 ## Survey Respondent Draw Screen Flow
