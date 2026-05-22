@@ -10,6 +10,12 @@ import {
   type ReactNode,
 } from "react";
 import { MobileCard, StatusBadge } from "@/components/quiz/ui";
+import {
+  participantFeatureFlagsEnabled,
+  resolveParticipantFeatureSettings,
+  type ParticipantFeatureSettings,
+  type ResolvedParticipantFeatureSettings,
+} from "@/lib/participant-settings";
 import { submitAnswer, submitQnaQuestion } from "./actions";
 
 type ParticipantMode =
@@ -30,6 +36,12 @@ type ParticipantState = {
     primary_color: string | null;
     logo_url: string | null;
     screen_notice: string | null;
+    participant_title: string | null;
+    participant_description: string | null;
+    participant_show_quiz: boolean | null;
+    participant_show_qna: boolean | null;
+    participant_show_survey: boolean | null;
+    participant_show_draw: boolean | null;
   };
   participant: {
     display_name: string;
@@ -76,6 +88,9 @@ type ParticipantState = {
 type PlayClientProps = {
   eventCode: string;
   eventTitle: string;
+  participantTitle: string;
+  participantDescription: string;
+  featureSettings: ResolvedParticipantFeatureSettings;
 };
 
 function getSecondsLeft(questionEndsAt: string | null, now: number | null) {
@@ -123,6 +138,12 @@ function participantStateFingerprint(state: ParticipantState) {
     reveal_answer: state.liveState.reveal_answer,
     show_results: state.liveState.show_results,
     question_id: state.question?.id ?? null,
+    participant_title: state.event.participant_title,
+    participant_description: state.event.participant_description,
+    participant_show_quiz: state.event.participant_show_quiz,
+    participant_show_qna: state.event.participant_show_qna,
+    participant_show_survey: state.event.participant_show_survey,
+    participant_show_draw: state.event.participant_show_draw,
     answer_selected_option: state.answer?.selected_option ?? null,
     answer_is_correct: state.answer?.is_correct ?? null,
     can_answer: state.canAnswer,
@@ -157,19 +178,29 @@ function AnswerNotice({ state }: { state: ParticipantState }) {
   );
 }
 
-function WaitingCard({ state, fallbackTitle }: { state: ParticipantState | null; fallbackTitle: string }) {
-  const title = state?.event.title || fallbackTitle;
+function WaitingCard({
+  state,
+  fallbackTitle,
+  fallbackDescription,
+}: {
+  state: ParticipantState | null;
+  fallbackTitle: string;
+  fallbackDescription: string;
+}) {
+  const title = state?.event.participant_title || fallbackTitle;
+  const description =
+    state?.event.participant_description || fallbackDescription;
   const displayName = state?.participant.display_name;
 
   return (
     <MobileCard>
       <StatusBadge tone="cyan">대기</StatusBadge>
       <h2 className="mt-5 text-4xl font-black leading-tight text-[color:#0a1a38]">
-        퀴즈가 곧 시작됩니다
+        {title}
       </h2>
       <p className="mt-4 text-base leading-7 text-slate-700">
         {displayName ? `${displayName}님, ` : ""}
-        {title} 진행자의 안내를 기다려 주세요.
+        {description}
       </p>
       <p className="mt-5 rounded-2xl border border-slate-300 bg-slate-50 p-4 text-sm font-bold leading-6 text-[color:#0a1a38]">
         화면은 자동으로 새로고침됩니다.
@@ -196,7 +227,13 @@ function QuestionCard({
   const question = state.question;
 
   if (!question) {
-    return <WaitingCard state={state} fallbackTitle={state.event.title} />;
+    return (
+      <WaitingCard
+        state={state}
+        fallbackTitle={state.event.title}
+        fallbackDescription="운영자의 안내를 기다려 주세요."
+      />
+    );
   }
 
   const timeClosed = secondsLeft === 0;
@@ -377,6 +414,42 @@ function SimpleModeCard({
   );
 }
 
+function DisabledFeatureCard({
+  title,
+  description,
+}: {
+  title: string;
+  description: string;
+}) {
+  return (
+    <MobileCard>
+      <StatusBadge tone="amber">사용 안 함</StatusBadge>
+      <h2 className="mt-5 text-3xl font-black leading-tight text-[color:#0a1a38]">
+        {title}
+      </h2>
+      <p className="mt-4 text-base font-bold leading-7 text-slate-700">
+        {description}
+      </p>
+    </MobileCard>
+  );
+}
+
+function getEffectiveFeatureSettings({
+  state,
+  fallback,
+}: {
+  state: ParticipantState | null;
+  fallback: ResolvedParticipantFeatureSettings;
+}) {
+  if (!state) {
+    return fallback;
+  }
+
+  return resolveParticipantFeatureSettings(
+    state.event as Partial<ParticipantFeatureSettings>
+  );
+}
+
 function qnaStatusLabel(status: "pending" | "approved" | "hidden") {
   if (status === "approved") {
     return "채택됨";
@@ -477,7 +550,13 @@ function QnaPanel({
   );
 }
 
-export default function PlayClient({ eventCode, eventTitle }: PlayClientProps) {
+export default function PlayClient({
+  eventCode,
+  eventTitle,
+  participantTitle,
+  participantDescription,
+  featureSettings,
+}: PlayClientProps) {
   const [state, setState] = useState<ParticipantState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitMessage, setSubmitMessage] = useState<string | null>(null);
@@ -557,7 +636,7 @@ export default function PlayClient({ eventCode, eventTitle }: PlayClientProps) {
         }
       } catch {
         if (active) {
-          setError("현재 퀴즈 상태를 불러오지 못했습니다.");
+          setError("현재 참여 상태를 불러오지 못했습니다.");
         }
       }
     }
@@ -582,6 +661,10 @@ export default function PlayClient({ eventCode, eventTitle }: PlayClientProps) {
     () => getSecondsLeft(state?.liveState.question_ends_at ?? null, now),
     [state?.liveState.question_ends_at, now]
   );
+  const effectiveFeatures = getEffectiveFeatureSettings({
+    state,
+    fallback: featureSettings,
+  });
 
   async function handleSubmit(selectedOption: number) {
     if (!state?.question || !state.canAnswer || pendingOption !== null) {
@@ -639,7 +722,7 @@ export default function PlayClient({ eventCode, eventTitle }: PlayClientProps) {
   }
 
   function withQna(content: ReactNode, qnaFirst = false) {
-    if (!state) {
+    if (!state || !effectiveFeatures.participant_show_qna) {
       return content;
     }
 
@@ -680,7 +763,26 @@ export default function PlayClient({ eventCode, eventTitle }: PlayClientProps) {
     );
   }
 
+  if (!participantFeatureFlagsEnabled(effectiveFeatures)) {
+    return (
+      <DisabledFeatureCard
+        title="현재 참여 가능한 기능이 없습니다."
+        description="운영자가 참가자 기능을 열면 이 화면에 참여 안내가 표시됩니다."
+      />
+    );
+  }
+
   if (state.liveState.mode === "question") {
+    if (!effectiveFeatures.participant_show_quiz) {
+      return withQna(
+        <WaitingCard
+          state={state}
+          fallbackTitle={participantTitle}
+          fallbackDescription={participantDescription}
+        />
+      );
+    }
+
     return withQna(
       <QuestionCard
         state={state}
@@ -694,14 +796,44 @@ export default function PlayClient({ eventCode, eventTitle }: PlayClientProps) {
   }
 
   if (state.liveState.mode === "closed") {
+    if (!effectiveFeatures.participant_show_quiz) {
+      return withQna(
+        <WaitingCard
+          state={state}
+          fallbackTitle={participantTitle}
+          fallbackDescription={participantDescription}
+        />
+      );
+    }
+
     return withQna(<ClosedCard state={state} />);
   }
 
   if (state.liveState.mode === "result") {
+    if (!effectiveFeatures.participant_show_quiz) {
+      return withQna(
+        <WaitingCard
+          state={state}
+          fallbackTitle={participantTitle}
+          fallbackDescription={participantDescription}
+        />
+      );
+    }
+
     return withQna(<ResultCard state={state} />);
   }
 
   if (state.liveState.mode === "draw") {
+    if (!effectiveFeatures.participant_show_draw) {
+      return withQna(
+        <WaitingCard
+          state={state}
+          fallbackTitle={participantTitle}
+          fallbackDescription={participantDescription}
+        />
+      );
+    }
+
     return withQna(
       <SimpleModeCard
         label="추첨"
@@ -712,6 +844,16 @@ export default function PlayClient({ eventCode, eventTitle }: PlayClientProps) {
   }
 
   if (state.liveState.mode === "qna") {
+    if (!effectiveFeatures.participant_show_qna) {
+      return (
+        <WaitingCard
+          state={state}
+          fallbackTitle={participantTitle}
+          fallbackDescription={participantDescription}
+        />
+      );
+    }
+
     return withQna(
       <SimpleModeCard
         label="Q&A"
@@ -721,5 +863,11 @@ export default function PlayClient({ eventCode, eventTitle }: PlayClientProps) {
     );
   }
 
-  return withQna(<WaitingCard state={state} fallbackTitle={eventTitle} />);
+  return withQna(
+    <WaitingCard
+      state={state}
+      fallbackTitle={participantTitle || eventTitle}
+      fallbackDescription={participantDescription}
+    />
+  );
 }

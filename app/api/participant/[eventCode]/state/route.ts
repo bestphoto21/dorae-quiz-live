@@ -4,6 +4,10 @@ import {
   getAnswerStatsForQuestion,
 } from "@/lib/data/answer-stats";
 import { readParticipantSessionCookie } from "@/lib/participants/session";
+import {
+  resolveParticipantFeatureSettings,
+  type ParticipantFeatureSettings,
+} from "@/lib/participant-settings";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
 type ParticipantStateRouteProps = {
@@ -22,7 +26,7 @@ type ParticipantEvent = {
   logo_url: string | null;
   screen_notice: string | null;
   is_active: boolean | null;
-};
+} & ParticipantFeatureSettings;
 
 type ParticipantRow = {
   id: string;
@@ -94,6 +98,38 @@ function defaultLiveState(): ParticipantLiveState {
   };
 }
 
+function toParticipantVisibleLiveState({
+  liveState,
+  features,
+}: {
+  liveState: ParticipantLiveState;
+  features: ReturnType<typeof resolveParticipantFeatureSettings>;
+}): ParticipantLiveState {
+  const quizModeHidden =
+    !features.participant_show_quiz &&
+    ["question", "closed", "result"].includes(liveState.mode);
+  const qnaModeHidden =
+    !features.participant_show_qna && liveState.mode === "qna";
+  const drawModeHidden =
+    !features.participant_show_draw && liveState.mode === "draw";
+
+  if (!quizModeHidden && !qnaModeHidden && !drawModeHidden) {
+    return liveState;
+  }
+
+  return {
+    ...liveState,
+    mode: "waiting",
+    screen_scene: "waiting",
+    current_session_id: null,
+    current_question_id: null,
+    question_started_at: null,
+    question_ends_at: null,
+    reveal_answer: false,
+    show_results: false,
+  };
+}
+
 function toPublicEvent(event: ParticipantEvent) {
   return {
     id: event.id,
@@ -103,6 +139,12 @@ function toPublicEvent(event: ParticipantEvent) {
     primary_color: event.primary_color,
     logo_url: event.logo_url,
     screen_notice: event.screen_notice,
+    participant_title: event.participant_title,
+    participant_description: event.participant_description,
+    participant_show_quiz: event.participant_show_quiz,
+    participant_show_qna: event.participant_show_qna,
+    participant_show_survey: event.participant_show_survey,
+    participant_show_draw: event.participant_show_draw,
   };
 }
 
@@ -156,7 +198,7 @@ export async function GET(
   const { data: event, error: eventError } = await supabase
     .from("events")
     .select(
-      "id, event_code, title, subtitle, primary_color, logo_url, screen_notice, is_active"
+      "id, event_code, title, subtitle, primary_color, logo_url, screen_notice, participant_title, participant_description, participant_show_quiz, participant_show_qna, participant_show_survey, participant_show_draw, is_active"
     )
     .eq("event_code", normalizedEventCode)
     .maybeSingle();
@@ -206,10 +248,16 @@ export async function GET(
   }
 
   const participant = participantData as ParticipantRow;
-  const qnaQuestions = await getRecentOwnQnaQuestions({
-    eventId: participantEvent.id,
-    participantId: participant.id,
-  });
+  const participantFeatures =
+    resolveParticipantFeatureSettings(participantEvent);
+  const qnaQuestions =
+    participantEvent.is_active !== false &&
+    participantFeatures.participant_show_qna
+      ? await getRecentOwnQnaQuestions({
+          eventId: participantEvent.id,
+          participantId: participant.id,
+        })
+      : [];
 
   if (participantEvent.is_active === false) {
     return jsonResponse({
@@ -252,13 +300,21 @@ export async function GET(
     return jsonResponse({ message: "Failed to load state." }, 500);
   }
 
-  const liveState = (liveStateData as ParticipantLiveState | null) ??
+  const rawLiveState = (liveStateData as ParticipantLiveState | null) ??
     defaultLiveState();
+  const liveState = toParticipantVisibleLiveState({
+    liveState: rawLiveState,
+    features: participantFeatures,
+  });
   let question = null;
   let answer = null;
   let stats = emptyAnswerStats();
 
-  if (liveState.current_question_id && liveState.current_session_id) {
+  if (
+    participantFeatures.participant_show_quiz &&
+    liveState.current_question_id &&
+    liveState.current_session_id
+  ) {
     const { data: questionData, error: questionError } = await supabase
       .from("questions")
       .select(
@@ -332,6 +388,7 @@ export async function GET(
   }
 
   const canAnswer =
+    participantFeatures.participant_show_quiz &&
     liveState.mode === "question" &&
     Boolean(question) &&
     !answer &&

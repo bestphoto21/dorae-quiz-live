@@ -151,7 +151,7 @@ export default async function JoinPage({ params, searchParams }: JoinPageProps) 
               className="mt-1 h-5 w-5 rounded border-slate-400"
             />
             <span className="text-sm font-bold leading-6 text-slate-700">
-              행사 참여 확인, 중복 등록 방지, 퀴즈 운영을 위한 개인정보 수집 및
+              행사 참여 확인, 중복 등록 방지, 행사 운영을 위한 개인정보 수집 및
               이용에 동의합니다.
             </span>
           </label>

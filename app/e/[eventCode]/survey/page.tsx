@@ -16,12 +16,16 @@ type SurveyListPageProps = {
   }>;
 };
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 type SurveyEvent = {
   id: string;
   event_code: string;
   title: string;
   subtitle: string | null;
   is_active: boolean | null;
+  participant_show_survey: boolean | null;
 };
 
 type SurveyParticipant = {
@@ -38,7 +42,7 @@ async function getEvent(eventCode: string) {
   const supabase = createAdminSupabaseClient();
   const { data, error } = await supabase
     .from("events")
-    .select("id, event_code, title, subtitle, is_active")
+    .select("id, event_code, title, subtitle, is_active, participant_show_survey")
     .eq("event_code", eventCode.trim().toLowerCase())
     .maybeSingle();
 
@@ -100,6 +104,22 @@ export default async function SurveyListPage({
           title="현재 참여할 수 없습니다"
           description="행사가 비활성 상태라 설문 참여 화면을 사용할 수 없습니다."
         />
+      </div>
+    );
+  }
+
+  if (event.participant_show_survey === false) {
+    return (
+      <div className="grid gap-5">
+        <AudienceHero
+          label="설문"
+          title="현재 이 행사에서는 설문 기능을 사용하지 않습니다."
+          description="운영자가 설문 참여를 열면 이 화면에서 설문에 응답할 수 있습니다."
+        >
+          <PrimaryLink href={`/e/${event.event_code}/play`} variant="outline">
+            참여 화면으로 돌아가기
+          </PrimaryLink>
+        </AudienceHero>
       </div>
     );
   }

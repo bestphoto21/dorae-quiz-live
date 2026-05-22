@@ -63,6 +63,7 @@ Use the seed output for the exact event ID. For the default event code:
 
 - Admin event list: `/admin/events`
 - Admin event detail: `/admin/events/[eventId]`
+- Admin event settings: `/admin/events/[eventId]/settings`
 - Live console: `/admin/events/[eventId]/live`
 - Question management: `/admin/events/[eventId]/questions`
 - Q&A management: `/admin/events/[eventId]/qna`
@@ -75,6 +76,23 @@ Use the seed output for the exact event ID. For the default event code:
 - Participant play: `/e/sim-202606/play`
 - Participant surveys: `/e/sim-202606/survey`
 - Screen: `/screen/sim-202606`
+
+## Participant Screen Settings Test
+
+1. Open `/admin/events/[eventId]/settings`.
+2. Save participant title "설문 참여 이벤트" and a short participant description.
+3. Turn quiz off, Q&A off, survey on, and lucky draw guidance on.
+4. Open `/e/sim-202606/play`.
+5. Confirm fixed "퀴즈쇼" style copy is not shown.
+6. Confirm Q&A submission UI is hidden.
+7. Start a survey and confirm the active survey card appears while survey is on.
+8. Confirm lucky draw guidance appears while draw guidance is on.
+9. Open `/e/sim-202606/survey` and confirm survey access works while survey is on.
+10. Turn survey off.
+11. Confirm `/e/sim-202606/survey` and `/e/sim-202606/survey/[surveyFormId]` show the survey-disabled message.
+12. Confirm Q&A submission and quiz answer submission are rejected while those participant features are off.
+13. Turn all participant features back on and confirm the existing quiz, Q&A, survey, and draw participant flow appears again.
+14. Confirm admin survey/Q&A/draw pages and `/screen/sim-202606` still follow the operator-controlled `live_state`.
 
 ## Rehearsal Flow
 
@@ -146,6 +164,8 @@ Use the seed output for the exact event ID. For the default event code:
 - Participant registration keeps the session after refresh.
 - Pending Q&A questions do not appear on the screen.
 - The QR connects to `/e/[eventCode]/join`.
+- Participant screen settings hide disabled quiz/Q&A/survey buttons and block
+  disabled participant submission paths.
 - Lucky draw rolling names contain display names only, and the final winner is the saved DB winner.
 - Lucky draw celebration is a canvas-confetti central burst screen effect and does not expose private data.
 - Lucky draw sound is optional, screen-only, and requires the screen operator to enable audio first.

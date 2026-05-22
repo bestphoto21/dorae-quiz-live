@@ -15,6 +15,7 @@ type SurveyEventRow = {
   id: string;
   event_code: string;
   is_active: boolean | null;
+  participant_show_survey: boolean | null;
 };
 
 type ParsedAnswerValue =
@@ -186,7 +187,7 @@ export async function submitSurveyResponse(
   const supabase = createAdminSupabaseClient();
   const { data: eventData, error: eventError } = await supabase
     .from("events")
-    .select("id, event_code, is_active")
+    .select("id, event_code, is_active, participant_show_survey")
     .eq("event_code", normalizedEventCode)
     .maybeSingle();
 
@@ -214,6 +215,13 @@ export async function submitSurveyResponse(
     redirectToSurvey({
       eventCode: normalizedEventCode,
       error: "현재 설문에 참여할 수 없는 행사입니다.",
+    });
+  }
+
+  if (event.participant_show_survey === false) {
+    redirectToSurvey({
+      eventCode: normalizedEventCode,
+      error: "현재 이 행사에서는 설문 기능을 사용하지 않습니다.",
     });
   }
 

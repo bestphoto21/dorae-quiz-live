@@ -18,6 +18,8 @@ type EventRow = {
   id: string;
   event_code: string;
   is_active: boolean | null;
+  participant_show_quiz: boolean | null;
+  participant_show_qna: boolean | null;
 };
 
 type LiveStateRow = {
@@ -58,7 +60,6 @@ async function writeQnaSubmitLog({
     action: "qna_question_submitted",
     detail: {
       event_id: eventId,
-      participant_id: participantId,
       qna_question_id: qnaQuestionId,
     },
   });
@@ -108,7 +109,7 @@ export async function submitQnaQuestion(
   const supabase = createAdminSupabaseClient();
   const { data: eventData, error: eventError } = await supabase
     .from("events")
-    .select("id, event_code, is_active")
+    .select("id, event_code, is_active, participant_show_qna")
     .eq("event_code", normalizedEventCode)
     .maybeSingle();
 
@@ -135,6 +136,13 @@ export async function submitQnaQuestion(
     return {
       ok: false,
       message: "현재 질문을 접수할 수 없는 행사입니다.",
+    };
+  }
+
+  if (event.participant_show_qna === false) {
+    return {
+      ok: false,
+      message: "현재 이 행사에서는 Q&A 기능을 사용하지 않습니다.",
     };
   }
 
@@ -300,7 +308,6 @@ async function writeAnswerLog({
     detail: {
       event_id: eventId,
       question_id: questionId,
-      participant_id: participantId,
     },
   });
 
@@ -343,7 +350,7 @@ export async function submitAnswer(
   const supabase = createAdminSupabaseClient();
   const { data: eventData, error: eventError } = await supabase
     .from("events")
-    .select("id, event_code, is_active")
+    .select("id, event_code, is_active, participant_show_quiz")
     .eq("event_code", normalizedEventCode)
     .maybeSingle();
 
@@ -370,6 +377,13 @@ export async function submitAnswer(
     return {
       ok: false,
       message: "현재 응답할 수 없는 행사입니다.",
+    };
+  }
+
+  if (event.participant_show_quiz === false) {
+    return {
+      ok: false,
+      message: "현재 이 행사에서는 퀴즈 기능을 사용하지 않습니다.",
     };
   }
 

@@ -15,6 +15,12 @@ type EditableEvent = {
   primary_color: string | null;
   logo_url: string | null;
   screen_notice: string | null;
+  participant_title: string | null;
+  participant_description: string | null;
+  participant_show_quiz: boolean | null;
+  participant_show_qna: boolean | null;
+  participant_show_survey: boolean | null;
+  participant_show_draw: boolean | null;
   is_active: boolean | null;
 };
 
@@ -71,6 +77,13 @@ function labelClasses() {
 
 function inputClasses() {
   return "mt-2 w-full rounded-2xl border border-slate-400 bg-white px-4 py-3 text-base font-bold text-[color:#0a1a38] shadow-sm outline-none transition placeholder:text-slate-500 focus:border-[#0a1a38]";
+}
+
+function featureChecked(
+  value: boolean | undefined,
+  eventValue: boolean | null
+) {
+  return value ?? eventValue ?? true;
 }
 
 export default function SettingsEventForm({
@@ -219,6 +232,142 @@ export default function SettingsEventForm({
           className={`${inputClasses()} resize-y leading-7`}
         />
       </div>
+
+      <section className="grid gap-5 rounded-2xl border border-slate-200 bg-slate-50 p-5">
+        <div>
+          <h2 className="text-xl font-black text-[color:#0a1a38]">
+            참가자 화면 설정
+          </h2>
+          <p className="mt-2 text-sm font-bold leading-6 text-slate-700">
+            참가자들이 QR 입장 후 보는 화면의 제목과 표시 기능을 설정합니다.
+            행사 유형에 맞지 않는 기능은 숨길 수 있습니다.
+          </p>
+        </div>
+
+        <div className="grid gap-5 lg:grid-cols-2">
+          <div>
+            <label htmlFor="participant_title" className={labelClasses()}>
+              참가자 화면 제목
+            </label>
+            <input
+              id="participant_title"
+              name="participant_title"
+              type="text"
+              defaultValue={
+                values?.participant_title ?? event.participant_title ?? ""
+              }
+              className={inputClasses()}
+              placeholder="설문 참여 이벤트"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="participant_description" className={labelClasses()}>
+              참가자 화면 설명
+            </label>
+            <input
+              id="participant_description"
+              name="participant_description"
+              type="text"
+              defaultValue={
+                values?.participant_description ??
+                event.participant_description ??
+                ""
+              }
+              className={inputClasses()}
+              placeholder="설문을 제출하신 분들을 대상으로 경품 추첨이 진행됩니다."
+            />
+          </div>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="flex items-start gap-3 rounded-2xl border border-white bg-white p-4 shadow-sm">
+            <input
+              name="participant_show_quiz"
+              type="checkbox"
+              defaultChecked={featureChecked(
+                values?.participant_show_quiz,
+                event.participant_show_quiz
+              )}
+              className="mt-1 h-5 w-5 rounded border-slate-300"
+            />
+            <span>
+              <span className="block text-base font-black text-[color:#0a1a38]">
+                퀴즈 사용
+              </span>
+              <span className="mt-1 block text-sm leading-6 text-slate-600">
+                참가자 퀴즈 화면과 답변 제출을 표시합니다.
+              </span>
+            </span>
+          </label>
+
+          <label className="flex items-start gap-3 rounded-2xl border border-white bg-white p-4 shadow-sm">
+            <input
+              name="participant_show_qna"
+              type="checkbox"
+              defaultChecked={featureChecked(
+                values?.participant_show_qna,
+                event.participant_show_qna
+              )}
+              className="mt-1 h-5 w-5 rounded border-slate-300"
+            />
+            <span>
+              <span className="block text-base font-black text-[color:#0a1a38]">
+                Q&A 사용
+              </span>
+              <span className="mt-1 block text-sm leading-6 text-slate-600">
+                참가자 질문 제출 영역을 표시합니다.
+              </span>
+            </span>
+          </label>
+
+          <label className="flex items-start gap-3 rounded-2xl border border-white bg-white p-4 shadow-sm">
+            <input
+              name="participant_show_survey"
+              type="checkbox"
+              defaultChecked={featureChecked(
+                values?.participant_show_survey,
+                event.participant_show_survey
+              )}
+              className="mt-1 h-5 w-5 rounded border-slate-300"
+            />
+            <span>
+              <span className="block text-base font-black text-[color:#0a1a38]">
+                설문 사용
+              </span>
+              <span className="mt-1 block text-sm leading-6 text-slate-600">
+                진행 중인 설문 안내와 설문 참여 화면을 표시합니다.
+              </span>
+            </span>
+          </label>
+
+          <label className="flex items-start gap-3 rounded-2xl border border-white bg-white p-4 shadow-sm">
+            <input
+              name="participant_show_draw"
+              type="checkbox"
+              defaultChecked={featureChecked(
+                values?.participant_show_draw,
+                event.participant_show_draw
+              )}
+              className="mt-1 h-5 w-5 rounded border-slate-300"
+            />
+            <span>
+              <span className="block text-base font-black text-[color:#0a1a38]">
+                럭키드로우 안내 사용
+              </span>
+              <span className="mt-1 block text-sm leading-6 text-slate-600">
+                참가자 화면에 경품 추첨 안내를 표시합니다.
+              </span>
+            </span>
+          </label>
+        </div>
+
+        <div className="rounded-2xl border border-cyan-200 bg-cyan-50 p-4 text-sm font-bold leading-6 text-cyan-950">
+          설문+추첨 행사는 설문과 럭키드로우 안내를 켜고 퀴즈, Q&A를 끌 수
+          있습니다. 퀴즈쇼는 퀴즈, Q&A, 럭키드로우 안내를 켜고 간담회는 Q&A와
+          설문을 켜는 구성을 권장합니다.
+        </div>
+      </section>
 
       <div className="rounded-2xl border border-cyan-200 bg-cyan-50 p-4 text-sm font-bold leading-6 text-cyan-950">
         시작/종료 시간은 참가자 안내와 운영 기준용입니다. 실제 퀴즈 시작,

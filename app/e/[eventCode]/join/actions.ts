@@ -44,7 +44,6 @@ async function writeParticipantLog({
     action,
     detail: {
       event_id: eventId,
-      participant_id: participantId,
     },
   });
 

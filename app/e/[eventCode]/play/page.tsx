@@ -2,6 +2,12 @@ import { redirect } from "next/navigation";
 import { AudienceHero, MobileCard } from "@/components/quiz/ui";
 import { getActiveSurveyPromptForParticipant } from "@/lib/data/surveys";
 import { readParticipantSessionCookie } from "@/lib/participants/session";
+import {
+  getParticipantScreenDescription,
+  getParticipantScreenTitle,
+  resolveParticipantFeatureSettings,
+  type ParticipantFeatureSettings,
+} from "@/lib/participant-settings";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { clearParticipantSessionAction } from "../join/actions";
 import PlayClient from "./PlayClient";
@@ -11,13 +17,16 @@ type PlayPageProps = {
   params: Promise<{ eventCode: string }>;
 };
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 type PlayEvent = {
   id: string;
   event_code: string;
   title: string;
   subtitle: string | null;
   is_active: boolean | null;
-};
+} & ParticipantFeatureSettings;
 
 type PlayParticipant = {
   id: string;
@@ -29,7 +38,9 @@ async function getEvent(eventCode: string) {
   const supabase = createAdminSupabaseClient();
   const { data, error } = await supabase
     .from("events")
-    .select("id, event_code, title, subtitle, is_active")
+    .select(
+      "id, event_code, title, subtitle, participant_title, participant_description, participant_show_quiz, participant_show_qna, participant_show_survey, participant_show_draw, is_active"
+    )
     .eq("event_code", eventCode.trim().toLowerCase())
     .maybeSingle();
 
@@ -100,11 +111,19 @@ export default async function PlayPage({ params }: PlayPageProps) {
 
   const displayName = participant.display_name?.trim() || participant.name;
   const clearAction = clearParticipantSessionAction.bind(null, event.event_code);
-  const activeSurveyPrompt = await getActiveSurveyPromptForParticipant({
-    eventId: event.id,
-    eventCode: event.event_code,
-    participantId: participant.id,
-  });
+  const participantSettings = resolveParticipantFeatureSettings(event);
+  const participantTitle = getParticipantScreenTitle(event);
+  const participantDescription = getParticipantScreenDescription(
+    event,
+    "운영자의 안내에 따라 참여해 주세요."
+  );
+  const activeSurveyPrompt = participantSettings.participant_show_survey
+    ? await getActiveSurveyPromptForParticipant({
+        eventId: event.id,
+        eventCode: event.event_code,
+        participantId: participant.id,
+      })
+    : null;
 
   return (
     <div className="grid gap-5">
@@ -129,12 +148,20 @@ export default async function PlayPage({ params }: PlayPageProps) {
         </div>
       </MobileCard>
 
-      <SurveyPromptClient
-        eventCode={event.event_code}
-        initialSurvey={activeSurveyPrompt}
-      />
+      {participantSettings.participant_show_survey && (
+        <SurveyPromptClient
+          eventCode={event.event_code}
+          initialSurvey={activeSurveyPrompt}
+        />
+      )}
 
-      <PlayClient eventCode={event.event_code} eventTitle={event.title} />
+      <PlayClient
+        eventCode={event.event_code}
+        eventTitle={event.title}
+        participantTitle={participantTitle}
+        participantDescription={participantDescription}
+        featureSettings={participantSettings}
+      />
     </div>
   );
 }

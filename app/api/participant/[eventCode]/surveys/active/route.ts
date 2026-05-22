@@ -11,6 +11,7 @@ type SurveyEventRow = {
   id: string;
   event_code: string;
   is_active: boolean | null;
+  participant_show_survey: boolean | null;
 };
 
 export const dynamic = "force-dynamic";
@@ -37,7 +38,7 @@ export async function GET(_request: Request, { params }: ActiveSurveyRouteProps)
   const supabase = createAdminSupabaseClient();
   const { data, error } = await supabase
     .from("events")
-    .select("id, event_code, is_active")
+    .select("id, event_code, is_active, participant_show_survey")
     .eq("event_code", normalizedEventCode)
     .maybeSingle();
 
@@ -56,7 +57,12 @@ export async function GET(_request: Request, { params }: ActiveSurveyRouteProps)
 
   const event = data as SurveyEventRow | null;
 
-  if (!event || event.is_active === false || event.id !== session.event_id) {
+  if (
+    !event ||
+    event.is_active === false ||
+    event.participant_show_survey === false ||
+    event.id !== session.event_id
+  ) {
     return NextResponse.json(
       { ok: true, survey: null },
       { headers: NO_STORE_HEADERS }

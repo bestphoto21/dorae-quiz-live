@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth/admin";
 import { requireEventAccess } from "@/lib/auth/events";
+import { DEFAULT_PARTICIPANT_FEATURE_SETTINGS } from "@/lib/participant-settings";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
 export type EventFormField =
@@ -23,6 +24,12 @@ export type EventFormValues = {
   primary_color: string;
   logo_url: string;
   screen_notice: string;
+  participant_title: string;
+  participant_description: string;
+  participant_show_quiz: boolean;
+  participant_show_qna: boolean;
+  participant_show_survey: boolean;
+  participant_show_draw: boolean;
   is_active: boolean;
 };
 
@@ -98,6 +105,15 @@ function getEventFormValues(formData: FormData): EventFormValues {
     primary_color: getPrimaryColor(formData),
     logo_url: getFormString(formData, "logo_url"),
     screen_notice: getFormString(formData, "screen_notice"),
+    participant_title: getFormString(formData, "participant_title"),
+    participant_description: getFormString(
+      formData,
+      "participant_description"
+    ),
+    participant_show_quiz: formData.get("participant_show_quiz") === "on",
+    participant_show_qna: formData.get("participant_show_qna") === "on",
+    participant_show_survey: formData.get("participant_show_survey") === "on",
+    participant_show_draw: formData.get("participant_show_draw") === "on",
     is_active: formData.get("is_active") === "on",
   };
 }
@@ -148,6 +164,12 @@ function validateEventFields(formData: FormData, includeEventCode: boolean) {
       primary_color: formValues.primary_color,
       logo_url: nullIfBlank(formValues.logo_url),
       screen_notice: nullIfBlank(formValues.screen_notice),
+      participant_title: nullIfBlank(formValues.participant_title),
+      participant_description: nullIfBlank(formValues.participant_description),
+      participant_show_quiz: formValues.participant_show_quiz,
+      participant_show_qna: formValues.participant_show_qna,
+      participant_show_survey: formValues.participant_show_survey,
+      participant_show_draw: formValues.participant_show_draw,
       is_active: formValues.is_active,
     },
     fieldErrors,
@@ -245,6 +267,17 @@ export async function createEventAction(
       primary_color: values.primary_color,
       logo_url: values.logo_url,
       screen_notice: values.screen_notice,
+      participant_title: DEFAULT_PARTICIPANT_FEATURE_SETTINGS.participant_title,
+      participant_description:
+        DEFAULT_PARTICIPANT_FEATURE_SETTINGS.participant_description,
+      participant_show_quiz:
+        DEFAULT_PARTICIPANT_FEATURE_SETTINGS.participant_show_quiz,
+      participant_show_qna:
+        DEFAULT_PARTICIPANT_FEATURE_SETTINGS.participant_show_qna,
+      participant_show_survey:
+        DEFAULT_PARTICIPANT_FEATURE_SETTINGS.participant_show_survey,
+      participant_show_draw:
+        DEFAULT_PARTICIPANT_FEATURE_SETTINGS.participant_show_draw,
       is_active: values.is_active,
     })
     .select("id, event_code, title")
@@ -371,6 +404,12 @@ export async function updateEventAction(
       primary_color: values.primary_color,
       logo_url: values.logo_url,
       screen_notice: values.screen_notice,
+      participant_title: values.participant_title,
+      participant_description: values.participant_description,
+      participant_show_quiz: values.participant_show_quiz,
+      participant_show_qna: values.participant_show_qna,
+      participant_show_survey: values.participant_show_survey,
+      participant_show_draw: values.participant_show_draw,
       is_active: values.is_active,
     })
     .eq("id", eventId);
@@ -403,5 +442,10 @@ export async function updateEventAction(
   revalidatePath("/admin/events");
   revalidatePath(`/admin/events/${eventId}`);
   revalidatePath(`/admin/events/${eventId}/settings`);
+  revalidatePath(`/e/${event.event_code}`);
+  revalidatePath(`/e/${event.event_code}/play`);
+  revalidatePath(`/e/${event.event_code}/survey`);
+  revalidatePath(`/api/participant/${event.event_code}/state`);
+  revalidatePath(`/api/participant/${event.event_code}/surveys/active`);
   redirect(`/admin/events/${eventId}/settings?message=updated`);
 }

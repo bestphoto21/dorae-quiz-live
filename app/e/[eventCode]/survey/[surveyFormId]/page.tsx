@@ -20,11 +20,15 @@ type SurveyDetailPageProps = {
   }>;
 };
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 type SurveyEvent = {
   id: string;
   event_code: string;
   title: string;
   is_active: boolean | null;
+  participant_show_survey: boolean | null;
 };
 
 type SurveyForm = {
@@ -46,7 +50,7 @@ async function getEvent(eventCode: string) {
   const supabase = createAdminSupabaseClient();
   const { data, error } = await supabase
     .from("events")
-    .select("id, event_code, title, is_active")
+    .select("id, event_code, title, is_active, participant_show_survey")
     .eq("event_code", eventCode.trim().toLowerCase())
     .maybeSingle();
 
@@ -291,6 +295,25 @@ export default async function SurveyDetailPage({
 
   if (!event || event.id !== session.event_id) {
     redirect(`/e/${normalizedEventCode}/join`);
+  }
+
+  if (event.participant_show_survey === false) {
+    return (
+      <div className="grid gap-5">
+        <AudienceHero
+          label="설문"
+          title="현재 이 행사에서는 설문 기능을 사용하지 않습니다."
+          description="운영자가 설문 참여를 열면 이 화면에서 설문에 응답할 수 있습니다."
+        >
+          <Link
+            href={`/e/${event.event_code}/play`}
+            className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-[#0a1a38] bg-white px-5 py-3 text-base font-black text-[color:#0a1a38] shadow-sm"
+          >
+            참여 화면으로 돌아가기
+          </Link>
+        </AudienceHero>
+      </div>
+    );
   }
 
   const participantExists = await getParticipantExists(

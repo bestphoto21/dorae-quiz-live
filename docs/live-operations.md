@@ -36,6 +36,43 @@ all features share the same event `live_state` and `/screen/[eventCode]`, a QR,
 waiting, break, survey, Q&A, or draw button can intentionally replace the
 previous screen output.
 
+## Participant Screen Settings
+
+Admins can configure participant-facing copy and feature visibility at
+`/admin/events/[eventId]/settings` in the "참가자 화면 설정" section.
+
+Event-level settings:
+
+- `participant_title`: optional participant screen title. If empty, the event
+  title is used.
+- `participant_description`: optional participant screen description. If empty,
+  the event subtitle or a safe default message is used.
+- `participant_show_quiz`: controls participant quiz UI and answer submission.
+- `participant_show_qna`: controls participant Q&A submission UI.
+- `participant_show_survey`: controls participant survey list, active-survey
+  prompts, survey detail pages, and survey submission.
+- `participant_show_draw`: controls lucky draw guidance shown to participants.
+
+Recommended presets:
+
+- Survey + draw event: survey on, lucky draw guidance on, quiz off, Q&A off.
+- Quiz show: quiz on, Q&A on, lucky draw guidance on.
+- Town hall: Q&A on, survey on, quiz off.
+
+These settings affect participant pages only. Admin survey/Q&A/draw pages and
+`/screen/[eventCode]` continue to follow the operator-controlled `live_state`.
+For example, Q&A can be hidden from participants while the admin Q&A page still
+remains available for review of existing questions.
+
+If all participant features are off, participant pages show "현재 참여 가능한
+기능이 없습니다." Direct participant access to disabled survey, Q&A, and quiz
+submission paths is blocked with a feature-disabled message.
+
+`participant_title`, `participant_description`, and the four feature flags are
+event setup values. If an event clone workflow is used, these values should be
+copied with the event setup data, while participant data, responses, Q&A
+submissions, winners, and logs remain excluded.
+
 ## Event Clone Workflow
 
 Admins can open `/admin/events/[eventId]/clone` from the event detail page or

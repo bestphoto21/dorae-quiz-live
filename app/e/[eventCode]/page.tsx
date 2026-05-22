@@ -5,11 +5,21 @@ import {
   StatusBadge,
 } from "@/components/quiz/ui";
 import { readParticipantSessionCookie } from "@/lib/participants/session";
+import {
+  getParticipantScreenDescription,
+  getParticipantScreenTitle,
+  participantFeatureFlagsEnabled,
+  resolveParticipantFeatureSettings,
+  type ParticipantFeatureSettings,
+} from "@/lib/participant-settings";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
 type EventPageProps = {
   params: Promise<{ eventCode: string }>;
 };
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 type PublicEvent = {
   id: string;
@@ -21,7 +31,7 @@ type PublicEvent = {
   ends_at: string | null;
   screen_notice: string | null;
   is_active: boolean | null;
-};
+} & ParticipantFeatureSettings;
 
 function formatDateTime(value: string | null) {
   if (!value) {
@@ -40,7 +50,7 @@ async function getEventByCode(eventCode: string) {
   const { data, error } = await supabase
     .from("events")
     .select(
-      "id, event_code, title, subtitle, venue, starts_at, ends_at, screen_notice, is_active"
+      "id, event_code, title, subtitle, venue, starts_at, ends_at, screen_notice, participant_title, participant_description, participant_show_quiz, participant_show_qna, participant_show_survey, participant_show_draw, is_active"
     )
     .eq("event_code", eventCode.trim().toLowerCase())
     .maybeSingle();
@@ -90,30 +100,64 @@ export default async function EventPage({ params }: EventPageProps) {
     return <UnavailableEvent eventCode={normalizedEventCode} />;
   }
 
+  const participantSettings = resolveParticipantFeatureSettings(event);
+  const hasParticipantFeatures =
+    participantFeatureFlagsEnabled(participantSettings);
+  const participantTitle = getParticipantScreenTitle(event);
+  const participantDescription = getParticipantScreenDescription(
+    event,
+    "행사 참여를 위해 간단한 참가 정보를 등록해 주세요."
+  );
+  const showPlayLink =
+    hasValidSession &&
+    (participantSettings.participant_show_quiz ||
+      participantSettings.participant_show_qna);
+
   return (
     <div className="grid gap-5">
       <AudienceHero
         label="행사 안내"
-        title={event.title}
-        description={
-          event.subtitle ??
-          "행사 실시간 퀴즈에 참여하려면 간단한 참가 정보를 등록해 주세요."
-        }
+        title={participantTitle}
+        description={participantDescription}
       >
         <PrimaryLink href={`/e/${event.event_code}/join`}>
           참여하기
         </PrimaryLink>
-        {hasValidSession && (
+        {showPlayLink && (
           <PrimaryLink href={`/e/${event.event_code}/play`} variant="outline">
             참여 화면으로 이동
           </PrimaryLink>
         )}
-        {hasValidSession && (
+        {hasValidSession && participantSettings.participant_show_survey && (
           <PrimaryLink href={`/e/${event.event_code}/survey`} variant="outline">
             설문 참여하기
           </PrimaryLink>
         )}
       </AudienceHero>
+
+      {!hasParticipantFeatures && (
+        <MobileCard>
+          <StatusBadge tone="amber">참여 기능 없음</StatusBadge>
+          <h2 className="mt-5 text-3xl font-black text-[color:#0a1a38]">
+            현재 참여 가능한 기능이 없습니다.
+          </h2>
+          <p className="mt-3 text-base font-bold leading-7 text-slate-700">
+            운영자가 참가자 기능을 열면 이 화면에 참여 버튼이 표시됩니다.
+          </p>
+        </MobileCard>
+      )}
+
+      {participantSettings.participant_show_draw && (
+        <MobileCard>
+          <StatusBadge tone="amber">럭키드로우 안내</StatusBadge>
+          <h2 className="mt-5 text-2xl font-black text-[color:#0a1a38]">
+            경품 추첨은 운영자 안내에 따라 진행됩니다.
+          </h2>
+          <p className="mt-3 text-base font-bold leading-7 text-slate-700">
+            추첨 대상과 발표 방식은 행사 운영 기준에 따라 현장에서 안내됩니다.
+          </p>
+        </MobileCard>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-3">
         <MobileCard>

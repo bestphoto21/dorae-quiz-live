@@ -120,6 +120,21 @@ Participant URLs:
 - `/e/[eventCode]/survey`
 - `/e/[eventCode]/survey/[surveyFormId]`
 
+Survey visibility is controlled by the event-level participant setting
+`participant_show_survey`.
+
+- When it is on, open surveys appear on the participant play page, survey list,
+  and survey detail pages.
+- When it is off, participant survey list/detail pages show "현재 이 행사에서는
+  설문 기능을 사용하지 않습니다." and survey submissions are rejected by the
+  server action.
+- Admin survey management and screen survey projection controls remain
+  available; this setting controls participant access only.
+
+For a survey-centered event, set the participant title/description in event
+settings, turn survey on, turn lucky draw guidance on if prizes will be
+announced, and turn quiz/Q&A off when those flows are not part of the event.
+
 Flow:
 
 1. Participant registers through `/e/[eventCode]/join`.
@@ -195,6 +210,11 @@ Copied:
 
 - survey form title, description, and sort order
 - survey question text, type, options, required flag, and sort order
+
+Participant screen settings such as `participant_title`,
+`participant_description`, and the feature ON/OFF flags are event setup values.
+If an event clone workflow copies event setup, include these settings with the
+template data; never copy responses or answers.
 
 Reset in the new event:
 

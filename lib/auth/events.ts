@@ -26,6 +26,12 @@ export type EventRecord = {
   primary_color: string | null;
   logo_url: string | null;
   screen_notice: string | null;
+  participant_title: string | null;
+  participant_description: string | null;
+  participant_show_quiz: boolean | null;
+  participant_show_qna: boolean | null;
+  participant_show_survey: boolean | null;
+  participant_show_draw: boolean | null;
   is_active: boolean | null;
   created_at: string | null;
   updated_at: string | null;
@@ -42,6 +48,12 @@ const EVENT_SELECT = `
   primary_color,
   logo_url,
   screen_notice,
+  participant_title,
+  participant_description,
+  participant_show_quiz,
+  participant_show_qna,
+  participant_show_survey,
+  participant_show_draw,
   is_active,
   created_at,
   updated_at
