@@ -2,7 +2,7 @@
 
 This step implements prize management, winner selection, saved draw results, and screen presentation.
 
-It does not implement Q&A, score ranking, Kakao/SMS notification, winner export, or prize images.
+It does not implement Q&A, score ranking, Kakao/SMS notification, or prize images.
 
 ## Prize Management
 
@@ -187,6 +187,26 @@ Log details include operational identifiers such as `event_id`, `prize_id`,
 
 Logs must not include participant ids, phone numbers, or email addresses.
 
+## Winner CSV Export
+
+Admins can download the lucky draw winner CSV from
+`/admin/events/[eventId]/exports`.
+
+The file includes:
+
+- winner order
+- drawn time
+- prize name
+- winner display name
+- organization and group/table
+- draw source label
+- related survey title when the source is `survey_respondents`
+- fulfillment/status notes
+
+The export does not include winner IDs, participant IDs, phone numbers, email
+addresses, raw payloads, or secrets. Survey respondent draw results show the
+survey title when `survey_form_id` is present.
+
 ## Survey Respondent Draw Screen Flow
 
 When the draw source is `survey_respondents`, candidates come from
@@ -205,7 +225,7 @@ participant ids.
 
 Not implemented yet:
 
-- winner Excel download
+- Excel-native workbook export
 - prize images
 - SMS or Kakao notification
 - duplicate winner allow option

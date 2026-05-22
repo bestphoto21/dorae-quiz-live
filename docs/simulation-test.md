@@ -68,6 +68,7 @@ Use the seed output for the exact event ID. For the default event code:
 - Q&A management: `/admin/events/[eventId]/qna`
 - Lucky draw management: `/admin/events/[eventId]/draw`
 - Survey management: `/admin/events/[eventId]/surveys`
+- Result downloads: `/admin/events/[eventId]/exports`
 - Operation logs: `/admin/events/[eventId]/logs`
 - Participant join: `/e/sim-202606/join`
 - Participant play: `/e/sim-202606/play`
@@ -121,6 +122,12 @@ Use the seed output for the exact event ID. For the default event code:
 43. Confirm the final winner matches the saved draw result.
 44. Switch away from the draw scene during animation and confirm the old timer does not overwrite the new screen.
 45. Confirm operation logs were written.
+46. Open `/admin/events/[eventId]/exports`.
+47. Download participant list, survey response, survey respondent, draw winner, Q&A, and operation log CSV files.
+48. Confirm each CSV opens in Excel with Korean text readable.
+49. Confirm empty datasets still download with headers.
+50. Confirm CSV files do not contain participant IDs, phone numbers, email addresses, raw `screen_payload`, secrets, tokens, or keys.
+51. Confirm a logged-out browser is redirected to login or receives a protected response when opening an export URL directly.
 
 ## Must Check
 
@@ -143,6 +150,9 @@ Use the seed output for the exact event ID. For the default event code:
 - Survey answer details are not shown on participant screens or screen projection.
 - Survey answer details appear only in the protected admin survey page and do not include phone, email, or participant IDs.
 - Survey respondent lucky draws use `survey_responses` candidates and do not expose answers or contact fields.
+- Result CSV downloads are available only in the protected admin event area.
+- Survey response CSVs show formatted answers by question, not raw answer JSON.
+- Operation log CSVs show sanitized Korean descriptions, not raw detail payloads.
 - Timed surveys run for 60 seconds, auto-close lazily, and show submitted count/rate on the screen.
 - `/e/[eventCode]/play` shows the active survey card automatically while a timed survey is open.
 - Live screen changes appear in about 1-2 seconds while the screen window is visible.

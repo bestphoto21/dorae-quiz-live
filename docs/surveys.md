@@ -161,7 +161,30 @@ The admin survey page displays:
 
 The protected admin page shows the latest response details for the selected
 survey only, so events with many surveys do not load every survey answer on the
-first render. CSV export is still a future feature.
+first render.
+
+## Survey CSV Exports
+
+Admins can download survey CSVs from `/admin/events/[eventId]/exports`.
+
+Survey response CSV:
+
+- Requires `surveyFormId`.
+- Creates one column per survey question in the selected survey order.
+- Formats short text, long text, single choice, multiple choice, and rating
+  answers as human-readable text.
+- Includes submitter display name, organization, group/table, and submitted
+  time.
+- Does not include response IDs, participant IDs, phone numbers, email
+  addresses, or raw answer JSON.
+
+Survey respondent CSV:
+
+- Requires `surveyFormId`.
+- Lists the people who submitted the selected survey.
+- Is intended for checking survey-respondent lucky draw candidates.
+- Marks every submitted response as draw-eligible in this MVP.
+- Does not include participant IDs, phone numbers, or email addresses.
 
 ## Default Question Set
 
@@ -193,6 +216,11 @@ answers, and participant IDs are not shown on screen.
 For survey respondent draws, the inclusion criterion in this step is submission
 existence for the selected survey. Answer content is not used for eligibility
 yet, and contact fields are not exposed by the screen.
+
+The survey respondent CSV uses the same MVP policy: every participant with a
+`survey_responses` row for the selected form is listed as draw-eligible. The
+10th consent question remains an 안내/확인 question until a later consent-only
+filter is explicitly added.
 
 ## Timed Survey Operation
 
@@ -236,7 +264,6 @@ answer rows, or raw `screen_payload`.
 
 Potential next phase:
 
-- CSV export for survey responses
 - Consent-answer-only lucky draw filtering
 - Optional "allow edits before close" setting for surveys that explicitly need
   pre-close revision. The current production rule remains one submission per

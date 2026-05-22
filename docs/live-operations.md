@@ -298,6 +298,36 @@ Never return:
 - `correct_option` before answer reveal
 - pending, hidden, or deleted Q&A questions
 
+## Post-Event Result Downloads
+
+After the event, admins can open `/admin/events/[eventId]/exports` from the
+event navigation and download CSV files for reporting, settlement, and operation
+review.
+
+Available CSV files:
+
+- Participant list
+- Survey responses, one file per survey
+- Survey respondent list, one file per survey for draw-candidate review
+- Lucky draw winners
+- Q&A list
+- Operation logs
+
+Each CSV filename includes the event code and the download date. CSV responses
+are UTF-8 with a BOM so Korean text opens correctly in Excel.
+
+Privacy rules for exports:
+
+- Do not export `participant_id`, phone numbers, normalized phone numbers,
+  email addresses, session tokens, secrets, keys, passwords, or raw
+  `screen_payload`.
+- Survey response CSVs format answers by question column and do not export raw
+  answer JSON.
+- Operation log CSVs use Korean action names and a sanitized description instead
+  of raw `operation_logs.detail`.
+- Export route handlers must call admin auth and event-access checks directly;
+  they must not rely only on the protected layout.
+
 ## Operation Logs
 
 Screen transitions write operation logs with minimal detail:

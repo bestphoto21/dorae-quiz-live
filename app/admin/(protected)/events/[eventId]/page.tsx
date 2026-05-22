@@ -317,6 +317,11 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
               description="누가 언제 어떤 운영 조작을 했는지 최신 로그를 확인합니다."
             />
             <OperatorLink
+              href={`/admin/events/${eventId}/exports`}
+              title="결과 다운로드"
+              description="참가자, 설문, 추첨, Q&A, 운영 로그 CSV를 내려받습니다."
+            />
+            <OperatorLink
               href={`/screen/${event.event_code}`}
               title="스크린 열기"
               description="현장 송출 화면을 새 탭에서 확인합니다."
