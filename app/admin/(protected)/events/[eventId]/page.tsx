@@ -322,6 +322,11 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
               description="참가자, 설문, 추첨, Q&A, 운영 로그 CSV를 내려받습니다."
             />
             <OperatorLink
+              href={`/admin/events/${eventId}/clone`}
+              title="행사 복제"
+              description="설정과 콘텐츠만 복제해 새 행사를 빠르게 만듭니다."
+            />
+            <OperatorLink
               href={`/screen/${event.event_code}`}
               title="스크린 열기"
               description="현장 송출 화면을 새 탭에서 확인합니다."

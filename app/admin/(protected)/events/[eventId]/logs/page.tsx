@@ -145,6 +145,7 @@ function actionTone(action: string) {
 function actionLabel(action: string) {
   const labels: Record<string, string> = {
     event_created: "행사 생성",
+    event_cloned: "행사 복제 생성",
     event_updated: "행사 수정",
     quiz_session_created: "퀴즈 세션 생성",
     quiz_session_updated: "퀴즈 세션 수정",

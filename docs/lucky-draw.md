@@ -207,6 +207,26 @@ The export does not include winner IDs, participant IDs, phone numbers, email
 addresses, raw payloads, or secrets. Survey respondent draw results show the
 survey title when `survey_form_id` is present.
 
+## Event Clone Behavior
+
+When an event is cloned, the prize setup is copied but winner history is not
+copied.
+
+Copied:
+
+- prize name
+- prize quantity
+
+Not copied:
+
+- `draw_winners`
+- claimed/cancelled/redrawn winner status history
+- source question or survey winner results
+- participant data or contact fields
+
+The cloned event starts with the same prize list and zero winners. Operators
+must run a new draw in the cloned event to create new `draw_winners` rows.
+
 ## Survey Respondent Draw Screen Flow
 
 When the draw source is `survey_respondents`, candidates come from

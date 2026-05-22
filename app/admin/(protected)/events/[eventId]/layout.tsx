@@ -22,6 +22,7 @@ export default async function AdminEventLayout({
     { href: `/admin/events/${eventId}/draw`, label: "추첨" },
     { href: `/admin/events/${eventId}/qna`, label: "Q&A" },
     { href: `/admin/events/${eventId}/exports`, label: "결과 다운로드" },
+    { href: `/admin/events/${eventId}/clone`, label: "행사 복제" },
   ];
 
   return (

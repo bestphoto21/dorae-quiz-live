@@ -69,6 +69,7 @@ Use the seed output for the exact event ID. For the default event code:
 - Lucky draw management: `/admin/events/[eventId]/draw`
 - Survey management: `/admin/events/[eventId]/surveys`
 - Result downloads: `/admin/events/[eventId]/exports`
+- Event clone: `/admin/events/[eventId]/clone`
 - Operation logs: `/admin/events/[eventId]/logs`
 - Participant join: `/e/sim-202606/join`
 - Participant play: `/e/sim-202606/play`
@@ -128,6 +129,15 @@ Use the seed output for the exact event ID. For the default event code:
 49. Confirm empty datasets still download with headers.
 50. Confirm CSV files do not contain participant IDs, phone numbers, email addresses, raw `screen_payload`, secrets, tokens, or keys.
 51. Confirm a logged-out browser is redirected to login or receives a protected response when opening an export URL directly.
+52. Open `/admin/events/[eventId]/clone`.
+53. Confirm the clone page shows the source event, copied item counts, copied items, and excluded data.
+54. Try an existing event code and confirm duplicate validation appears.
+55. Clone with a new `sim-` event code.
+56. Confirm the cloned event detail page opens and uses the new event code in QR, participant, and screen URLs.
+57. Confirm quiz sessions/questions, survey forms/questions, and prizes were copied.
+58. Confirm cloned survey forms are `draft` with no submitted responses.
+59. Confirm participants, quiz answers, Q&A questions, draw winners, and source operation logs were not copied.
+60. Confirm the cloned event screen opens in waiting state with an empty payload.
 
 ## Must Check
 
@@ -153,6 +163,8 @@ Use the seed output for the exact event ID. For the default event code:
 - Result CSV downloads are available only in the protected admin event area.
 - Survey response CSVs show formatted answers by question, not raw answer JSON.
 - Operation log CSVs show sanitized Korean descriptions, not raw detail payloads.
+- Event clone copies only setup data and never copies participants, answers,
+  survey responses, submitted Q&A, winners, source logs, or raw screen payloads.
 - Timed surveys run for 60 seconds, auto-close lazily, and show submitted count/rate on the screen.
 - `/e/[eventCode]/play` shows the active survey card automatically while a timed survey is open.
 - Live screen changes appear in about 1-2 seconds while the screen window is visible.

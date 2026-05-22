@@ -186,6 +186,26 @@ Survey respondent CSV:
 - Marks every submitted response as draw-eligible in this MVP.
 - Does not include participant IDs, phone numbers, or email addresses.
 
+## Event Clone Behavior
+
+When an event is cloned, survey setup is copied but survey participation data is
+not copied.
+
+Copied:
+
+- survey form title, description, and sort order
+- survey question text, type, options, required flag, and sort order
+
+Reset in the new event:
+
+- every cloned survey form starts as `draft`
+- `active_started_at`, `active_ends_at`, and `closed_at` are `null`
+- `survey_responses` and `survey_answers` start empty
+
+This means a cloned event keeps the survey template but has no submitters,
+answers, respondent draw candidates, or response review data until participants
+join the new event and submit again.
+
 ## Default Question Set
 
 When a selected survey has no questions, admins can press "기본 질문 10개 추가".

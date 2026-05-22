@@ -36,6 +36,44 @@ all features share the same event `live_state` and `/screen/[eventCode]`, a QR,
 waiting, break, survey, Q&A, or draw button can intentionally replace the
 previous screen output.
 
+## Event Clone Workflow
+
+Admins can open `/admin/events/[eventId]/clone` from the event detail page or
+event navigation to create a new event from an existing event.
+
+The clone workflow copies setup and content only:
+
+- event subtitle, venue, primary color, logo URL, and screen notice
+- quiz sessions and questions
+- survey forms and survey questions
+- prize names and quantities
+- a fresh waiting `live_state` row for the new event
+
+The clone workflow does not copy operation, participation, response, or result
+data:
+
+- participants and participant sessions
+- quiz answers
+- survey responses and survey answers
+- submitted Q&A questions
+- draw winners
+- operation logs from the source event
+- current screen state or raw `screen_payload`
+- phone numbers, emails, participant IDs, tokens, secrets, or passwords
+
+The new event asks for a new title and a new `event_code`. Existing start/end
+times are not copied, so operators must confirm the schedule on the new event
+settings page. The new event starts with `mode = waiting`, `screen_scene =
+waiting`, no current question, no reveal state, and an empty screen payload.
+
+After cloning, check:
+
+1. The new event code, QR URL, participant URL, and screen URL.
+2. Quiz sessions and questions.
+3. Survey forms and questions, all starting from `draft`.
+4. Prize list and quantities.
+5. Participant, survey response, Q&A, and winner counts are zero.
+
 ## Mode And Scene
 
 `live_state.mode` is the database-level state. Its allowed values are defined by the existing schema:
