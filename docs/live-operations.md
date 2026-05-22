@@ -200,6 +200,58 @@ the selected reset target names and count. The log detail must not include
 participant ids, phone numbers, emails, secrets, tokens, keys, passwords, or raw
 screen payloads.
 
+## Operation Checklist
+
+Admins can open `/admin/events/[eventId]/checklist` before rehearsal or showtime
+to review an event-scoped readiness checklist. This page is separate from the
+global `/admin/health` page: health checks the system, while the operation
+checklist checks one event's URLs, settings, content, and rehearsal data.
+
+The page combines automatic checks and manual operator checks.
+
+Automatic checks:
+
+- event title, `event_code`, venue, and primary color
+- participant home, join, and play URLs
+- screen URL and current `live_state`
+- participant screen title, description, and quiz/Q&A/survey/draw visibility
+- venue screen title, subtitle, and logo visibility
+- quiz session/question readiness when participant quiz is enabled
+- survey form/question/readiness counts when participant survey is enabled
+- Q&A enablement and submitted question counts
+- lucky draw prize quantity, remaining quantity estimate, winner count, and
+  survey respondent count
+- rehearsal data counts for participants, quiz answers, survey responses, Q&A,
+  and winners
+- result download page availability and export-related counts
+- current screen mode, scene, and last update time
+- manual sound reminder for lucky draw audio
+
+Status rules:
+
+- `위험`: at least one required item is missing, such as an invalid event code,
+  missing live state, no quiz questions while quiz is enabled, or survey forms
+  with no questions while survey is enabled.
+- `확인 필요`: the system can run, but an operator should review the item, such
+  as missing venue, missing custom screen copy, no prizes, rehearsal data that
+  may need reset, or audio that must be checked on the screen PC.
+- `정상`: the item has enough setup for the selected event configuration.
+
+The checklist links directly to the relevant admin page or public test URL:
+settings, participant pages, screen, questions, surveys, Q&A, lucky draw, live
+console, rehearsal reset, and result downloads.
+
+Manual checks are stored in the current browser only. They include screen
+connection, screen PC audio, QR visibility, real-phone QR entry, survey submit
+test, lucky draw test, CSV download test, and rehearsal reset review. These
+hardware and field checks cannot be judged automatically, so they must still be
+completed with the actual venue screen, network, and phones.
+
+The checklist is read-only. It uses counts and event setup values only, and must
+not display participant names, phone numbers, emails, participant IDs, survey
+answer details, raw operation log detail, secrets, tokens, keys, passwords, or
+raw `screen_payload`.
+
 ## Mode And Scene
 
 `live_state.mode` is the database-level state. Its allowed values are defined by the existing schema:

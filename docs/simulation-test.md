@@ -72,6 +72,7 @@ Use the seed output for the exact event ID. For the default event code:
 - Result downloads: `/admin/events/[eventId]/exports`
 - Event clone: `/admin/events/[eventId]/clone`
 - Rehearsal reset: `/admin/events/[eventId]/rehearsal`
+- Operation checklist: `/admin/events/[eventId]/checklist`
 - Operation logs: `/admin/events/[eventId]/logs`
 - Participant join: `/e/sim-202606/join`
 - Participant play: `/e/sim-202606/play`
@@ -205,6 +206,28 @@ Use the seed output for the exact event ID. For the default event code:
 12. Confirm event settings, participant screen settings, venue screen settings,
     quiz questions, survey forms/questions, and prizes remain.
 
+## Operation Checklist Test
+
+1. Open `/admin/events/[eventId]/checklist`.
+2. Confirm the summary card shows the overall state plus normal, review-needed,
+   and danger counts.
+3. Confirm each automatic check shows a status badge, description, current
+   value, recommended action, and at least one relevant link.
+4. Confirm participant home, join, play, and screen links open the expected
+   event URLs.
+5. Turn quiz off in participant settings and confirm the quiz readiness item is
+   not marked dangerous only because quiz is off.
+6. Turn survey on with no survey forms and confirm the survey item asks for
+   review. Create a survey without questions and confirm it becomes dangerous.
+7. Confirm zero prizes make the lucky draw item ask for review.
+8. Confirm existing participants, quiz answers, survey responses, Q&A, or
+   winners make the rehearsal data item ask the operator to review reset needs.
+9. Toggle manual checklist items, refresh the page, and confirm the state stays
+   in the same browser.
+10. Confirm the page does not show participant names, phone numbers, emails,
+    participant IDs, survey answer details, raw operation log detail, secrets,
+    tokens, keys, passwords, or raw `screen_payload`.
+
 ## Must Check
 
 - The screen does not show phone, email, secrets, or raw `screen_payload`.
@@ -238,6 +261,8 @@ Use the seed output for the exact event ID. For the default event code:
 - Event clone includes participant feature settings and screen display settings.
 - Rehearsal reset preserves event setup/content and clears only the selected
   operational data after exact `RESET [event_code]` confirmation.
+- Operation checklist is read-only, count-based, and links to the right setup
+  pages without exposing personal data.
 - Timed surveys run for 60 seconds, auto-close lazily, and show submitted count/rate on the screen.
 - `/e/[eventCode]/play` shows the active survey card automatically while a timed survey is open.
 - Live screen changes appear in about 1-2 seconds while the screen window is visible.

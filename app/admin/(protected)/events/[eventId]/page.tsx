@@ -307,6 +307,11 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
               description="참가자 질문을 승인하고 현장 스크린에 송출합니다."
             />
             <OperatorLink
+              href={`/admin/events/${eventId}/checklist`}
+              title="운영 체크리스트"
+              description="행사 전 QR, 참가자 화면, 스크린, 설문, Q&A, 추첨 준비 상태를 확인합니다."
+            />
+            <OperatorLink
               href={`/admin/events/${eventId}/rehearsal`}
               title="리허설 초기화"
               description="점검 상태를 확인하고 리허설 중 생성된 참가자/응답/당첨 데이터를 선택적으로 초기화합니다."
