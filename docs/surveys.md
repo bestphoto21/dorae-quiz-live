@@ -87,6 +87,12 @@ Starting a survey and showing it on the screen are separate operations. The star
 button controls participant submission availability. The screen buttons only
 change what `/screen/[eventCode]` displays.
 
+The venue screen survey guidance can be customized from event settings with
+`screen_survey_message`. If it is empty, the screen falls back to the survey
+payload description, event subtitle, or the built-in survey guidance. Survey
+titles, submitted counts, rates, remaining time, and safe survey URLs continue
+to come from the existing survey screen state.
+
 Screen projection buttons that immediately replace the venue screen also ask for
 confirmation. Operators should check the current screen status card before
 confirming the transition.
@@ -215,6 +221,11 @@ Participant screen settings such as `participant_title`,
 `participant_description`, and the feature ON/OFF flags are event setup values.
 If an event clone workflow copies event setup, include these settings with the
 template data; never copy responses or answers.
+
+Venue screen settings such as `screen_survey_message`, `screen_title`, and
+`screen_footer_message` are also event setup values. Future event clone work
+should copy these settings with the template, while still never copying survey
+responses or answers.
 
 Reset in the new event:
 

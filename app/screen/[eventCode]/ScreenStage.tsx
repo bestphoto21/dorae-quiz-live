@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { QrCode } from "@/components/quiz/QrCode";
 import {
   useCallback,
@@ -29,6 +30,16 @@ type ScreenState = {
     primary_color: string | null;
     logo_url: string | null;
     screen_notice: string | null;
+    screen_title: string | null;
+    screen_subtitle: string | null;
+    screen_waiting_message: string | null;
+    screen_break_message: string | null;
+    screen_join_message: string | null;
+    screen_survey_message: string | null;
+    screen_qna_message: string | null;
+    screen_draw_message: string | null;
+    screen_footer_message: string | null;
+    screen_show_logo: boolean | null;
   };
   state_updated_at: string | null;
   liveState: {
@@ -277,6 +288,17 @@ function screenStateFingerprint(state: ScreenState) {
     question_ends_at: state.liveState.question_ends_at,
     reveal_answer: state.liveState.reveal_answer,
     show_results: state.liveState.show_results,
+    screen_title: state.event.screen_title,
+    screen_subtitle: state.event.screen_subtitle,
+    screen_waiting_message: state.event.screen_waiting_message,
+    screen_break_message: state.event.screen_break_message,
+    screen_join_message: state.event.screen_join_message,
+    screen_survey_message: state.event.screen_survey_message,
+    screen_qna_message: state.event.screen_qna_message,
+    screen_draw_message: state.event.screen_draw_message,
+    screen_footer_message: state.event.screen_footer_message,
+    screen_show_logo: state.event.screen_show_logo,
+    logo_url: state.event.logo_url,
     question_id: state.question?.id ?? null,
     draw_winner_id: state.draw?.winner_id ?? null,
     draw_animation_id: state.draw?.animation_id ?? null,
@@ -393,6 +415,53 @@ function SceneTransition({
   );
 }
 
+function displayText(
+  ...values: Array<string | null | undefined | false>
+): string | null {
+  for (const value of values) {
+    if (typeof value !== "string") {
+      continue;
+    }
+
+    const trimmed = value.trim();
+
+    if (trimmed) {
+      return trimmed;
+    }
+  }
+
+  return null;
+}
+
+function getScreenTitle(
+  state: ScreenState,
+  fallback?: string | null
+): string {
+  return (
+    displayText(state.event.screen_title, fallback, state.event.title) ??
+    "Dorae Quiz Live"
+  );
+}
+
+function getScreenSubtitle(
+  state: ScreenState,
+  fallback?: string | null
+): string | null {
+  return displayText(state.event.screen_subtitle, fallback, state.event.subtitle);
+}
+
+function getScreenFooterMessage(state: ScreenState) {
+  return displayText(state.event.screen_footer_message);
+}
+
+function getScreenLogoUrl(state: ScreenState) {
+  if (state.event.screen_show_logo === false) {
+    return null;
+  }
+
+  return displayText(state.event.logo_url);
+}
+
 function Shell({
   state,
   children,
@@ -413,6 +482,10 @@ function Shell({
     state?.draw?.draw_phase === "rolling"
       ? "추첨 연출"
       : sceneLabel(state?.liveState.screen_scene ?? state?.liveState.mode);
+  const screenTitle = state ? getScreenTitle(state) : "Dorae Quiz Live";
+  const screenSubtitle = state ? getScreenSubtitle(state) : null;
+  const screenLogoUrl = state ? getScreenLogoUrl(state) : null;
+  const footerMessage = state ? getScreenFooterMessage(state) : null;
 
   return (
     <main className="min-h-screen bg-[#0a1a38] p-5 text-white sm:p-8">
@@ -433,18 +506,30 @@ function Shell({
       )}
       <div className="flex min-h-[calc(100vh-2.5rem)] flex-col gap-5 sm:min-h-[calc(100vh-4rem)]">
         <header className="flex flex-wrap items-center justify-between gap-4 border-b border-white/15 pb-5">
-          <div className="min-w-0">
-            <p className="text-sm font-black uppercase text-cyan-200">
-              Live Screen
-            </p>
-            <h1 className="mt-2 truncate text-4xl font-black sm:text-6xl">
-              {state?.event.title ?? "Dorae Quiz Live"}
-            </h1>
-            {state?.event.subtitle && (
-              <p className="mt-2 text-2xl font-bold text-slate-300">
-                {state.event.subtitle}
-              </p>
+          <div className="flex min-w-0 items-center gap-4">
+            {screenLogoUrl && (
+              <Image
+                src={screenLogoUrl}
+                alt=""
+                width={176}
+                height={64}
+                unoptimized
+                className="h-16 max-w-44 shrink-0 rounded-2xl bg-white/95 object-contain p-2"
+              />
             )}
+            <div className="min-w-0">
+              <p className="text-sm font-black uppercase text-cyan-200">
+                Live Screen
+              </p>
+              <h1 className="mt-2 truncate text-4xl font-black sm:text-6xl">
+                {screenTitle}
+              </h1>
+              {screenSubtitle && (
+                <p className="mt-2 text-2xl font-bold text-slate-300">
+                  {screenSubtitle}
+                </p>
+              )}
+            </div>
           </div>
           <div
             className="rounded-3xl border border-white/15 bg-white/10 px-6 py-4 text-right"
@@ -457,15 +542,32 @@ function Shell({
           </div>
         </header>
         <SceneTransition sceneKey={sceneKey}>{children}</SceneTransition>
+        {footerMessage && (
+          <p className="border-t border-white/15 pt-4 text-center text-2xl font-black text-cyan-100">
+            {footerMessage}
+          </p>
+        )}
       </div>
     </main>
   );
 }
 
 function WaitingView({ state }: { state: ScreenState }) {
-  const title = state.notice?.title || "잠시 후 시작합니다";
+  const title = getScreenTitle(state, state.notice?.title);
   const message =
-    state.notice?.message || "QR을 통해 입장하고 진행자의 안내를 기다려 주세요";
+    displayText(
+      state.event.screen_waiting_message,
+      state.notice?.message,
+      state.event.screen_subtitle,
+      state.event.screen_notice,
+      "QR을 통해 입장하고 진행자의 안내를 기다려 주세요"
+    ) ?? "";
+  const venueNotice =
+    displayText(
+      state.event.screen_notice,
+      state.event.screen_subtitle,
+      "현장 안내를 기다려 주세요"
+    ) ?? "";
 
   return (
     <section className="grid flex-1 gap-5 lg:grid-cols-[1fr_26rem]">
@@ -488,7 +590,7 @@ function WaitingView({ state }: { state: ScreenState }) {
         <div className="rounded-3xl border border-white/15 bg-white/10 p-6">
           <p className="text-sm font-black text-slate-200">현장 안내</p>
           <p className="mt-4 text-3xl font-black leading-tight">
-            {state.event.screen_notice || "현장 안내를 기다려 주세요"}
+            {venueNotice}
           </p>
         </div>
         <div className="rounded-3xl border border-white/15 bg-white/10 p-6">
@@ -503,18 +605,26 @@ function WaitingView({ state }: { state: ScreenState }) {
 }
 
 function BreakView({ state }: { state: ScreenState }) {
+  const title = getScreenTitle(state, state.notice?.title);
+  const message =
+    displayText(
+      state.event.screen_break_message,
+      state.notice?.message,
+      "곧 다시 시작합니다"
+    ) ?? "";
+
   return (
     <section className="flex flex-1 items-center justify-center rounded-3xl bg-white p-10 text-center text-[color:#0a1a38] shadow-2xl">
       <div>
         <p className="text-3xl font-black text-amber-800">휴식 시간</p>
         <h2 className="mt-6 text-6xl font-black leading-tight sm:text-9xl">
-          {state.notice?.title || "잠시 쉬는 시간입니다"}
+          {title}
         </h2>
         <p className="mt-6 text-3xl font-bold leading-tight text-slate-600">
-          {state.notice?.message || "곧 다시 시작합니다"}
+          {message}
         </p>
         <p className="mt-10 text-4xl font-black text-cyan-700">
-          {state.event.title}
+          {getScreenSubtitle(state, state.event.title)}
         </p>
       </div>
     </section>
@@ -824,10 +934,12 @@ async function playLuckyDrawConfettiBurst(
 
 function DrawResultView({
   draw,
+  message,
   celebrationKey,
   onCelebrate,
 }: {
   draw: DrawPayload;
+  message?: string | null;
   celebrationKey: string;
   onCelebrate: (celebrationKey: string) => void;
 }) {
@@ -850,6 +962,9 @@ function DrawResultView({
         <p className="text-3xl font-black uppercase tracking-normal text-amber-600">
           {sourceLabel(draw.source_type)}
         </p>
+        {message && (
+          <p className="mt-3 text-2xl font-black text-amber-700">{message}</p>
+        )}
         <h2 className="dorae-winner-pop mt-6 text-7xl font-black leading-tight text-[color:#0a1a38] drop-shadow-[0_14px_30px_rgba(255,255,255,0.90)] sm:text-9xl">
           당첨!
         </h2>
@@ -872,10 +987,12 @@ function DrawResultView({
 
 function RollingDrawView({
   draw,
+  message,
   animationKey,
   onCelebrate,
 }: {
   draw: DrawPayload;
+  message?: string | null;
   animationKey: string;
   onCelebrate: (celebrationKey: string) => void;
 }) {
@@ -972,6 +1089,7 @@ function RollingDrawView({
     return (
       <DrawResultView
         draw={draw}
+        message={message}
         celebrationKey={animationKey}
         onCelebrate={onCelebrate}
       />
@@ -982,7 +1100,7 @@ function RollingDrawView({
     <section className="flex flex-1 items-center justify-center rounded-3xl border border-white/15 bg-white/10 p-8 text-center shadow-2xl sm:p-12">
       <div className="w-full">
         <p className="text-3xl font-black text-amber-200">
-          {draw.message || "두구두구... 곧 당첨자를 공개합니다."}
+          {message || draw.message || "두구두구... 곧 당첨자를 공개합니다."}
         </p>
         <h2 className="mt-5 text-6xl font-black leading-tight sm:text-8xl">
           {step === "countdown" ? "추첨을 시작합니다" : "추첨 중"}
@@ -1031,12 +1149,14 @@ function DrawWinnerView({
   }
 
   const animationKey = drawAnimationKey(draw, state.state_updated_at);
+  const drawMessage = displayText(state.event.screen_draw_message, draw.message);
 
   if (draw.draw_phase === "rolling") {
     return (
       <RollingDrawView
         key={animationKey}
         draw={draw}
+        message={drawMessage}
         animationKey={animationKey}
         onCelebrate={onCelebrate}
       />
@@ -1047,6 +1167,7 @@ function DrawWinnerView({
     <DrawResultView
       key={animationKey}
       draw={draw}
+      message={drawMessage}
       celebrationKey={animationKey}
       onCelebrate={onCelebrate}
     />
@@ -1054,6 +1175,11 @@ function DrawWinnerView({
 }
 
 function DrawPreparingView({ state }: { state: ScreenState }) {
+  const title = getScreenTitle(state, "추첨 준비 중");
+  const message =
+    displayText(state.event.screen_draw_message, state.event.screen_subtitle) ??
+    state.event.title;
+
   return (
     <section className="flex flex-1 items-center justify-center rounded-3xl bg-white p-10 text-center text-[color:#0a1a38] shadow-2xl">
       <div>
@@ -1061,10 +1187,10 @@ function DrawPreparingView({ state }: { state: ScreenState }) {
           럭키드로우 준비
         </p>
         <h2 className="mt-6 text-7xl font-black sm:text-9xl">
-          추첨 준비 중
+          {title}
         </h2>
         <p className="mt-6 text-3xl font-bold text-slate-600">
-          {state.event.title}
+          {message}
         </p>
       </div>
     </section>
@@ -1079,6 +1205,8 @@ function QnaQuestionView({ state }: { state: ScreenState }) {
   }
 
   const meta = [qna.organization, qna.group_name].filter(Boolean).join(" · ");
+  const title = getScreenTitle(state, "현장 질문");
+  const message = displayText(state.event.screen_qna_message);
 
   return (
     <section className="flex flex-1 items-center justify-center rounded-3xl bg-white p-8 text-[color:#0a1a38] shadow-2xl sm:p-12">
@@ -1087,7 +1215,12 @@ function QnaQuestionView({ state }: { state: ScreenState }) {
           현장 질문
         </p>
         <div className="mt-8 rounded-3xl border border-cyan-200 bg-cyan-50 p-8 sm:p-10">
-          <p className="text-3xl font-black text-cyan-800">현장 질문</p>
+          <p className="text-3xl font-black text-cyan-800">{title}</p>
+          {message && (
+            <p className="mt-3 text-2xl font-bold leading-tight text-cyan-900">
+              {message}
+            </p>
+          )}
           <h2 className="mt-6 break-words text-5xl font-black leading-tight text-[color:#0a1a38] sm:text-8xl">
             {qna.question_text}
           </h2>
@@ -1112,6 +1245,13 @@ function QnaQuestionView({ state }: { state: ScreenState }) {
 }
 
 function QnaWaitingView({ state }: { state: ScreenState }) {
+  const title = getScreenTitle(state, "질문을 기다리는 중입니다");
+  const message =
+    displayText(
+      state.event.screen_qna_message,
+      "QR을 통해 질문을 남겨주세요"
+    ) ?? "";
+
   return (
     <section className="flex flex-1 items-center justify-center rounded-3xl bg-white p-10 text-center text-[color:#0a1a38] shadow-2xl">
       <div>
@@ -1119,10 +1259,10 @@ function QnaWaitingView({ state }: { state: ScreenState }) {
           질문 접수 중
         </p>
         <h2 className="mt-6 text-6xl font-black leading-tight sm:text-9xl">
-          질문을 기다리는 중입니다
+          {title}
         </h2>
         <p className="mt-6 text-3xl font-bold leading-tight text-slate-600">
-          QR을 통해 질문을 남겨주세요
+          {message}
         </p>
         <p className="mx-auto mt-8 max-w-4xl break-all rounded-3xl border border-slate-200 bg-slate-50 p-6 text-5xl font-black text-[color:#0a1a38]">
           /e/{state.event.event_code}
@@ -1134,9 +1274,15 @@ function QnaWaitingView({ state }: { state: ScreenState }) {
 
 function JoinQrView({ state }: { state: ScreenState }) {
   const joinUrl = state.joinQr?.join_url || `/e/${state.event.event_code}/join`;
-  const title = state.joinQr?.title || state.event.title;
+  const title = getScreenTitle(state, state.joinQr?.title);
   const message =
-    state.joinQr?.message || "휴대폰 카메라로 QR을 스캔해 참여해 주세요";
+    displayText(
+      state.event.screen_join_message,
+      state.joinQr?.message,
+      "화면의 QR을 찍고 입장해주세요."
+    ) ?? "";
+  const guide =
+    getScreenSubtitle(state, "입장 후 안내에 따라 참여할 수 있습니다.") ?? "";
 
   return (
     <section className="grid flex-1 gap-6 lg:grid-cols-[1fr_34rem] lg:items-center">
@@ -1149,7 +1295,7 @@ function JoinQrView({ state }: { state: ScreenState }) {
           {message}
         </p>
         <p className="mt-6 text-2xl font-black leading-tight text-cyan-800">
-          참가자 등록 후 퀴즈와 Q&A에 참여할 수 있습니다.
+          {guide}
         </p>
         <p className="mt-8 break-all rounded-3xl border border-slate-200 bg-slate-50 p-6 text-3xl font-black text-[color:#0a1a38]">
           {joinUrl}
@@ -1192,7 +1338,13 @@ function SurveyView({
   const surveyUrl = survey?.survey_url || `/e/${state.event.event_code}/survey`;
   const title = survey?.title || "설문 참여 안내";
   const description =
-    survey?.description || "모바일로 QR 입장 후 설문에 참여해주세요.";
+    displayText(
+      state.event.screen_survey_message,
+      survey?.message,
+      survey?.description,
+      state.event.screen_subtitle,
+      "모바일로 QR 입장 후 설문에 참여해주세요."
+    ) ?? "";
   const submittedCount = survey?.submitted_count ?? 0;
   const participantCount = survey?.participant_count ?? 0;
   const progress =
@@ -1207,11 +1359,13 @@ function SurveyView({
     survey?.ends_at && now !== null
       ? getSecondsLeft(survey.ends_at, now)
       : (survey?.remaining_seconds ?? null);
-  const heroLabel = isClosedScene
-    ? "설문이 마감되었습니다"
-    : isStatusScene
-      ? "설문 제출 현황"
-      : "지금 설문조사에 참여해주세요";
+  const heroLabel =
+    displayText(state.event.screen_title) ??
+    (isClosedScene
+      ? "설문이 마감되었습니다"
+      : isStatusScene
+        ? "설문 제출 현황"
+        : "지금 설문조사에 참여해주세요");
 
   return (
     <section className="grid flex-1 gap-6 lg:grid-cols-[1fr_34rem] lg:items-center">

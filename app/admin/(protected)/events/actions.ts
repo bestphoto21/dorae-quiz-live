@@ -24,6 +24,16 @@ export type EventFormValues = {
   primary_color: string;
   logo_url: string;
   screen_notice: string;
+  screen_title: string;
+  screen_subtitle: string;
+  screen_waiting_message: string;
+  screen_break_message: string;
+  screen_join_message: string;
+  screen_survey_message: string;
+  screen_qna_message: string;
+  screen_draw_message: string;
+  screen_footer_message: string;
+  screen_show_logo: boolean;
   participant_title: string;
   participant_description: string;
   participant_show_quiz: boolean;
@@ -44,6 +54,7 @@ const EVENT_CODE_PATTERN = /^[a-z0-9-]+$/;
 const DATE_TIME_LOCAL_PATTERN =
   /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/;
 const DEFAULT_PRIMARY_COLOR = "#0a1a38";
+const DEFAULT_SCREEN_SHOW_LOGO = true;
 
 function getFormString(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -105,6 +116,16 @@ function getEventFormValues(formData: FormData): EventFormValues {
     primary_color: getPrimaryColor(formData),
     logo_url: getFormString(formData, "logo_url"),
     screen_notice: getFormString(formData, "screen_notice"),
+    screen_title: getFormString(formData, "screen_title"),
+    screen_subtitle: getFormString(formData, "screen_subtitle"),
+    screen_waiting_message: getFormString(formData, "screen_waiting_message"),
+    screen_break_message: getFormString(formData, "screen_break_message"),
+    screen_join_message: getFormString(formData, "screen_join_message"),
+    screen_survey_message: getFormString(formData, "screen_survey_message"),
+    screen_qna_message: getFormString(formData, "screen_qna_message"),
+    screen_draw_message: getFormString(formData, "screen_draw_message"),
+    screen_footer_message: getFormString(formData, "screen_footer_message"),
+    screen_show_logo: formData.get("screen_show_logo") === "on",
     participant_title: getFormString(formData, "participant_title"),
     participant_description: getFormString(
       formData,
@@ -164,6 +185,16 @@ function validateEventFields(formData: FormData, includeEventCode: boolean) {
       primary_color: formValues.primary_color,
       logo_url: nullIfBlank(formValues.logo_url),
       screen_notice: nullIfBlank(formValues.screen_notice),
+      screen_title: nullIfBlank(formValues.screen_title),
+      screen_subtitle: nullIfBlank(formValues.screen_subtitle),
+      screen_waiting_message: nullIfBlank(formValues.screen_waiting_message),
+      screen_break_message: nullIfBlank(formValues.screen_break_message),
+      screen_join_message: nullIfBlank(formValues.screen_join_message),
+      screen_survey_message: nullIfBlank(formValues.screen_survey_message),
+      screen_qna_message: nullIfBlank(formValues.screen_qna_message),
+      screen_draw_message: nullIfBlank(formValues.screen_draw_message),
+      screen_footer_message: nullIfBlank(formValues.screen_footer_message),
+      screen_show_logo: formValues.screen_show_logo,
       participant_title: nullIfBlank(formValues.participant_title),
       participant_description: nullIfBlank(formValues.participant_description),
       participant_show_quiz: formValues.participant_show_quiz,
@@ -267,6 +298,16 @@ export async function createEventAction(
       primary_color: values.primary_color,
       logo_url: values.logo_url,
       screen_notice: values.screen_notice,
+      screen_title: null,
+      screen_subtitle: null,
+      screen_waiting_message: null,
+      screen_break_message: null,
+      screen_join_message: null,
+      screen_survey_message: null,
+      screen_qna_message: null,
+      screen_draw_message: null,
+      screen_footer_message: null,
+      screen_show_logo: DEFAULT_SCREEN_SHOW_LOGO,
       participant_title: DEFAULT_PARTICIPANT_FEATURE_SETTINGS.participant_title,
       participant_description:
         DEFAULT_PARTICIPANT_FEATURE_SETTINGS.participant_description,
@@ -404,6 +445,16 @@ export async function updateEventAction(
       primary_color: values.primary_color,
       logo_url: values.logo_url,
       screen_notice: values.screen_notice,
+      screen_title: values.screen_title,
+      screen_subtitle: values.screen_subtitle,
+      screen_waiting_message: values.screen_waiting_message,
+      screen_break_message: values.screen_break_message,
+      screen_join_message: values.screen_join_message,
+      screen_survey_message: values.screen_survey_message,
+      screen_qna_message: values.screen_qna_message,
+      screen_draw_message: values.screen_draw_message,
+      screen_footer_message: values.screen_footer_message,
+      screen_show_logo: values.screen_show_logo,
       participant_title: values.participant_title,
       participant_description: values.participant_description,
       participant_show_quiz: values.participant_show_quiz,
@@ -447,5 +498,7 @@ export async function updateEventAction(
   revalidatePath(`/e/${event.event_code}/survey`);
   revalidatePath(`/api/participant/${event.event_code}/state`);
   revalidatePath(`/api/participant/${event.event_code}/surveys/active`);
+  revalidatePath(`/screen/${event.event_code}`);
+  revalidatePath(`/api/screen/${event.event_code}/state`);
   redirect(`/admin/events/${eventId}/settings?message=updated`);
 }

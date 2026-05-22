@@ -14,6 +14,16 @@ type ScreenEvent = {
   primary_color: string | null;
   logo_url: string | null;
   screen_notice: string | null;
+  screen_title: string | null;
+  screen_subtitle: string | null;
+  screen_waiting_message: string | null;
+  screen_break_message: string | null;
+  screen_join_message: string | null;
+  screen_survey_message: string | null;
+  screen_qna_message: string | null;
+  screen_draw_message: string | null;
+  screen_footer_message: string | null;
+  screen_show_logo: boolean | null;
   is_active: boolean | null;
 };
 
@@ -85,6 +95,16 @@ function toPublicEvent(event: ScreenEvent) {
     primary_color: event.primary_color,
     logo_url: event.logo_url,
     screen_notice: event.screen_notice,
+    screen_title: event.screen_title,
+    screen_subtitle: event.screen_subtitle,
+    screen_waiting_message: event.screen_waiting_message,
+    screen_break_message: event.screen_break_message,
+    screen_join_message: event.screen_join_message,
+    screen_survey_message: event.screen_survey_message,
+    screen_qna_message: event.screen_qna_message,
+    screen_draw_message: event.screen_draw_message,
+    screen_footer_message: event.screen_footer_message,
+    screen_show_logo: event.screen_show_logo,
   };
 }
 
@@ -110,7 +130,7 @@ export async function getPublicScreenState(
   const { data: event, error: eventError } = await supabase
     .from("events")
     .select(
-      "id, event_code, title, subtitle, venue, primary_color, logo_url, screen_notice, is_active"
+      "id, event_code, title, subtitle, venue, primary_color, logo_url, screen_notice, screen_title, screen_subtitle, screen_waiting_message, screen_break_message, screen_join_message, screen_survey_message, screen_qna_message, screen_draw_message, screen_footer_message, screen_show_logo, is_active"
     )
     .eq("event_code", normalizedEventCode)
     .maybeSingle();

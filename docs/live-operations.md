@@ -73,6 +73,56 @@ event setup values. If an event clone workflow is used, these values should be
 copied with the event setup data, while participant data, responses, Q&A
 submissions, winners, and logs remain excluded.
 
+## Screen Display Settings
+
+Admins can configure venue-screen copy at `/admin/events/[eventId]/settings` in
+the "스크린 화면 설정" section.
+
+Event-level screen settings:
+
+- `screen_title`: optional venue screen title.
+- `screen_subtitle`: optional venue screen subtitle.
+- `screen_waiting_message`: waiting-screen guidance.
+- `screen_break_message`: break-screen guidance.
+- `screen_join_message`: QR join-screen guidance.
+- `screen_survey_message`: survey-screen guidance.
+- `screen_qna_message`: Q&A-screen guidance.
+- `screen_draw_message`: lucky draw-screen guidance.
+- `screen_footer_message`: optional footer shown on venue screen scenes.
+- `screen_show_logo`: controls whether `logo_url` is displayed on the venue
+  screen.
+
+Fallback priority is:
+
+1. New screen-specific settings.
+2. Existing live screen payload copy for the current scene, where applicable.
+3. Existing event fields such as `title`, `subtitle`, and `screen_notice`.
+4. Safe built-in defaults.
+
+The older `screen_notice` field is still supported and remains a general venue
+notice fallback. The screen settings are public display copy only; they do not
+change quiz, Q&A, survey, draw, screen polling, or participant feature
+availability. `screen_show_logo=false` hides `logo_url` on `/screen/[eventCode]`
+only.
+
+For survey + draw events, emphasize `screen_survey_message` and
+`screen_draw_message`. For quiz shows, emphasize QR entry and quiz participation
+copy. For forums, emphasize `screen_qna_message`.
+
+These values are event setup values. If an event clone workflow copies event
+setup, include:
+
+- `screen_title`
+- `screen_subtitle`
+- `screen_waiting_message`
+- `screen_break_message`
+- `screen_join_message`
+- `screen_survey_message`
+- `screen_qna_message`
+- `screen_draw_message`
+- `screen_footer_message`
+- `screen_show_logo`
+
 ## Event Clone Workflow
 
 Admins can open `/admin/events/[eventId]/clone` from the event detail page or
@@ -304,6 +354,10 @@ The survey management page can send these screens directly. Pressing
 The screen API must never return raw `live_state.screen_payload`.
 
 Allowed fields are selected per scene.
+
+The public event object may include display-only event settings such as
+`screen_title`, `screen_subtitle`, scene messages, `screen_footer_message`,
+`screen_show_logo`, `primary_color`, `logo_url`, and `screen_notice`.
 
 ### `qna_question`
 

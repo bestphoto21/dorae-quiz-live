@@ -15,6 +15,16 @@ type EditableEvent = {
   primary_color: string | null;
   logo_url: string | null;
   screen_notice: string | null;
+  screen_title: string | null;
+  screen_subtitle: string | null;
+  screen_waiting_message: string | null;
+  screen_break_message: string | null;
+  screen_join_message: string | null;
+  screen_survey_message: string | null;
+  screen_qna_message: string | null;
+  screen_draw_message: string | null;
+  screen_footer_message: string | null;
+  screen_show_logo: boolean | null;
   participant_title: string | null;
   participant_description: string | null;
   participant_show_quiz: boolean | null;
@@ -232,6 +242,199 @@ export default function SettingsEventForm({
           className={`${inputClasses()} resize-y leading-7`}
         />
       </div>
+
+      <section className="grid gap-5 rounded-2xl border border-slate-200 bg-slate-50 p-5">
+        <div>
+          <h2 className="text-xl font-black text-[color:#0a1a38]">
+            스크린 화면 설정
+          </h2>
+          <p className="mt-2 text-sm font-bold leading-6 text-slate-700">
+            행사장 대형 스크린에 표시되는 제목과 안내 문구를 설정합니다. 행사
+            유형에 맞게 대기, QR, 설문, Q&A, 추첨 화면의 문구를 바꿀 수
+            있습니다.
+          </p>
+        </div>
+
+        <div className="grid gap-5 lg:grid-cols-2">
+          <div>
+            <label htmlFor="screen_title" className={labelClasses()}>
+              스크린 제목
+            </label>
+            <input
+              id="screen_title"
+              name="screen_title"
+              type="text"
+              defaultValue={values?.screen_title ?? event.screen_title ?? ""}
+              className={inputClasses()}
+              placeholder="실시간 참여 이벤트"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="screen_subtitle" className={labelClasses()}>
+              스크린 보조 문구
+            </label>
+            <input
+              id="screen_subtitle"
+              name="screen_subtitle"
+              type="text"
+              defaultValue={
+                values?.screen_subtitle ?? event.screen_subtitle ?? ""
+              }
+              className={inputClasses()}
+              placeholder="QR을 찍고 행사에 참여해주세요."
+            />
+          </div>
+        </div>
+
+        <div className="grid gap-5 lg:grid-cols-2">
+          <div>
+            <label htmlFor="screen_waiting_message" className={labelClasses()}>
+              대기 화면 문구
+            </label>
+            <textarea
+              id="screen_waiting_message"
+              name="screen_waiting_message"
+              rows={2}
+              defaultValue={
+                values?.screen_waiting_message ??
+                event.screen_waiting_message ??
+                ""
+              }
+              className={`${inputClasses()} resize-y leading-7`}
+              placeholder="잠시 후 행사가 시작됩니다."
+            />
+          </div>
+
+          <div>
+            <label htmlFor="screen_break_message" className={labelClasses()}>
+              휴식 화면 문구
+            </label>
+            <textarea
+              id="screen_break_message"
+              name="screen_break_message"
+              rows={2}
+              defaultValue={
+                values?.screen_break_message ??
+                event.screen_break_message ??
+                ""
+              }
+              className={`${inputClasses()} resize-y leading-7`}
+              placeholder="잠시 쉬어가겠습니다."
+            />
+          </div>
+
+          <div>
+            <label htmlFor="screen_join_message" className={labelClasses()}>
+              QR 입장 안내 문구
+            </label>
+            <textarea
+              id="screen_join_message"
+              name="screen_join_message"
+              rows={2}
+              defaultValue={
+                values?.screen_join_message ?? event.screen_join_message ?? ""
+              }
+              className={`${inputClasses()} resize-y leading-7`}
+              placeholder="화면의 QR을 찍고 입장해주세요."
+            />
+          </div>
+
+          <div>
+            <label htmlFor="screen_survey_message" className={labelClasses()}>
+              설문 안내 문구
+            </label>
+            <textarea
+              id="screen_survey_message"
+              name="screen_survey_message"
+              rows={2}
+              defaultValue={
+                values?.screen_survey_message ??
+                event.screen_survey_message ??
+                ""
+              }
+              className={`${inputClasses()} resize-y leading-7`}
+              placeholder="지금부터 1분간 설문조사를 진행합니다."
+            />
+          </div>
+
+          <div>
+            <label htmlFor="screen_qna_message" className={labelClasses()}>
+              Q&A 안내 문구
+            </label>
+            <textarea
+              id="screen_qna_message"
+              name="screen_qna_message"
+              rows={2}
+              defaultValue={
+                values?.screen_qna_message ?? event.screen_qna_message ?? ""
+              }
+              className={`${inputClasses()} resize-y leading-7`}
+              placeholder="질문을 남겨주시면 진행자가 확인 후 소개합니다."
+            />
+          </div>
+
+          <div>
+            <label htmlFor="screen_draw_message" className={labelClasses()}>
+              럭키드로우 안내 문구
+            </label>
+            <textarea
+              id="screen_draw_message"
+              name="screen_draw_message"
+              rows={2}
+              defaultValue={
+                values?.screen_draw_message ?? event.screen_draw_message ?? ""
+              }
+              className={`${inputClasses()} resize-y leading-7`}
+              placeholder="곧 경품 추첨을 진행합니다."
+            />
+          </div>
+        </div>
+
+        <div>
+          <label htmlFor="screen_footer_message" className={labelClasses()}>
+            푸터 문구
+          </label>
+          <input
+            id="screen_footer_message"
+            name="screen_footer_message"
+            type="text"
+            defaultValue={
+              values?.screen_footer_message ??
+              event.screen_footer_message ??
+              ""
+            }
+            className={inputClasses()}
+            placeholder="참여해주셔서 감사합니다."
+          />
+        </div>
+
+        <label className="flex items-start gap-3 rounded-2xl border border-white bg-white p-4 shadow-sm">
+          <input
+            name="screen_show_logo"
+            type="checkbox"
+            defaultChecked={featureChecked(
+              values?.screen_show_logo,
+              event.screen_show_logo
+            )}
+            className="mt-1 h-5 w-5 rounded border-slate-300"
+          />
+          <span>
+            <span className="block text-base font-black text-[color:#0a1a38]">
+              로고 표시
+            </span>
+            <span className="mt-1 block text-sm leading-6 text-slate-600">
+              로고 URL이 있을 때 행사장 스크린 상단에 로고를 표시합니다.
+            </span>
+          </span>
+        </label>
+
+        <div className="rounded-2xl border border-cyan-200 bg-cyan-50 p-4 text-sm font-bold leading-6 text-cyan-950">
+          설문+추첨 행사는 설문 안내와 추첨 안내 문구를 강조하고, 퀴즈쇼
+          행사는 QR 입장 안내와 퀴즈 참여 문구를 강조하는 구성을 권장합니다.
+          포럼/Q&A 행사는 Q&A 안내 문구를 먼저 맞춰주세요.
+        </div>
+      </section>
 
       <section className="grid gap-5 rounded-2xl border border-slate-200 bg-slate-50 p-5">
         <div>

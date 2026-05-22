@@ -26,6 +26,16 @@ export type EventRecord = {
   primary_color: string | null;
   logo_url: string | null;
   screen_notice: string | null;
+  screen_title: string | null;
+  screen_subtitle: string | null;
+  screen_waiting_message: string | null;
+  screen_break_message: string | null;
+  screen_join_message: string | null;
+  screen_survey_message: string | null;
+  screen_qna_message: string | null;
+  screen_draw_message: string | null;
+  screen_footer_message: string | null;
+  screen_show_logo: boolean | null;
   participant_title: string | null;
   participant_description: string | null;
   participant_show_quiz: boolean | null;
@@ -48,6 +58,16 @@ const EVENT_SELECT = `
   primary_color,
   logo_url,
   screen_notice,
+  screen_title,
+  screen_subtitle,
+  screen_waiting_message,
+  screen_break_message,
+  screen_join_message,
+  screen_survey_message,
+  screen_qna_message,
+  screen_draw_message,
+  screen_footer_message,
+  screen_show_logo,
   participant_title,
   participant_description,
   participant_show_quiz,

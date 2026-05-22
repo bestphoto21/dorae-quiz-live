@@ -135,6 +135,11 @@ The rolling animation is presentation only. The selected winner is inserted into
 `draw_winners` before the screen starts the animation, and the final result uses
 that saved winner.
 
+The venue screen lucky-draw guidance can be customized from event settings with
+`screen_draw_message`. This changes display copy only. It does not change winner
+selection, saved draw results, rolling duration, countdown, canvas-confetti, or
+the optional pop sound.
+
 ## Celebration Effect
 
 When the final winner screen appears, the screen plays a short celebration effect:
@@ -226,6 +231,10 @@ Not copied:
 
 The cloned event starts with the same prize list and zero winners. Operators
 must run a new draw in the cloned event to create new `draw_winners` rows.
+
+Venue screen display settings, including `screen_draw_message`, are event setup
+values. Future clone work should include them with setup data while still never
+copying `draw_winners` or participant/contact data.
 
 ## Survey Respondent Draw Screen Flow
 

@@ -94,6 +94,27 @@ Use the seed output for the exact event ID. For the default event code:
 13. Turn all participant features back on and confirm the existing quiz, Q&A, survey, and draw participant flow appears again.
 14. Confirm admin survey/Q&A/draw pages and `/screen/sim-202606` still follow the operator-controlled `live_state`.
 
+## Screen Display Settings Test
+
+1. Open `/admin/events/[eventId]/settings`.
+2. Save screen title "설문 참여 이벤트".
+3. Save screen subtitle "설문 제출 후 경품 추첨이 진행됩니다."
+4. Save waiting message "잠시 후 설문 이벤트가 시작됩니다."
+5. Save QR message "QR을 찍고 입장한 뒤 설문에 참여해주세요."
+6. Save survey message "지금부터 1분간 설문조사를 진행합니다."
+7. Save lucky draw message "설문 제출자 중 무작위 추첨을 진행합니다."
+8. Save footer message "참여해주셔서 감사합니다."
+9. Turn logo display off.
+10. Open `/screen/sim-202606`.
+11. Send waiting, QR, survey, Q&A, draw-ready, and draw-winner scenes.
+12. Confirm each scene uses the configured title/message where applicable and
+    the footer appears.
+13. Confirm `logo_url` is hidden when logo display is off and shown again when
+    logo display is turned back on.
+14. Confirm `/api/screen/sim-202606/state` does not expose participant IDs,
+    phone numbers, email addresses, raw `screen_payload`, secrets, tokens, or
+    keys.
+
 ## Rehearsal Flow
 
 1. Open `/admin/events` and confirm the simulation event appears.
@@ -166,6 +187,8 @@ Use the seed output for the exact event ID. For the default event code:
 - The QR connects to `/e/[eventCode]/join`.
 - Participant screen settings hide disabled quiz/Q&A/survey buttons and block
   disabled participant submission paths.
+- Screen display settings customize venue-screen title, scene messages, footer,
+  and logo visibility without exposing raw screen payload.
 - Lucky draw rolling names contain display names only, and the final winner is the saved DB winner.
 - Lucky draw celebration is a canvas-confetti central burst screen effect and does not expose private data.
 - Lucky draw sound is optional, screen-only, and requires the screen operator to enable audio first.

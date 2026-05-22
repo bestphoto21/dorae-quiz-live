@@ -75,6 +75,10 @@ Important fields:
 - `title`, `subtitle`, `venue`: event display information
 - `starts_at`, `ends_at`: schedule metadata
 - `primary_color`, `logo_url`, `screen_notice`: branding and screen display settings
+- `screen_title`, `screen_subtitle`, `screen_waiting_message`,
+  `screen_break_message`, `screen_join_message`, `screen_survey_message`,
+  `screen_qna_message`, `screen_draw_message`, `screen_footer_message`,
+  `screen_show_logo`: optional venue-screen display customization settings
 - `is_active`: allows an event to be hidden or disabled without deleting it
 
 ### `participants`
