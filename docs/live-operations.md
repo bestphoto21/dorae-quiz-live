@@ -164,6 +164,42 @@ After cloning, check:
 6. Prize list and quantities.
 7. Participant, survey response, Q&A, and winner counts are zero.
 
+## Rehearsal Data Reset
+
+Admins can open `/admin/events/[eventId]/rehearsal` to reset rehearsal data
+after testing. The page keeps event setup and content, but can selectively clear
+operational data created during rehearsal.
+
+Preserved:
+
+- event basic information, participant screen settings, and venue screen settings
+- quiz sessions and questions
+- survey forms and survey questions
+- prize names and quantities
+- admin access and event settings
+- operation log history, except that a new reset log is added
+
+Selectable reset targets:
+
+- participants
+- quiz answers
+- survey responses and survey answers
+- submitted Q&A questions
+- lucky draw winners
+- survey form runtime status and timer fields
+- `live_state` back to `mode = waiting`, `screen_scene = waiting`, and empty
+  `screen_payload`
+
+The reset form starts with nothing selected. Operators must type
+`RESET [event_code]`, for example `RESET sim-202606`, and then accept the
+browser confirmation prompt. Use this only for rehearsal or test events; the
+delete actions cannot be undone.
+
+The reset operation writes `operation_logs.action = reset_rehearsal_data` with
+the selected reset target names and count. The log detail must not include
+participant ids, phone numbers, emails, secrets, tokens, keys, passwords, or raw
+screen payloads.
+
 ## Mode And Scene
 
 `live_state.mode` is the database-level state. Its allowed values are defined by the existing schema:

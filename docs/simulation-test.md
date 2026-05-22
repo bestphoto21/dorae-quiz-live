@@ -71,6 +71,7 @@ Use the seed output for the exact event ID. For the default event code:
 - Survey management: `/admin/events/[eventId]/surveys`
 - Result downloads: `/admin/events/[eventId]/exports`
 - Event clone: `/admin/events/[eventId]/clone`
+- Rehearsal reset: `/admin/events/[eventId]/rehearsal`
 - Operation logs: `/admin/events/[eventId]/logs`
 - Participant join: `/e/sim-202606/join`
 - Participant play: `/e/sim-202606/play`
@@ -179,6 +180,31 @@ Use the seed output for the exact event ID. For the default event code:
 60. Confirm participants, quiz answers, Q&A questions, draw winners, and source operation logs were not copied.
 61. Confirm the cloned event screen opens in waiting state with an empty payload.
 
+## Rehearsal Reset Test
+
+1. Open `/admin/events/[eventId]/rehearsal`.
+2. Confirm participant, quiz answer, survey response, Q&A, winner, live-state,
+   active-survey, and closed-survey counts appear without personal details.
+3. Confirm the reset button is disabled when no target is selected.
+4. Select only screen state reset and confirm the button stays disabled until
+   `RESET sim-202606` is typed exactly.
+5. Accept the browser confirmation and confirm `/screen/sim-202606` returns to
+   the waiting screen.
+6. Select survey response reset and confirm `survey_responses` and
+   `survey_answers` are cleared while survey forms and questions remain.
+7. Select survey status reset and confirm survey forms return to `draft` with
+   timer fields empty.
+8. Select lucky draw winner reset and confirm `draw_winners` are cleared while
+   prizes remain.
+9. Select Q&A reset and confirm submitted Q&A questions are cleared.
+10. Select participant reset only on a rehearsal event and confirm participants
+    and participant-owned answers/responses/winners are cleared.
+11. Confirm a `reset_rehearsal_data` operation log was added with only reset
+    target names/counts and no participant ids, phone numbers, emails, secrets,
+    tokens, keys, passwords, or raw `screen_payload`.
+12. Confirm event settings, participant screen settings, venue screen settings,
+    quiz questions, survey forms/questions, and prizes remain.
+
 ## Must Check
 
 - The screen does not show phone, email, secrets, or raw `screen_payload`.
@@ -210,6 +236,8 @@ Use the seed output for the exact event ID. For the default event code:
 - Event clone copies only setup data and never copies participants, answers,
   survey responses, submitted Q&A, winners, source logs, or raw screen payloads.
 - Event clone includes participant feature settings and screen display settings.
+- Rehearsal reset preserves event setup/content and clears only the selected
+  operational data after exact `RESET [event_code]` confirmation.
 - Timed surveys run for 60 seconds, auto-close lazily, and show submitted count/rate on the screen.
 - `/e/[eventCode]/play` shows the active survey card automatically while a timed survey is open.
 - Live screen changes appear in about 1-2 seconds while the screen window is visible.

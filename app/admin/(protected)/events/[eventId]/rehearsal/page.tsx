@@ -9,9 +9,14 @@ import {
 } from "@/lib/auth/events";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import ChecklistClient from "./ChecklistClient";
+import ResetRehearsalForm from "./ResetRehearsalForm";
+import { resetRehearsalDataAction } from "./actions";
 
 type RehearsalPageProps = {
   params: Promise<{ eventId: string }>;
+  searchParams: Promise<{
+    message?: string | string[];
+  }>;
 };
 
 type QuizSessionRow = {
@@ -32,6 +37,76 @@ type LiveStateRow = {
 type QnaStatus = "pending" | "approved" | "hidden" | "deleted";
 
 type RehearsalStatus = "ok" | "warn" | "danger";
+
+type ResetSummary = {
+  quizAnswerCount: number;
+  surveyResponseCount: number;
+  activeSurveyCount: number;
+  closedSurveyCount: number;
+};
+
+function getSingle(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function canResetRehearsalData(role: string | null) {
+  return role === "super_admin" || role === "event_admin" || role === "operator";
+}
+
+function buildResetControlScript(expectedConfirmation: string) {
+  const confirmMessage =
+    "선택한 데이터가 삭제됩니다. 이 작업은 되돌릴 수 없습니다. 계속할까요?";
+  const pendingLabel = "초기화 중...";
+
+  return `
+(() => {
+  const form = document.getElementById("rehearsal-reset-form");
+  const button = document.getElementById("rehearsal-reset-submit");
+  const confirmation = document.getElementById("confirmation");
+  const expected = ${JSON.stringify(expectedConfirmation)};
+  const confirmMessage = ${JSON.stringify(confirmMessage)};
+  const pendingLabel = ${JSON.stringify(pendingLabel)};
+
+  if (!form || !button || !confirmation) {
+    return;
+  }
+
+  const isTargetInput = (element) =>
+    element &&
+    element.tagName === "INPUT" &&
+    element.getAttribute("name") === "targets";
+
+  const update = () => {
+    const hasTarget = Array.from(form.elements).some(
+      (element) => isTargetInput(element) && element.checked
+    );
+    button.disabled = !(hasTarget && confirmation.value.trim() === expected);
+  };
+
+  form.addEventListener("input", update);
+  form.addEventListener("change", update);
+  form.addEventListener("submit", (event) => {
+    update();
+
+    if (button.disabled) {
+      event.preventDefault();
+      return;
+    }
+
+    if (!window.confirm(confirmMessage)) {
+      event.preventDefault();
+      return;
+    }
+
+    button.disabled = true;
+    button.textContent = pendingLabel;
+  });
+
+  window.setInterval(update, 250);
+  update();
+})();
+`;
+}
 
 function formatDateTime(value: string | null) {
   if (!value) {
@@ -333,8 +408,67 @@ async function getLiveState(eventId: string) {
   return data as LiveStateRow | null;
 }
 
-export default async function RehearsalPage({ params }: RehearsalPageProps) {
+async function getCount({
+  table,
+  eventId,
+  status,
+}: {
+  table: string;
+  eventId: string;
+  status?: string;
+}) {
+  const supabase = createAdminSupabaseClient();
+  let query = supabase
+    .from(table)
+    .select("id", { count: "exact", head: true })
+    .eq("event_id", eventId);
+
+  if (status) {
+    query = query.eq("status", status);
+  }
+
+  const { count, error } = await query;
+
+  if (error) {
+    console.error("[rehearsal] Failed to count reset summary rows.", {
+      table,
+      eventId,
+      status,
+      message: error.message,
+      code: error.code,
+    });
+  }
+
+  return count ?? 0;
+}
+
+async function getResetSummary(eventId: string): Promise<ResetSummary> {
+  const [
+    quizAnswerCount,
+    surveyResponseCount,
+    activeSurveyCount,
+    closedSurveyCount,
+  ] = await Promise.all([
+    getCount({ table: "answers", eventId }),
+    getCount({ table: "survey_responses", eventId }),
+    getCount({ table: "survey_forms", eventId, status: "open" }),
+    getCount({ table: "survey_forms", eventId, status: "closed" }),
+  ]);
+
+  return {
+    quizAnswerCount,
+    surveyResponseCount,
+    activeSurveyCount,
+    closedSurveyCount,
+  };
+}
+
+export default async function RehearsalPage({
+  params,
+  searchParams,
+}: RehearsalPageProps) {
   const { eventId } = await params;
+  const query = await searchParams;
   const { admin, event } = await requireEventAccess(eventId);
   const role = await getEventScopedRole(admin, eventId);
 
@@ -342,23 +476,34 @@ export default async function RehearsalPage({ params }: RehearsalPageProps) {
     redirect("/admin/events");
   }
 
-  const [participants, quiz, qna, draw, liveState] = await Promise.all([
-    getParticipantSummary(eventId),
-    getQuizSummary(eventId),
-    getQnaSummary(eventId),
-    getDrawSummary(eventId),
-    getLiveState(eventId),
-  ]);
+  const [participants, quiz, qna, draw, liveState, resetSummary] =
+    await Promise.all([
+      getParticipantSummary(eventId),
+      getQuizSummary(eventId),
+      getQnaSummary(eventId),
+      getDrawSummary(eventId),
+      getLiveState(eventId),
+      getResetSummary(eventId),
+    ]);
   const participantUrl = `/e/${event.event_code}`;
   const screenUrl = `/screen/${event.event_code}`;
   const liveUrl = `/admin/events/${eventId}/live`;
+  const message = getSingle(query.message)?.trim() ?? "";
+  const resetAction = resetRehearsalDataAction.bind(null, eventId);
+  const canReset = canResetRehearsalData(role);
 
   return (
     <AdminShell
-      title="리허설 체크"
-      description="행사 전날 또는 당일 아침에 운영 준비 상태를 한 화면에서 확인합니다."
+      title="리허설 데이터 초기화"
+      description="행사 설정, 문제, 설문지, 경품 목록은 유지하고 리허설 중 생성된 참가자/응답/당첨 데이터를 선택적으로 초기화합니다."
     >
       <div className="grid gap-5">
+        {message && (
+          <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 text-sm font-black leading-6 text-emerald-950">
+            {message}
+          </div>
+        )}
+
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           <CheckCard
             title="행사 기본 상태"
@@ -487,6 +632,57 @@ export default async function RehearsalPage({ params }: RehearsalPageProps) {
             />
           </CheckCard>
         </div>
+
+        <AdminPanel
+          title="리허설 데이터 초기화"
+          description="행사 설정, 문제, 설문지, 경품 목록은 유지하고 리허설 중 생성된 참가자/응답/당첨 데이터를 선택적으로 초기화합니다."
+        >
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <Metric label="참가자 수" value={participants.count} />
+            <Metric label="퀴즈 답변 수" value={resetSummary.quizAnswerCount} />
+            <Metric
+              label="설문 응답 수"
+              value={resetSummary.surveyResponseCount}
+            />
+            <Metric label="Q&A 질문 수" value={qna.total} />
+            <Metric label="당첨자 수" value={draw.winnerCount} />
+            <Metric
+              label="현재 live_state"
+              value={`${liveModeLabel(liveState?.mode)} / ${sceneLabel(
+                liveState?.screen_scene
+              )}`}
+            />
+            <Metric
+              label="진행 중인 설문 수"
+              value={resetSummary.activeSurveyCount}
+            />
+            <Metric
+              label="마감된 설문 수"
+              value={resetSummary.closedSurveyCount}
+            />
+          </div>
+
+          <div className="mt-6">
+            {canReset ? (
+              <>
+                <ResetRehearsalForm
+                  eventCode={event.event_code}
+                  action={resetAction}
+                />
+                <script
+                  dangerouslySetInnerHTML={{
+                    __html: buildResetControlScript(`RESET ${event.event_code}`),
+                  }}
+                />
+              </>
+            ) : (
+              <p className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold leading-6 text-amber-950">
+                현재 역할은 리허설 데이터 초기화 권한이 없습니다. event_admin,
+                operator, super_admin에게 요청해주세요.
+              </p>
+            )}
+          </div>
+        </AdminPanel>
 
         <AdminPanel
           title="현장 바로가기"

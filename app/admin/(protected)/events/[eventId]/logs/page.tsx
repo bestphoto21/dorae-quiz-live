@@ -46,6 +46,7 @@ const ALLOWED_DETAIL_KEYS = new Set([
   "winner_id",
   "draw_result_id",
   "participant_count",
+  "reset_target_count",
   "source_type",
   "source_question_id",
 ]);
@@ -127,7 +128,11 @@ function sanitizeDetail(detail: unknown) {
 }
 
 function actionTone(action: string) {
-  if (IMPORTANT_ACTIONS.has(action) || action.includes("deleted")) {
+  if (
+    IMPORTANT_ACTIONS.has(action) ||
+    action.includes("deleted") ||
+    action.includes("reset")
+  ) {
     return "rose";
   }
 
@@ -147,6 +152,7 @@ function actionLabel(action: string) {
     event_created: "행사 생성",
     event_cloned: "행사 복제 생성",
     event_updated: "행사 수정",
+    reset_rehearsal_data: "리허설 데이터 초기화",
     quiz_session_created: "퀴즈 세션 생성",
     quiz_session_updated: "퀴즈 세션 수정",
     quiz_session_deleted: "퀴즈 세션 삭제",
@@ -288,6 +294,7 @@ function detailLabel(key: string) {
     winner_id: "당첨자 ID",
     draw_result_id: "추첨 결과 ID",
     participant_count: "참가자 수",
+    reset_target_count: "초기화 항목 수",
     source_type: "추첨 대상",
     source_question_id: "추첨 문제 ID",
   };

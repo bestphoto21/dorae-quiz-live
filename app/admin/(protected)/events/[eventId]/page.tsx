@@ -308,8 +308,8 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
             />
             <OperatorLink
               href={`/admin/events/${eventId}/rehearsal`}
-              title="리허설 체크"
-              description="행사 전 점검 상태와 필수 리허설 항목을 한 화면에서 확인합니다."
+              title="리허설 초기화"
+              description="점검 상태를 확인하고 리허설 중 생성된 참가자/응답/당첨 데이터를 선택적으로 초기화합니다."
             />
             <OperatorLink
               href={`/admin/events/${eventId}/logs`}

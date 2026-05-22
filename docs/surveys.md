@@ -237,6 +237,27 @@ This means a cloned event keeps the survey template but has no submitters,
 answers, respondent draw candidates, or response review data until participants
 join the new event and submit again.
 
+## Rehearsal Reset Behavior
+
+The rehearsal reset page at `/admin/events/[eventId]/rehearsal` can clear survey
+participation data without deleting the survey setup.
+
+When "설문 응답 초기화" is selected:
+
+- `survey_answers` are deleted first.
+- `survey_responses` are deleted after the answers.
+- `survey_forms` and `survey_questions` remain.
+
+When "설문 진행 상태 초기화" is selected:
+
+- every event survey form returns to `draft`
+- `active_started_at`, `active_ends_at`, and `closed_at` are set to `null`
+- survey questions and options remain available for the real event
+
+If participant reset is selected, participant-owned survey submissions are also
+cleared so stale rehearsal submissions cannot remain attached to deleted
+participants.
+
 ## Default Question Set
 
 When a selected survey has no questions, admins can press "기본 질문 10개 추가".

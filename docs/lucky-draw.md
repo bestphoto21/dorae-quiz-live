@@ -236,6 +236,22 @@ Venue screen display settings, including `screen_draw_message`, are event setup
 values. The event clone workflow copies them with setup data while still never
 copying `draw_winners` or participant/contact data.
 
+## Rehearsal Reset Behavior
+
+The rehearsal reset page at `/admin/events/[eventId]/rehearsal` can clear lucky
+draw rehearsal results.
+
+When "럭키드로우 당첨 기록 초기화" is selected:
+
+- `draw_winners` rows for the event are deleted.
+- `prizes` rows are preserved.
+- prize names and quantities stay unchanged.
+
+The current prize availability is derived from the prize quantity and active
+winner rows, so clearing `draw_winners` returns the event to zero winners without
+rewriting the prize list. If participant reset is selected, participant-owned
+winner rows are also cleared before participants are deleted.
+
 ## Survey Respondent Draw Screen Flow
 
 When the draw source is `survey_respondents`, candidates come from
