@@ -228,6 +228,32 @@ Use the seed output for the exact event ID. For the default event code:
     participant IDs, survey answer details, raw operation log detail, secrets,
     tokens, keys, passwords, or raw `screen_payload`.
 
+## Unified Operations Console Test
+
+1. Open `/admin/events/[eventId]/operations`.
+2. Confirm the current screen status card, screen URL, participant join URL, and
+   participant play URL are visible.
+3. Confirm waiting, break, and QR screen buttons show confirm prompts and
+   pending text, then return to the operations console after submit.
+4. Confirm survey cards show status, question count, participant count,
+   submission count, submission rate, and remaining time for open surveys.
+5. Confirm a survey with no questions cannot be started from the console.
+6. Start a one-minute survey and confirm `/screen/[eventCode]` changes to the
+   survey active scene.
+7. Close the survey and confirm the screen changes to the survey closed scene.
+8. Confirm Q&A counts and recent question text/status are visible without phone,
+   email, participant ID, or participant contact fields.
+9. Confirm the latest approved Q&A action shows a confirm prompt and uses the
+   existing approved-question screen output behavior.
+10. Confirm lucky draw counts, recent winner summary, ready-screen output, and
+    latest-result replay are visible.
+11. Confirm there is no new-winner draw button on the unified console; new draws
+    remain on the lucky draw management page.
+12. Confirm operation links open checklist, rehearsal reset, exports, settings,
+    participant screen, and venue screen.
+13. Confirm the console does not expose survey answer details, raw operation log
+    detail, secrets, tokens, keys, passwords, or raw `screen_payload`.
+
 ## Must Check
 
 - The screen does not show phone, email, secrets, or raw `screen_payload`.
@@ -263,6 +289,8 @@ Use the seed output for the exact event ID. For the default event code:
   operational data after exact `RESET [event_code]` confirmation.
 - Operation checklist is read-only, count-based, and links to the right setup
   pages without exposing personal data.
+- Unified operations console is count/status based, reuses the existing screen
+  control principles, and does not provide a new lucky draw execution path.
 - Timed surveys run for 60 seconds, auto-close lazily, and show submitted count/rate on the screen.
 - `/e/[eventCode]/play` shows the active survey card automatically while a timed survey is open.
 - Live screen changes appear in about 1-2 seconds while the screen window is visible.

@@ -604,6 +604,35 @@ Survey expiration is lazy in server code. When an active survey has passed
 `active_ends_at`, survey reads, submissions, and the screen state API treat it
 as closed and return safe closed/status data.
 
+## Unified Operations Console
+
+Use `/admin/events/[eventId]/operations` as the main field-operator screen
+during a live event. It gathers the high-frequency controls from the existing
+live, survey, Q&A, and lucky draw pages without replacing those detailed pages.
+
+The console includes:
+
+- Current screen status, screen URL, participant join URL, and participant play URL.
+- Quick screen controls for waiting, break, and QR join scenes.
+- Survey cards with status, question count, participant count, submission count,
+  submission rate, remaining time, start, close, and status-screen buttons.
+- Q&A counts and recent question text/status, plus a quick action to show the
+  latest approved question.
+- Lucky draw counts, recent winner summary, a ready-screen button, and a latest
+  winner replay button.
+- Participant status counts and participant feature ON/OFF settings.
+- Links to the operation checklist, rehearsal reset, result exports, settings,
+  participant screen, and venue screen.
+
+New winner selection should still be done from the lucky draw management page
+because it requires deliberate source and prize selection. The unified console
+only sends the ready scene or replays an already saved winner. Replaying a
+winner is not a new draw.
+
+The console is count/status oriented. It must not show phone numbers, email
+addresses, participant IDs, survey answer details, raw operation log detail, or
+raw `screen_payload`.
+
 ## Rehearsal Checklist
 
 1. Confirm admin login.

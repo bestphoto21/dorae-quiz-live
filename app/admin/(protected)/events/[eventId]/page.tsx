@@ -297,6 +297,11 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
               description="문제 시작, 정답 공개, 결과 송출을 운영하는 화면입니다."
             />
             <OperatorLink
+              href={`/admin/events/${eventId}/operations`}
+              title="통합 운영 콘솔"
+              description="현장 운영 중 자주 쓰는 화면 송출, 설문, Q&A, 럭키드로우 상태를 한 화면에서 제어합니다."
+            />
+            <OperatorLink
               href={`/admin/events/${eventId}/draw`}
               title="추첨"
               description="참가자 또는 정답자 기준 추첨을 진행하고 스크린에 발표합니다."
