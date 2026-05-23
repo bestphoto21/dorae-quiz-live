@@ -2,6 +2,10 @@
 
 This guide creates a fake rehearsal event for local or staging QA. It must not be used with real participant data.
 
+For the full pre-event rehearsal order, use
+[End-to-End Rehearsal QA Checklist](./e2e-rehearsal-qa.md) together with this
+simulation guide.
+
 ## Purpose
 
 - Create one `sim-` event.

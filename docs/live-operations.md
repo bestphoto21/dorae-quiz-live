@@ -4,6 +4,13 @@ This document explains the field-operation workflow for the integrated live cons
 
 The goal is not to add a new feature area, but to make quiz, Q&A, lucky draw, participant entry, and screen output safer to run during a live event.
 
+## Related QA Documents
+
+- [End-to-End Rehearsal QA Checklist](./e2e-rehearsal-qa.md)
+- [Bug Report Template](./bug-report-template.md)
+- [Field Issue Log Template](./field-issue-log-template.md)
+- [Pre-Event Release Checklist](./pre-event-release-checklist.md)
+
 ## Console Purpose
 
 The live console at `/admin/events/[eventId]/live` is the operator's main stage-control page.
